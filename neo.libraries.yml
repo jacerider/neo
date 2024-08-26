@@ -1,0 +1,51 @@
+coloris:
+  version: VERSION
+  neo: { group: contrib }
+  js:
+    src/js/coloris.ts: {}
+  dependencies:
+    - core/once
+    - core/drupal
+    - neo/library.coloris
+
+animate:
+  version: VERSION
+  neo: { group: contrib }
+  css:
+    component:
+      src/css/animate.scss: {}
+
+# Libraries
+
+library.alpine:
+  version: 3.13.8
+  license:
+    name: MIT
+    url: https://github.com/alpinejs/alpine/blob/master/LICENSE.md
+    gpl-compatible: true
+  header: true
+  js:
+    dist/js/library.alpinejs.min.js: { minified: true, attributes: { defer: true } }
+
+library.coloris:
+  version: 0.24.0
+  css:
+    theme:
+      dist/css/library.coloris.min.css: {minified: true}
+  js:
+    dist/js/library.coloris.min.js: {minified: true}
+
+library.chroma:
+  version: 2.4.2
+  js:
+    dist/js/library.chroma.min.js: {minified: true}
+
+library.popper:
+  version: 2.11.8
+  js:
+    dist/js/library.popper.min.js: {minified: true}
+
+library.body-scroll-lock:
+  version: 1.5.0
+  js:
+    dist/js/tua-bsl.umd.min.js: {minified: true}

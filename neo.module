@@ -1,0 +1,66 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for Neo module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Component\Utility\Html;
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
+use Drupal\Core\Entity\EntityInterface;
+
+/**
+ * Implements hook_theme().
+ */
+function neo_theme() {
+  return [
+    'description_list' => [
+      'variables' => [
+        // An array of ['term' => '', 'description' => ''].
+        'items' => [],
+        'attributes' => [],
+        // Available options: 'inline', 'inline_sm'.
+        'style' => '',
+        // Available options: 'xs', 'sm', 'md', 'lg', 'xl'.
+        'size' => 'md',
+      ],
+    ],
+  ];
+}
+
+/**
+ * Implements hook_entity_view_alter().
+ */
+function neo_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
+  if ($entity instanceof ContentEntityInterface) {
+    foreach ($display->getComponents() as $field_name => $component) {
+      if (!isset($component['type'])) {
+        continue;
+      }
+      if ($component['type'] == 'neo_entity_attribute') {
+        if ($entity->hasField($field_name) && !$entity->get($field_name)->isEmpty()) {
+          $field = $entity->get($field_name);
+          $type = $component['settings']['type'] ?? 'class';
+          if ($type === 'class') {
+            foreach ($field->getValue() as $item) {
+              $value = $item['value'] ?? $item['target_id'];
+              $build['#attributes']['class'][] = Html::getClass($component['settings']['prefix'] . $value . $component['settings']['suffix']);
+            }
+          }
+          elseif ($type === 'data') {
+            $name = Html::getClass($component['settings']['prefix'] . str_replace('field_', '', $field_name) . $component['settings']['suffix']);
+            if ($field->getFieldDefinition()->getFieldStorageDefinition()->getCardinality() === 1) {
+              $build['#attributes']['data-' . $name] = $field->value ?? $field->target_id;
+            }
+            else {
+              $build['#attributes']['data-' . $name] = json_encode($field->value);
+            }
+          }
+        }
+      }
+    }
+  }
+}

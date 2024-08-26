@@ -1,0 +1,6 @@
+system.admin_config_neo:
+  route_name: system.admin_config_neo
+  title: 'Neo'
+  parent: system.admin_config
+  description: 'Configure neo.'
+  weight: -1000

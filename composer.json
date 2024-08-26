@@ -1,0 +1,22 @@
+{
+  "name": "jacerider/neo",
+  "description": "A UI and UX framework providing a number of features, utiilities and helpers for Drupal developers and site builders.",
+  "type": "drupal-module",
+  "license": "proprietary",
+  "homepage": "https://github.com/jacerider/neo",
+  "authors": [
+    {
+      "name": "Cyle Carlson (JaceRider)",
+      "email": "jacerider@gmail.com",
+      "role": "Maintainer"
+    }
+  ],
+  "support": {
+    "issues": "https://github.com/jacerider/neo/issues",
+    "source": "https://github.com/jacerider/neo"
+  },
+  "minimum-stability": "dev",
+  "require": {
+    "drupal/core": "^10.3"
+  }
+}

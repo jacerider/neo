@@ -1,0 +1,43 @@
+{#
+/**
+ * @file
+ * Description list template.
+ */
+#}
+{%
+  set inline = style == 'inline' or style == 'inline_small'
+%}
+{# text-xs text-sm text-md text-lg text-xl #}
+{%
+  set classes = [
+    inline ? 'inline',
+    'text-' ~ size,
+  ]
+%}
+
+{% if items %}
+  <dl{{ attributes.addClass(classes) }}>
+    {% for item in items %}
+      {% if style == 'inline' %}
+        <div class="flex">
+      {% endif %}
+      {% if item.term %}
+        {% set term_attributes = create_attribute(item.term_attributes ?? []) %}
+        {% if style == 'inline' %}
+          {% set term_classes = ['mr-1'] %}
+        {% endif %}
+        <dt{{ term_attributes.addClass(term_classes, 'opacity-60') }}>{{ item.term }}{% if style == 'inline' %}:{% endif %}</dt>
+      {% endif %}
+      {% if item.description %}
+        {% set description_attributes = create_attribute(item.description_attributes ?? []) %}
+        {% if style == 'inline' %}
+          {% set description_classes = [] %}
+        {% endif %}
+        <dd{{ description_attributes.addClass(description_classes) }}>{{ item.description }}</dd>
+      {% endif %}
+      {% if style == 'inline' %}
+        </div>
+      {% endif %}
+    {% endfor %}
+  </dl>
+{% endif %}
