@@ -18,6 +18,7 @@
   "minimum-stability": "dev",
   "require": {
     "drupal/core": "^10.3",
-    "jacerider/neo_build": "^1"
+    "jacerider/neo_build": "^1",
+    "jacerider/neo_color": "^1"
   }
 }

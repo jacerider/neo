@@ -7,7 +7,7 @@ Drupal developers and site builders.
 REQUIREMENTS
 ------------
 
-This module requires jacerider/neo_build and Drupal core.
+This module requires jacerider/neo_build, jacerider/neo_color and Drupal core.
 
 INSTALLATION
 ------------
