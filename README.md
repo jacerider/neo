@@ -7,7 +7,7 @@ Drupal developers and site builders.
 REQUIREMENTS
 ------------
 
-This module requires no modules outside of Drupal core.
+This module requires jacerider/neo_build and Drupal core.
 
 INSTALLATION
 ------------
