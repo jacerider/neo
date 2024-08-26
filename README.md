@@ -1,30 +1,22 @@
-## INTRODUCTION
+INTRODUCTION
+------------
 
-The Neo module is a DESCRIBE_THE_MODULE_HERE.
+A UI and UX framework providing a number of features, utiilities and helpers for
+Drupal developers and site builders.
 
-The primary use case for this module is:
+REQUIREMENTS
+------------
 
-- Use case #1
-- Use case #2
-- Use case #3
+This module requires no modules outside of Drupal core.
 
-## REQUIREMENTS
+INSTALLATION
+------------
 
-DESCRIBE_MODULE_DEPENDENCIES_HERE
-
-## INSTALLATION
-
-Install as you would normally install a contributed Drupal module.
-See: https://www.drupal.org/node/895232 for further information.
-
-## CONFIGURATION
-- Configuration step #1
-- Configuration step #2
-- Configuration step #3
+Install as you would normally install a contributed Drupal module. Visit
+https://www.drupal.org/node/1897420 for further information.
 
 ## MAINTAINERS
 
 Current maintainers for Drupal 10:
 
-- FIRST_NAME LAST_NAME (NICKNAME) - https://www.drupal.org/u/NICKNAME
-
+- Cyle Carlson (jacerider) - https://www.drupal.org/u/jacerider
