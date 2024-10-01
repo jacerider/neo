@@ -5,7 +5,7 @@ namespace Drupal\neo;
 use Drupal\Core\Session\AccountInterface;
 
 /**
- * Defines the interface for eXo theme plugin managers.
+ * Defines the interface for Neo theme plugin managers.
  */
 interface VisibilityPluginInterface {
 

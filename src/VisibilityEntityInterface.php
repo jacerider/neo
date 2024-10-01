@@ -2,10 +2,12 @@
 
 namespace Drupal\neo;
 
+use Drupal\Core\Entity\EntityWithPluginCollectionInterface;
+
 /**
- * Defines the interface for eXo theme plugin managers.
+ * Defines the interface for Neo theme plugin managers.
  */
-interface VisibilityEntityInterface {
+interface VisibilityEntityInterface extends EntityWithPluginCollectionInterface {
 
   /**
    * Returns an array of visibility condition configurations.

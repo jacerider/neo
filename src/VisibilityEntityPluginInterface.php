@@ -3,7 +3,7 @@
 namespace Drupal\neo;
 
 /**
- * Defines the interface for eXo theme plugin managers.
+ * Defines the interface for Neo visibility plugin managers.
  */
 interface VisibilityEntityPluginInterface {
 

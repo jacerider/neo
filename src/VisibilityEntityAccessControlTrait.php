@@ -49,7 +49,7 @@ trait VisibilityEntityAccessControlTrait {
   }
 
   /**
-   * Constructs the eXo Toolbar access control handler instance.
+   * Constructs the Neo Toolbar access control handler instance.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type definition.

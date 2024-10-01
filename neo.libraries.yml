@@ -15,6 +15,15 @@ animate:
     component:
       src/css/animate.scss: {}
 
+visibility:
+  version: VERSION
+  neo: { group: contrib }
+  js:
+    src/js/visibility.ts: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
 # Libraries
 
 library.alpine:

@@ -81,7 +81,7 @@ trait VisibilityFormTrait {
         continue;
       }
       // Don't display the language condition until we have multiple languages.
-      if (isset($this->language) && $conditionId == 'language' && !$this->language->isMultilingual()) {
+      if ($conditionId == 'language' && !$this->languageManager()->isMultilingual()) {
         continue;
       }
       /** @var \Drupal\Core\Condition\ConditionInterface $condition */
@@ -94,18 +94,23 @@ trait VisibilityFormTrait {
       $form[$conditionId] = $conditionForm;
     }
 
-    if (isset($form['node_type'])) {
-      $form['node_type']['#title'] = $this->t('Content types');
-      $form['node_type']['bundles']['#title'] = $this->t('Content types');
-      $form['node_type']['negate']['#type'] = 'value';
-      $form['node_type']['negate']['#title_display'] = 'invisible';
-      $form['node_type']['negate']['#value'] = $form['node_type']['negate']['#default_value'];
+    // Disable negation for specific conditions.
+    $disable_negation = [
+      'entity_bundle:node',
+      'language',
+      'response_status',
+      'user_role',
+    ];
+    foreach ($disable_negation as $condition) {
+      if (isset($form[$condition])) {
+        $form[$condition]['negate']['#type'] = 'value';
+        $form[$condition]['negate']['#value'] = $form[$condition]['negate']['#default_value'];
+      }
     }
+
     if (isset($form['user_role'])) {
       $form['user_role']['#title'] = $this->t('Roles');
       unset($form['user_role']['roles']['#description']);
-      $form['user_role']['negate']['#type'] = 'value';
-      $form['user_role']['negate']['#value'] = $form['user_role']['negate']['#default_value'];
     }
     if (isset($form['request_path'])) {
       $form['request_path']['#title'] = $this->t('Pages');
@@ -116,10 +121,6 @@ trait VisibilityFormTrait {
         $this->t('Show for the listed pages'),
         $this->t('Hide for the listed pages'),
       ];
-    }
-    if (isset($form['language'])) {
-      $form['language']['negate']['#type'] = 'value';
-      $form['language']['negate']['#value'] = $form['language']['negate']['#default_value'];
     }
     return $form;
   }
@@ -133,6 +134,7 @@ trait VisibilityFormTrait {
    *   The current state of the form.
    */
   protected function validateVisibility(array $form, FormStateInterface $form_state) {
+    $this->entity->set('visibility', []);
     // Validate visibility condition settings.
     foreach ($form_state->getValue('visibility') as $conditionId => $values) {
       // All condition plugins use 'negate' as a Boolean in their schema.
@@ -157,14 +159,14 @@ trait VisibilityFormTrait {
    *   The current state of the form.
    */
   protected function submitVisibility(array $form, FormStateInterface $form_state) {
-    foreach ($form_state->getValue('visibility') as $conditionId => $values) {
+    foreach ($form_state->getValue('visibility', []) as $conditionId => $values) {
       // Allow the condition to submit the form.
       $condition = $form_state->get(['conditions', $conditionId]);
       $condition->submitConfigurationForm($form['visibility'][$conditionId], SubformState::createForSubform($form['visibility'][$conditionId], $form, $form_state));
 
-      $condition_configuration = $condition->getConfiguration();
-      // Update the visibility conditions on the block.
-      $this->entity->getVisibilityConditions()->addInstanceId($conditionId, $condition_configuration);
+      $conditionConfiguration = $condition->getConfiguration();
+      // Update the visibility conditions on the entity.
+      $this->entity->getVisibilityConditions()->addInstanceId($conditionId, $conditionConfiguration);
     }
   }
 
