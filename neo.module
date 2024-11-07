@@ -64,3 +64,10 @@ function neo_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
     }
   }
 }
+
+function neo_preprocess_select(&$variables) {
+  if (!empty($variables['element']['#multiple'])) {
+    $variables['attributes']['class'][] = 'neo-multi-select';
+    $variables['#attached']['library'][] = 'neo/tom-select';
+  }
+}

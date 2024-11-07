@@ -1,0 +1,54 @@
+@import 'tom-select.min.css';
+
+.neo-multi-select-wrapper {
+  .ts-wrapper {
+    @apply flex min-h-10 items-center px-2 py-0;
+
+    &.focus {
+      @apply border-base-300 ring ring-primary-600 ring-offset-2;
+    }
+  }
+
+  .ts-control {
+    @apply my-2 border-none;
+
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0 center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+  }
+
+  .multi .ts-control,
+  .multi.has-items .ts-control {
+    @apply gap-2 p-0 pr-5 #{!important};
+
+    > div {
+      @apply m-0 min-h-5 rounded px-1 py-0;
+    }
+
+    > input {
+      @apply m-0 min-w-10 #{!important};
+    }
+  }
+
+  .ts-dropdown {
+    @apply rounded border-2 border-solid border-base-300;
+
+    [data-selectable].option:first-child {
+      @apply rounded-t;
+    }
+
+    [data-selectable].option:last-child {
+      @apply rounded-b;
+    }
+
+    .create:hover,
+    .option:hover {
+      @apply bg-base-200 text-base-content-200;
+    }
+
+    .active {
+      @apply bg-base-100 text-base-content-100;
+    }
+  }
+}

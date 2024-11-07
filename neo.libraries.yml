@@ -8,6 +8,19 @@ coloris:
     - core/drupal
     - neo/library.coloris
 
+tom-select:
+  version: VERSION
+  neo: { group: contrib }
+  css:
+    component:
+      src/css/tom-select.scss: {}
+  js:
+    src/js/tom-select.ts: {}
+  dependencies:
+    - core/once
+    - core/drupal
+    - neo/library.tom-select
+
 animate:
   version: VERSION
   neo: { group: contrib }
@@ -35,6 +48,11 @@ library.alpine:
   header: true
   js:
     dist/js/library.alpinejs.min.js: { minified: true, attributes: { defer: true } }
+
+library.tom-select:
+  version: 2.3.1
+  js:
+    dist/js/tom-select.complete.min.js: {minified: true}
 
 library.coloris:
   version: 0.24.0
