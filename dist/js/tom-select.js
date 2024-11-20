@@ -1,20 +1,17 @@
-(function(o, n) {
-  o.behaviors.neoTomSelect = {
+(function(n, o) {
+  n.behaviors.neoTomSelect = {
     attach: () => {
-      n("neo.tom", "select.neo-multi-select").forEach((e) => {
+      o("neo.tom", "select.neo-multi-select").forEach((e) => {
         const t = e.parentElement;
-        t && t.classList.add("neo-multi-select-wrapper"), e instanceof HTMLSelectElement && (console.log("EL", e, e.value), e.value = e.value || "");
-        var c = {
+        t && t.classList.add("neo-multi-select-wrapper");
+        var s = {
           plugins: {
             remove_button: {
               title: "Remove this item"
             }
-          },
-          onItemAdd: function() {
-            console.log("THIS", this);
           }
         };
-        new TomSelect(e, c).removeOption("_none");
+        new TomSelect(e, s);
       });
     }
   };
