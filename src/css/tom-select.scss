@@ -51,4 +51,13 @@
       @apply bg-base-100 text-base-content-100;
     }
   }
+
+  .optgroup {
+    .optgroup-header {
+      @apply font-bold;
+    }
+    .option {
+      @apply pl-5;
+    }
+  }
 }

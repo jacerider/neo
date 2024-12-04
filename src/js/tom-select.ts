@@ -8,6 +8,7 @@
           parent.classList.add('neo-multi-select-wrapper');
         }
         var settings = {
+          maxOptions: null,
           plugins: {
             remove_button: {
               title:'Remove this item',

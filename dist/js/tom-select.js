@@ -4,14 +4,15 @@
       o("neo.tom", "select.neo-multi-select").forEach((e) => {
         const t = e.parentElement;
         t && t.classList.add("neo-multi-select-wrapper");
-        var s = {
+        var l = {
+          maxOptions: null,
           plugins: {
             remove_button: {
               title: "Remove this item"
             }
           }
         };
-        new TomSelect(e, s);
+        new TomSelect(e, l);
       });
     }
   };
