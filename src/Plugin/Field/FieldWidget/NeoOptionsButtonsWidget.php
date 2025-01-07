@@ -68,7 +68,7 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
     if ($style = $this->getSetting('style')) {
-      $element['#style'] = $style;
+      $element['#neo_style'] = $style;
     }
 
     return $element;
