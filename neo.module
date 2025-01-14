@@ -11,6 +11,8 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Template\Attribute;
+use Drupal\neo\NeoProcess;
 
 /**
  * Implements hook_theme().
@@ -24,6 +26,12 @@ function neo_theme() {
         'neo_style' => '',
         'neo_size' => 'md',
       ],
+    ],
+    'accordion' => [
+      'render element' => 'element',
+    ],
+    'accordion_item' => [
+      'render element' => 'element',
     ],
   ];
 }
@@ -62,9 +70,89 @@ function neo_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
   }
 }
 
+/**
+ * Implements hook_preprocess_HOOK() for select elements.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the select
+ *     element.
+ */
 function neo_preprocess_select(&$variables) {
   if (!empty($variables['element']['#multiple'])) {
     $variables['attributes']['class'][] = 'neo-multi-select';
     $variables['#attached']['library'][] = 'neo/tom-select';
+  }
+}
+
+/**
+ * Prepares variables for accordion templates.
+ *
+ * Default template: accordion.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties and children of
+ *     the details element. Properties used: #children.
+ */
+function template_preprocess_accordion(&$variables) {
+  $element = $variables['element'];
+  $variables['children'] = (!empty($element['#children'])) ? $element['#children'] : '';
+}
+
+/**
+ * Prepares variables for details element templates.
+ *
+ * Default template: details.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the element.
+ *     Properties used: #attributes, #children, #description, #required,
+ *     #summary_attributes, #title, #value.
+ */
+function template_preprocess_accordion_item(&$variables) {
+  $element = $variables['element'];
+  $variables['attributes'] = $element['#attributes'];
+  $variables['summary_attributes'] = new Attribute($element['#summary_attributes']);
+  $variables['content_attributes'] = new Attribute($element['#content_attributes'] ?? []);
+  if (!empty($element['#title'])) {
+    $variables['summary_attributes']['role'] = 'button';
+    if (!empty($element['#attributes']['id'])) {
+      $variables['summary_attributes']['id'] = $element['#attributes']['id'] . '-summary';
+      $variables['summary_attributes']['aria-controls'] = $element['#attributes']['id'] . '-content';
+      $variables['content_attributes']['id'] = $element['#attributes']['id'] . '-content';
+      $variables['content_attributes']['aria-labelledby'] = $element['#attributes']['id'] . '-summary';
+    }
+    $variables['summary_attributes']['aria-expanded'] = !empty($element['#attributes']['open']) ? 'true' : 'false';
+    // $variables['attributes']['x-data'] = '{ expanded: ' . $variables['summary_attributes']['aria-expanded'] . ' }';
+    // $variables['attributes']['x-data'] = '{ expanded: open.' . implode('_', $element['#parents']) . '}';
+    $variables['alpine_id'] = 'acc' . implode('', $element['#parents']);
+  }
+  $variables['title'] = (!empty($element['#title'])) ? $element['#title'] : '';
+  // If the element title is a string, wrap it a render array so that markup
+  // will not be escaped (but XSS-filtered).
+  if (is_string($variables['title']) && $variables['title'] !== '') {
+    $variables['title'] = ['#markup' => $variables['title']];
+  }
+  $variables['description'] = (!empty($element['#description'])) ? $element['#description'] : '';
+  $variables['children'] = (isset($element['#children'])) ? $element['#children'] : '';
+  $variables['value'] = (isset($element['#value'])) ? $element['#value'] : '';
+  $variables['required'] = !empty($element['#required']) ? $element['#required'] : NULL;
+
+  $variables['element']['#attributes'] = [];
+
+  // Suppress error messages.
+  $variables['errors'] = NULL;
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function neo_element_info_alter(&$type) {
+  if (isset($type['details'])) {
+    $processes = !empty($type['details']['#process']) ? $type['details']['#process'] : [];
+    array_unshift($processes, [NeoProcess::class, 'details']);
+    $type['details']['#process'] = $processes;
   }
 }

@@ -1,0 +1,17 @@
+{#
+/**
+ * @file
+ * Default theme implementation for accordions.
+ *
+ * Available variables
+ * - attributes: A list of HTML attributes for the wrapper element.
+ * - children: The rendered tabs.
+ *
+ * @see template_preprocess_accordion()
+ *
+ * @ingroup themeable
+ */
+#}
+<div{{ attributes.addClass('accordion', 'card w-full divide-y divide-base-200') }}>
+  {{ children }}
+</div>
