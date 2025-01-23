@@ -9,3 +9,4 @@ dependencies:
   - neo_build:neo_build
   - neo_color:neo_color
   - neo_icon:neo_icon
+  - linkit:linkit
