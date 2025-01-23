@@ -16,7 +16,7 @@ use Drupal\neo_icon\IconTranslationTrait;
  *
  * @FieldFormatter(
  *   id = "neo_link",
- *   label = @Translation("Link (with icon)"),
+ *   label = @Translation("Neo | Link"),
  *   field_types = {
  *     "link"
  *   }
