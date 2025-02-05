@@ -1,5 +1,5 @@
-(function(c, s) {
-  const l = {
+(function(m, i) {
+  const a = {
     // dropdownParent: 'form',
     render: {
       dropdown: function() {
@@ -16,48 +16,46 @@
     }
     return null;
   }
-  c.behaviors.neoTomSelect = {
+  m.behaviors.neoTomSelect = {
     attach: () => {
-      s("neo.tom", "select.neo-select").forEach((t) => {
+      i("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
           const e = t.parentElement;
           e && (e.classList.add("neo-tom-wrapper"), e.classList.add("neo-tom-select-wrapper"));
           let n = {
-            maxOptions: null,
             allowEmptyOption: r(t) !== null
           };
-          t.multiple && (n = { ...n, plugins: {
+          t.multiple && (n = { ...n, maxOptions: null, plugins: {
             remove_button: {
               title: "Remove this item"
             }
-          } }), new TomSelect(t, { ...n, ...l });
+          } }), new TomSelect(t, { ...n, ...a });
         }
-      }), s("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
-        const e = t.parentElement;
+      }), i("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
+        const e = t.parentElement, n = t.classList.contains("neo-multi-select");
         e && e.classList.add("neo-tom-wrapper");
-        var n = {
+        let o = {
           valueField: "value",
           labelField: "value",
           searchField: "label",
-          plugins: {
-            remove_button: {
-              title: "Remove this item"
-            }
-          },
-          onItemAdd: function() {
-            const o = this;
-            o.setTextboxValue(""), o.refreshOptions();
-          },
-          load: function(o, a) {
-            const p = t.dataset.autocompletePath + "?q=" + encodeURIComponent(o);
-            fetch(p).then((i) => i.json()).then((i) => {
-              a(i);
+          maxItems: 1,
+          load: function(s, c) {
+            const p = t.dataset.autocompletePath + "?q=" + encodeURIComponent(s);
+            fetch(p).then((l) => l.json()).then((l) => {
+              c(l);
             }).catch(() => {
-              a();
+              c();
             });
           }
         };
-        new TomSelect(t, { ...n, ...l });
+        n && (o = { ...o, maxItems: null, onItemAdd: function() {
+          const s = this;
+          s.setTextboxValue(""), s.refreshOptions();
+        }, plugins: {
+          remove_button: {
+            title: "Remove this item"
+          }
+        } }, console.log(o)), new TomSelect(t, { ...o, ...a });
       });
     }
   };

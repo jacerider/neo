@@ -89,6 +89,14 @@ function neo_preprocess_select(&$variables) {
   }
 }
 
+/**
+ * Implements hook_preprocess_HOOK() for textfield input elements.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the input
+ *     element.
+ */
 function neo_preprocess_input__textfield(&$variables) {
   if (($variables['element']['#type'] ?? '') === 'entity_autocomplete') {
     $variables['element']['#attached']['library'] = array_filter($variables['element']['#attached']['library'], function ($library) {
@@ -99,6 +107,9 @@ function neo_preprocess_input__textfield(&$variables) {
       return $class !== 'form-autocomplete';
     });
     $variables['attributes']['class'][] = 'neo-entity-autocomplete';
+    if (!empty($variables['element']['#tags'])) {
+      $variables['attributes']['class'][] = 'neo-multi-select';
+    }
     $variables['element']['#process'] = array_filter($variables['element']['#process'], function ($process) {
       if (is_array($process) && in_array($process[1], ['processEntityAutocomplete', 'processAutocomplete'])) {
         return FALSE;
