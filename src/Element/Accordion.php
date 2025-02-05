@@ -74,6 +74,7 @@ class Accordion extends FormElementBase {
    *   The modified element.
    */
   public static function preRenderAccordion($element) {
+    $element['#attached']['library'][] = 'neo/library.alpine.collapse';
     $element['#attached']['library'][] = 'neo/library.alpine';
     $alterElements = [];
 
@@ -96,7 +97,7 @@ class Accordion extends FormElementBase {
     foreach ($alterElements as &$alterElement) {
       if ($alterElement['#type'] === 'details') {
         $alterElement['#theme_wrappers'] = ['accordion_item'];
-        $open[] = 'acc' . implode($alterElement['#parents']) . ':' . (!empty($alterElement['#open']) ? 'true' : 'false');
+        $open[] = 'acc' . str_replace('-', '_', implode('', $alterElement['#parents'])) . ':' . (!empty($alterElement['#open']) ? 'true' : 'false');
       }
       $alterElement['#attributes']['class'][] = 'accordion-item';
     }

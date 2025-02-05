@@ -49,6 +49,18 @@ library.alpine:
   js:
     dist/js/library.alpinejs.min.js: { minified: true, attributes: { defer: true } }
 
+library.alpine.collapse:
+  version: 3.13.8
+  license:
+    name: MIT
+    url: https://github.com/alpinejs/alpine/blob/master/LICENSE.md
+    gpl-compatible: true
+  header: true
+  js:
+    dist/js/library.alpinejs.collapse.min.js: { weight: -10, minified: true, attributes: { defer: true } }
+  dependencies:
+    - neo/library.alpine
+
 library.tom-select:
   version: 2.3.1
   js:

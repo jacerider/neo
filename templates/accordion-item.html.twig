@@ -43,8 +43,8 @@
 
   {{ description }}
 
-  <div{{ content_attributes.addClass('grid text-sm text-base-600 transition-all duration-300 ease-in-out') }} role="region" :class="{{ alpine_id }} ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'">
-    <div class="overflow-hidden px-form">
+  <div{{ content_attributes.addClass('grid text-sm text-base-600 transition-all duration-300 ease-in-out') }} role="region" x-show="{{ alpine_id }}" x-cloak x-collapse>
+    <div class="px-form">
       {{ children }}
       {{ value }}
     </div>

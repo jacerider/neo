@@ -79,9 +79,32 @@ function neo_entity_view_alter(array &$build, EntityInterface $entity, EntityVie
  *     element.
  */
 function neo_preprocess_select(&$variables) {
+  $variables['attributes']['class'][] = 'neo-select';
+  $variables['#attached']['library'][] = 'neo/tom-select';
   if (!empty($variables['element']['#multiple'])) {
     $variables['attributes']['class'][] = 'neo-multi-select';
+  }
+  else {
+    $variables['attributes']['class'][] = 'neo-single-select';
+  }
+}
+
+function neo_preprocess_input__textfield(&$variables) {
+  if (($variables['element']['#type'] ?? '') === 'entity_autocomplete') {
+    $variables['element']['#attached']['library'] = array_filter($variables['element']['#attached']['library'], function ($library) {
+      return $library !== 'core/drupal.autocomplete';
+    });
     $variables['#attached']['library'][] = 'neo/tom-select';
+    $variables['attributes']['class'] = array_filter($variables['attributes']['class'], function ($class) {
+      return $class !== 'form-autocomplete';
+    });
+    $variables['attributes']['class'][] = 'neo-entity-autocomplete';
+    $variables['element']['#process'] = array_filter($variables['element']['#process'], function ($process) {
+      if (is_array($process) && in_array($process[1], ['processEntityAutocomplete', 'processAutocomplete'])) {
+        return FALSE;
+      }
+      return TRUE;
+    });
   }
 }
 
@@ -127,7 +150,7 @@ function template_preprocess_accordion_item(&$variables) {
     $variables['summary_attributes']['aria-expanded'] = !empty($element['#attributes']['open']) ? 'true' : 'false';
     // $variables['attributes']['x-data'] = '{ expanded: ' . $variables['summary_attributes']['aria-expanded'] . ' }';
     // $variables['attributes']['x-data'] = '{ expanded: open.' . implode('_', $element['#parents']) . '}';
-    $variables['alpine_id'] = 'acc' . implode('', $element['#parents']);
+    $variables['alpine_id'] = 'acc' . str_replace('-', '_', implode('', $element['#parents']));
   }
   $variables['title'] = (!empty($element['#title'])) ? $element['#title'] : '';
   // If the element title is a string, wrap it a render array so that markup
