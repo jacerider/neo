@@ -1,0 +1,19 @@
+{#
+/**
+ * @file
+ * Template for Neo Clean Style.
+ *
+ * Available variables:
+ * - main_wrapper_attributes: Attributes for the main wrapper div.
+ * - rows: An array of rendered rows, each containing:
+ *   - row_attributes: Row-level attributes, such as classes.
+ *   - content: Rendered content for the row.
+ */
+#}
+
+
+{% if rows -%}
+  {{ rows }}
+{% elseif empty -%}
+  {{ empty }}
+{% endif %}
