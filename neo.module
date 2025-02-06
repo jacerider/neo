@@ -12,6 +12,7 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Template\Attribute;
+use Drupal\neo\NeoPreRender;
 use Drupal\neo\NeoProcess;
 
 /**
@@ -33,7 +34,38 @@ function neo_theme() {
     'accordion_item' => [
       'render element' => 'element',
     ],
+    'views_neo_clean' => [
+      'variables' => [
+        'attributes' => [],
+        'view_array' => [],
+        'view' => NULL,
+        'rows' => [],
+        'header' => [],
+        'footer' => [],
+        'empty' => [],
+        'exposed' => [],
+        'more' => [],
+        'feed_icons' => [],
+        'pager' => [],
+        'title' => '',
+        'attachment_before' => [],
+        'attachment_after' => [],
+      ]
+    ],
   ];
+}
+
+/**
+ * Implements hook_theme_suggestions_HOOK() for theme().
+ */
+function neo_theme_suggestions_views_view(array $variables) {
+  /** @var \Drupal\views\ViewExecutable $view */
+  $view = $variables['view'];
+  $suggestions = [];
+  if ($view->getStyle()->getPluginId() === 'neo_clean') {
+    $suggestions[] = 'views_view__neo_clean';
+  }
+  return $suggestions;
 }
 
 /**
@@ -188,5 +220,8 @@ function neo_element_info_alter(&$type) {
     $processes = !empty($type['details']['#process']) ? $type['details']['#process'] : [];
     array_unshift($processes, [NeoProcess::class, 'details']);
     $type['details']['#process'] = $processes;
+  }
+  if (isset($type['view'])) {
+    $type['view']['#pre_render'][] = [NeoPreRender::class, 'view'];
   }
 }
