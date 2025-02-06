@@ -1,0 +1,141 @@
+<?php
+
+/**
+ * @file
+ * Primary module hooks for Neo | Taxonomy module.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\taxonomy\TermForm;
+
+/**
+ * Implements hook_form_alter().
+ */
+function neo_taxonomy_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  $form_object = $form_state->getFormObject();
+  if ($form_object instanceof TermForm) {
+    $term = $form_object->getEntity();
+    /** @var \Drupal\taxonomy\VocabularyInterface $vocabulary */
+    $vocabulary = \Drupal::entityTypeManager()->getStorage('taxonomy_vocabulary')->load($term->bundle());
+    $controls = $vocabulary->getThirdPartySettings('neo_taxonomy');
+
+    $form['status']['#weight'] = 800;
+    $form['advanced']['#weight'] = 900;
+    $form['actions']['#weight'] = 1000;
+
+    if (isset($controls['nest']) && empty($controls['nest'])) {
+      $form['relations']['#access'] = FALSE;
+    }
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function neo_taxonomy_form_taxonomy_overview_vocabularies_alter(&$form, FormStateInterface $form_state) {
+  $form['vocabularies']['#neo_style'] = [
+    'label' => 'heading',
+  ];
+  foreach (Element::children($form['vocabularies']) as $key) {
+    $form['vocabularies'][$key]['label'] = [
+      '#markup' => neo_icon($form['vocabularies'][$key]['label']['#plain_text'], NULL, NULL, ['entity.taxonomy_vocabulary']),
+    ];
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\taxonomy\VocabularyInterface $vocabulary */
+  $vocabulary = $form_state->get(['taxonomy', 'vocabulary']);
+  $controls = $vocabulary->getThirdPartySettings('neo_taxonomy');
+  if (isset($controls['order']) && empty($controls['order'])) {
+    $form['actions']['reset_alphabetical']['#access'] = FALSE;
+    unset($form['terms']['#tabledrag']);
+    unset($form['terms']['#header']['weight']);
+    foreach (Element::children($form['terms']) as $key) {
+      unset($form['terms'][$key]['weight']);
+    }
+  }
+  foreach (Element::children($form['terms']) as $key) {
+    $form['terms'][$key]['status']['#markup'] = neo_admin_icon($form['terms'][$key]['status']['#markup'])->iconOnly();
+    if (isset($controls['link']) && empty($controls['link'])) {
+      $form['terms'][$key]['term'] = [
+        '#markup' => $form['terms'][$key]['term']['#title'],
+      ];
+    }
+  }
+}
+
+/**
+ * Implements hook_form_BASE_FORM_ID_alter().
+ */
+function neo_taxonomy_form_taxonomy_vocabulary_form_alter(&$form, FormStateInterface $form_state) {
+  /** @var \Drupal\Core\Entity\EntityFormInterface $form_object */
+  $form_object = $form_state->getFormObject();
+  /** @var \Drupal\taxonomy\VocabularyInterface $vocabulary */
+  $vocabulary = $form_object->getEntity();
+
+  /** @var \Drupal\taxonomy\TermStorageInterface $taxonomy_storage */
+  $taxonomy_storage = \Drupal::entityTypeManager()->getStorage('taxonomy_term');
+  $hierarchy_type = $taxonomy_storage->getVocabularyHierarchyType($vocabulary->id());
+
+  $controls = $vocabulary->getThirdPartySettings('neo_taxonomy');
+  $elements = [
+    '#type' => 'fieldset',
+    '#title' => t('Settings'),
+    '#tree' => TRUE,
+  ];
+  $elements['link'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Link to Term'),
+    '#description' => t('Allow terms to be linked on the management page.'),
+    '#default_value' => !empty($controls['link']) || !isset($controls['link']),
+  ];
+  $elements['order'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Enable Ordering'),
+    '#description' => t('Allow terms to be ordered.'),
+    '#default_value' => !empty($controls['order']) || !isset($controls['order']),
+  ];
+  $elements['nest'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Enable Nesting'),
+    '#description' => t('Allow terms to be nested.'),
+    '#disabled' => $hierarchy_type !== 0,
+    '#default_value' => !empty($controls['nest']) || !isset($controls['nest']) || $hierarchy_type !== 0,
+    '#states' => [
+      'visible' => [
+        ':input[name="neo_taxonomy[order]"]' => ['checked' => TRUE],
+      ],
+    ],
+  ];
+
+  // Insert after description.
+  $keys = array_keys($form);
+	$index = array_search('description', $keys);
+	$pos = false === $index ? count($form) : $index + 1;
+	$form = array_merge( array_slice($form, 0, $pos), ['neo_taxonomy' => $elements], array_slice($form, $pos) );
+
+  $form['actions']['submit']['#submit'][] = 'neo_taxonomy_form_taxonomy_vocabulary_form_submit';
+}
+
+/**
+ * Submit handler for commerce product form.
+ */
+function neo_taxonomy_form_taxonomy_vocabulary_form_submit(array $form, FormStateInterface $form_state) {
+  /** @var \Drupal\Core\Entity\EntityFormInterface $form_object */
+  $form_object = $form_state->getFormObject();
+  /** @var \Drupal\taxonomy\VocabularyInterface $vocabulary */
+  $vocabulary = $form_object->getEntity();
+
+  $controls = $form_state->getValue('neo_taxonomy');
+  $vocabulary->setThirdPartySetting('neo_taxonomy', 'link', !empty($controls['link']));
+  $vocabulary->setThirdPartySetting('neo_taxonomy', 'order', !empty($controls['order']));
+  $vocabulary->setThirdPartySetting('neo_taxonomy', 'nest', !empty($controls['order']) && !empty($controls['nest']));
+  $vocabulary->save();
+}
