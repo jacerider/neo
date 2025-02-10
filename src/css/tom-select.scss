@@ -10,7 +10,7 @@
   }
 
   .ts-control {
-    @apply flex gap-2 border-none bg-inherit;
+    @apply flex gap-2 border-none bg-base-0;
 
     .item {
       @apply text-base;
@@ -63,7 +63,7 @@
 }
 
 .neo-tom-dropdown {
-  @apply rounded border-2 border-solid border-base-300 text-sm shadow-md;
+  @apply z-50 rounded border-2 border-solid border-base-300 text-sm shadow-md;
 
   [data-selectable].option:first-child {
     @apply rounded-t;
