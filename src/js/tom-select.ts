@@ -61,7 +61,8 @@
           searchField: 'label',
           maxItems: 1,
           load: function(query:any, callback:any) {
-            const url = el.dataset.autocompletePath + '?q=' + encodeURIComponent(query);
+            const path = el.dataset.autocompletePath as string;
+            const url = path + (path.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(query);
             fetch(url)
               .then(response => response.json())
               .then(json => {

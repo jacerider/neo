@@ -1,4 +1,4 @@
-(function(m, i) {
+(function(p, i) {
   const a = {
     // dropdownParent: 'form',
     render: {
@@ -16,7 +16,7 @@
     }
     return null;
   }
-  m.behaviors.neoTomSelect = {
+  p.behaviors.neoTomSelect = {
     attach: () => {
       i("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
@@ -40,8 +40,8 @@
           searchField: "label",
           maxItems: 1,
           load: function(s, c) {
-            const p = t.dataset.autocompletePath + "?q=" + encodeURIComponent(s);
-            fetch(p).then((l) => l.json()).then((l) => {
+            const m = t.dataset.autocompletePath, u = m + (m.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
+            fetch(u).then((l) => l.json()).then((l) => {
               c(l);
             }).catch(() => {
               c();
