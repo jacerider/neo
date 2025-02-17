@@ -2,7 +2,7 @@
 
 .neo-tom-wrapper {
   .ts-wrapper {
-    @apply flex min-h-10 items-center px-2 py-0;
+    @apply flex min-h-10 items-center bg-base-0 px-2 py-0;
 
     &.focus {
       @apply border-base-300 ring ring-primary-600 ring-offset-2;
@@ -10,7 +10,7 @@
   }
 
   .ts-control {
-    @apply flex gap-2 border-none bg-base-0;
+    @apply flex gap-2 border-none;
 
     .item {
       @apply text-base;
