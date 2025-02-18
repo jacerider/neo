@@ -1,61 +1,75 @@
-(function(p, i) {
-  const a = {
-    // dropdownParent: 'form',
+(function(i, a) {
+  const c = {
+    onInitialize: function() {
+      const t = this, e = t.input, o = t.control;
+      if (e.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
+        o.classList.add("use-neo-tooltip");
+        for (const n in e.dataset)
+          n.startsWith("tippy") && (o.dataset[n] = e.dataset[n]);
+        i.behaviors.neoTooltip.attach(t.wrapper);
+      }
+    },
+    onFocus: function() {
+      i.behaviors.neoTooltip && i.behaviors.neoTooltip.disableAll();
+    },
+    onBlur: function() {
+      i.behaviors.neoTooltip && i.behaviors.neoTooltip.enableAll();
+    },
     render: {
       dropdown: function() {
         return '<div class="neo-tom-dropdown"></div>';
       }
     }
   };
-  function r(t) {
+  function m(t) {
     const e = t.options;
-    for (let n = 0; n < e.length; n++) {
-      const o = e[n];
-      if (o.value === "")
-        return o;
+    for (let o = 0; o < e.length; o++) {
+      const n = e[o];
+      if (n.value === "")
+        return n;
     }
     return null;
   }
-  p.behaviors.neoTomSelect = {
+  i.behaviors.neoTomSelect = {
     attach: () => {
-      i("neo.tom", "select.neo-select").forEach((t) => {
+      a("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
           const e = t.parentElement;
           e && (e.classList.add("neo-tom-wrapper"), e.classList.add("neo-tom-select-wrapper"));
-          let n = {
-            allowEmptyOption: r(t) !== null
+          let o = {
+            allowEmptyOption: m(t) !== null
           };
-          t.multiple && (n = { ...n, maxOptions: null, plugins: {
+          t.multiple && (o = { ...o, maxOptions: null, plugins: {
             remove_button: {
               title: "Remove this item"
             }
-          } }), new TomSelect(t, { ...n, ...a });
+          } }), new TomSelect(t, { ...o, ...c });
         }
-      }), i("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
-        const e = t.parentElement, n = t.classList.contains("neo-multi-select");
+      }), a("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
+        const e = t.parentElement, o = t.classList.contains("neo-multi-select");
         e && e.classList.add("neo-tom-wrapper");
-        let o = {
+        let n = {
           valueField: "value",
           labelField: "value",
           searchField: "label",
           maxItems: 1,
-          load: function(s, c) {
-            const m = t.dataset.autocompletePath, u = m + (m.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
+          load: function(s, p) {
+            const r = t.dataset.autocompletePath, u = r + (r.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
             fetch(u).then((l) => l.json()).then((l) => {
-              c(l);
+              p(l);
             }).catch(() => {
-              c();
+              p();
             });
           }
         };
-        n && (o = { ...o, maxItems: null, onItemAdd: function() {
+        o && (n = { ...n, maxItems: null, onItemAdd: function() {
           const s = this;
           s.setTextboxValue(""), s.refreshOptions();
         }, plugins: {
           remove_button: {
             title: "Remove this item"
           }
-        } }, console.log(o)), new TomSelect(t, { ...o, ...a });
+        } }), new TomSelect(t, { ...n, ...c });
       });
     }
   };

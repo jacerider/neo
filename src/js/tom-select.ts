@@ -1,7 +1,30 @@
 (function (Drupal, once) {
 
   const baseSettings = {
-    // dropdownParent: 'form',
+    onInitialize: function() {
+      const instance = this as any;
+      const el = instance.input;
+      const control = instance.control;
+      if (el.classList.contains('use-neo-tooltip') && Drupal.behaviors.neoTooltip) {
+        control.classList.add('use-neo-tooltip');
+        for (const key in el.dataset) {
+          if (key.startsWith('tippy')) {
+            control.dataset[key] = el.dataset[key];
+          }
+        }
+        Drupal.behaviors.neoTooltip.attach(instance.wrapper);
+      }
+    },
+    onFocus: function() {
+      if (Drupal.behaviors.neoTooltip) {
+        Drupal.behaviors.neoTooltip.disableAll();
+      }
+    },
+    onBlur: function() {
+      if (Drupal.behaviors.neoTooltip) {
+        Drupal.behaviors.neoTooltip.enableAll();
+      }
+    },
     render: {
       dropdown: function(){
         return '<div class="neo-tom-dropdown"></div>';
@@ -75,7 +98,7 @@
         if (multiple) {
           settings = {...settings, ...{
             maxItems: null,
-            onItemAdd: function(){
+            onItemAdd: function() {
               const select = this as any;
               select.setTextboxValue('');
               select.refreshOptions();
@@ -86,7 +109,6 @@
               }
             }
           }};
-          console.log(settings);
         }
         new TomSelect(el, {...settings, ...baseSettings});
       });
