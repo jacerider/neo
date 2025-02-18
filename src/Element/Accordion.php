@@ -104,7 +104,7 @@ class Accordion extends FormElementBase {
     $element['#attributes']['x-data'] = '{' . implode(',', $open) . '}';
 
     // Do not render the accordion element if it is empty.
-    if (!Element::getVisibleChildren($element) && !Element::getVisibleChildren($element['group']['#groups'][$group])) {
+    if (!Element::getVisibleChildren($element) || !Element::getVisibleChildren($element['group']['#groups'][$group])) {
       $element['#printed'] = TRUE;
     }
 
