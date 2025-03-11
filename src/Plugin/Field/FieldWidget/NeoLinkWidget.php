@@ -117,7 +117,7 @@ class NeoLinkWidget extends LinkWidget {
       '#description' => $this->t('The icon libraries that should be made available in this field. If no libraries are selected, all will be made available.'),
       '#options' => $this->getIconLibrariesAsOptions(),
       '#element_validate' => [
-        [get_class(), 'validatePackages'],
+        [get_class(), 'validateIconLibraries'],
       ],
       '#states' => [
         'visible' => [
@@ -146,7 +146,7 @@ class NeoLinkWidget extends LinkWidget {
   /**
    * Recursively clean up options array if no data-icon is set.
    */
-  public static function validatePackages($element, FormStateInterface $form_state, $form) {
+  public static function validateIconLibraries($element, FormStateInterface $form_state, $form) {
     $values = $form_state->getValue($element['#parents']);
     $values = array_filter($values);
     $form_state->setValueForElement($element, $values);

@@ -1,0 +1,4 @@
+administer neo_menu_link:
+  title: 'Administer Neo Menu Link'
+use neo_menu_link:
+  title: 'Use Neo Menu Link'

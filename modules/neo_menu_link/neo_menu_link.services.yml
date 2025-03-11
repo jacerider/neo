@@ -1,0 +1,4 @@
+services:
+  neo_menu_link.settings:
+    parent: neo_settings.repository
+    arguments: ['neo_menu_link']
