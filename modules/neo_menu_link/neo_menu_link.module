@@ -410,3 +410,42 @@ function neo_menu_link_form_menu_edit_form_alter(array &$form, FormStateInterfac
     }
   }
 }
+
+/**
+ * Implements hook_config_schema_info_alter().
+ */
+function neo_menu_link_config_schema_info_alter(&$definitions) {
+  if (isset($definitions['core.menu.static_menu_link_overrides'])) {
+    $schema = [
+      'options' => [
+        'type' => 'mapping',
+        'label' => 'Options',
+        'mapping' => [
+          'attributes' => [
+            'type' => 'mapping',
+            'title' => 'Attributes',
+            'mapping' => [
+              'data-icon' => [
+                'type' => 'string',
+                'label' => 'Icon',
+              ],
+              'data-target' => [
+                'type' => 'boolean',
+                'label' => 'Target',
+              ],
+              'data-class' => [
+                'type' => 'string',
+                'label' => 'Class',
+              ],
+              'title' => [
+                'type' => 'string',
+                'label' => 'Title',
+              ],
+            ],
+          ],
+        ],
+      ],
+    ];
+    $definitions['core.menu.static_menu_link_overrides']['mapping']['definitions']['sequence']['mapping'] += $schema;
+  }
+}
