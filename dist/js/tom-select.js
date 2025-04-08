@@ -1,13 +1,37 @@
-(function(i, a) {
-  const c = {
+(function(i, c, d) {
+  const l = {
+    dropdownParent: document.body,
     onInitialize: function() {
-      const t = this, e = t.input, o = t.control;
-      if (e.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
-        o.classList.add("use-neo-tooltip");
-        for (const n in e.dataset)
-          n.startsWith("tippy") && (o.dataset[n] = e.dataset[n]);
+      const t = this, o = t.input, e = t.control;
+      if (o.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
+        e.classList.add("use-neo-tooltip");
+        for (const n in o.dataset)
+          n.startsWith("tippy") && (e.dataset[n] = o.dataset[n]);
         i.behaviors.neoTooltip.attach(t.wrapper);
       }
+      t.dropdownWatch = null, t.dropdownWatchCb = () => {
+        if (t.isOpen) {
+          t.popper.update();
+          const n = t.wrapper.getBoundingClientRect();
+          t.dropdown.style.width = n.width + "px";
+        }
+      }, t.popper = d.createPopper(t.wrapper, t.dropdown, {
+        modifiers: [
+          {
+            name: "preventOverflow",
+            options: {
+              boundary: t.wrapper
+            }
+          }
+        ]
+      });
+    },
+    onDropdownOpen: function() {
+      const t = this;
+      t.dropdownWatchCb(), t.dropdownWatch = setInterval(t.dropdownWatchCb, 250);
+    },
+    onDropdownClose: function() {
+      clearInterval(this.dropdownWatch);
     },
     onFocus: function() {
       i.behaviors.neoTooltip && i.behaviors.neoTooltip.disableAll();
@@ -21,10 +45,10 @@
       }
     }
   };
-  function m(t) {
-    const e = t.options;
-    for (let o = 0; o < e.length; o++) {
-      const n = e[o];
+  function u(t) {
+    const o = t.options;
+    for (let e = 0; e < o.length; e++) {
+      const n = o[e];
       if (n.value === "")
         return n;
     }
@@ -32,46 +56,47 @@
   }
   i.behaviors.neoTomSelect = {
     attach: () => {
-      a("neo.tom", "select.neo-select").forEach((t) => {
+      c("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
-          const e = t.parentElement;
-          e && (e.classList.add("neo-tom-wrapper"), e.classList.add("neo-tom-select-wrapper"));
-          let o = {
-            allowEmptyOption: m(t) !== null
+          const o = t.parentElement;
+          o && (o.classList.add("neo-tom-wrapper"), o.classList.add("neo-tom-select-wrapper"));
+          let e = {
+            allowEmptyOption: u(t) !== null
           };
-          t.multiple && (o = { ...o, maxOptions: null, plugins: {
+          t.multiple && (e = { ...e, maxOptions: null, plugins: {
             remove_button: {
               title: "Remove this item"
             }
-          } }), new TomSelect(t, { ...o, ...c });
+          } }), new TomSelect(t, { ...e, ...l });
         }
-      }), a("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
-        const e = t.parentElement, o = t.classList.contains("neo-multi-select");
-        e && e.classList.add("neo-tom-wrapper");
+      }), c("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
+        const o = t.parentElement, e = t.classList.contains("neo-multi-select");
+        o && o.classList.add("neo-tom-wrapper");
         let n = {
           valueField: "value",
           labelField: "value",
           searchField: "label",
+          dropdownParent: document.body,
           maxItems: 1,
           load: function(s, p) {
-            const r = t.dataset.autocompletePath, u = r + (r.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
-            fetch(u).then((l) => l.json()).then((l) => {
-              p(l);
+            const r = t.dataset.autocompletePath, m = r + (r.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
+            fetch(m).then((a) => a.json()).then((a) => {
+              p(a);
             }).catch(() => {
               p();
             });
           }
         };
-        o && (n = { ...n, maxItems: null, onItemAdd: function() {
+        e && (n = { ...n, maxItems: null, onItemAdd: function() {
           const s = this;
           s.setTextboxValue(""), s.refreshOptions();
         }, plugins: {
           remove_button: {
             title: "Remove this item"
           }
-        } }), new TomSelect(t, { ...n, ...c });
+        } }), new TomSelect(t, { ...n, ...l });
       });
     }
   };
-})(Drupal, once);
+})(Drupal, once, Popper);
 //# sourceMappingURL=tom-select.js.map

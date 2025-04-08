@@ -1,6 +1,7 @@
-(function (Drupal, once) {
+(function (Drupal, once, Popper) {
 
   const baseSettings = {
+    dropdownParent: document.body,
     onInitialize: function() {
       const instance = this as any;
       const el = instance.input;
@@ -14,6 +15,38 @@
         }
         Drupal.behaviors.neoTooltip.attach(instance.wrapper);
       }
+
+      // Will un every 250ms to check if the dropdown is open and update the
+      // width of the dropdown.
+      instance.dropdownWatch = null;
+      instance.dropdownWatchCb = () => {
+        if (instance.isOpen) {
+          instance.popper.update();
+          const rect = instance.wrapper.getBoundingClientRect();
+          instance.dropdown.style.width = rect.width + 'px';
+        }
+      }
+
+      // Use pooper.js to position the dropdown.
+      instance.popper = Popper.createPopper(instance.wrapper, instance.dropdown, {
+        modifiers: [
+          {
+            name: 'preventOverflow',
+            options: {
+              boundary: instance.wrapper,
+            },
+          },
+        ],
+      });
+    },
+    onDropdownOpen: function() {
+      const instance = this as any;
+      instance.dropdownWatchCb();
+      instance.dropdownWatch = setInterval(instance.dropdownWatchCb, 250);
+    },
+    onDropdownClose: function() {
+      const instance = this as any;
+      clearInterval(instance.dropdownWatch);
     },
     onFocus: function() {
       if (Drupal.behaviors.neoTooltip) {
@@ -82,6 +115,7 @@
           valueField: 'value',
           labelField: 'value',
           searchField: 'label',
+          dropdownParent: document.body,
           maxItems: 1,
           load: function(query:any, callback:any) {
             const path = el.dataset.autocompletePath as string;
@@ -115,6 +149,6 @@
     }
   };
 
-})(Drupal, once);
+})(Drupal, once, Popper);
 
 export {};

@@ -20,6 +20,7 @@ tom-select:
     - core/once
     - core/drupal
     - neo/library.tom-select
+    - neo/library.popper
 
 animate:
   version: VERSION
