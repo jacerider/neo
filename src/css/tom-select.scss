@@ -81,6 +81,14 @@
   .active {
     @apply bg-base-100 text-base-content-100;
   }
+
+  .optgroup .option {
+    @apply pl-5;
+  }
+
+  .optgroup-header {
+    @apply font-bold;
+  }
 }
 
 .neo-entity-autocomplete {

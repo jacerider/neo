@@ -2,6 +2,7 @@
 
   const baseSettings = {
     dropdownParent: document.body,
+    maxOptions: null,
     onInitialize: function() {
       const instance = this as any;
       const el = instance.input;
