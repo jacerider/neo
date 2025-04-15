@@ -1,6 +1,7 @@
-(function(i, c, d) {
-  const l = {
+(function(i, l, d) {
+  const c = {
     dropdownParent: document.body,
+    maxOptions: null,
     onInitialize: function() {
       const t = this, o = t.input, e = t.control;
       if (o.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
@@ -56,7 +57,7 @@
   }
   i.behaviors.neoTomSelect = {
     attach: () => {
-      c("neo.tom", "select.neo-select").forEach((t) => {
+      l("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
           const o = t.parentElement;
           o && (o.classList.add("neo-tom-wrapper"), o.classList.add("neo-tom-select-wrapper"));
@@ -67,9 +68,9 @@
             remove_button: {
               title: "Remove this item"
             }
-          } }), new TomSelect(t, { ...e, ...l });
+          } }), new TomSelect(t, { ...e, ...c });
         }
-      }), c("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
+      }), l("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
         const o = t.parentElement, e = t.classList.contains("neo-multi-select");
         o && o.classList.add("neo-tom-wrapper");
         let n = {
@@ -94,7 +95,7 @@
           remove_button: {
             title: "Remove this item"
           }
-        } }), new TomSelect(t, { ...n, ...l });
+        } }), new TomSelect(t, { ...n, ...c });
       });
     }
   };
