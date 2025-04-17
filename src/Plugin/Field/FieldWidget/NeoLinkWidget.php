@@ -38,6 +38,8 @@ class NeoLinkWidget extends LinkWidget {
       'target' => FALSE,
       'class' => FALSE,
       'class_list' => [],
+      'link_text_label' => NULL,
+      'wrapper_type' => 'fieldset',
     ] + parent::defaultSettings();
   }
 
@@ -72,6 +74,9 @@ class NeoLinkWidget extends LinkWidget {
     if ($this->getSetting('class')) {
       $summary[] = $this->t('Allow custom CSS classes');
     }
+    $summary[] = $this->t('Wrapper type: @wrapper_type', [
+      '@wrapper_type' => $this->wrapperTypeOptions()[$this->getSetting('wrapper_type')],
+    ]);
     return $summary;
   }
 
@@ -140,7 +145,28 @@ class NeoLinkWidget extends LinkWidget {
       '#default_value' => $this->getSetting('class'),
     ];
 
+    $element['wrapper_type'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Wrapper type'),
+      '#options' => $this->wrapperTypeOptions(),
+      '#default_value' => $this->getSetting('wrapper_type'),
+    ];
+
     return $element;
+  }
+
+  /**
+   * Gets the options for the "Wrapper type" setting.
+   *
+   * @return string[]
+   *   The available options.
+   */
+  protected function wrapperTypeOptions(): array {
+    return [
+      'container' => $this->t('Container (invisible)'),
+      'details' => $this->t('Details (collapsible)'),
+      'fieldset' => $this->t('Fieldset (non-collapsible)'),
+    ];
   }
 
   /**
@@ -157,8 +183,8 @@ class NeoLinkWidget extends LinkWidget {
    */
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
+    $element['#type'] = $this->getSetting('wrapper_type');
     $element['#element_validate'][] = [get_called_class(), 'validateElement'];
-    $element['title']['#weight'] = -1;
 
     $item = $items[$delta];
     $options = $item->get('options')->getValue();
@@ -168,7 +194,15 @@ class NeoLinkWidget extends LinkWidget {
       $element = $this->formElementLinkit($items, $delta, $element, $form, $form_state);
     }
 
+    if (isset($element['title'])) {
+      $label = $this->getSetting('link_text_label');
+      if ($label) {
+        $element['title']['#title'] = $label;
+      }
+    }
+
     if (!empty($element['title'])) {
+      $element['title']['#weight'] = -1;
       $element = [
         'title' => $element['title'],
       ] + $element;
