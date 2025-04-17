@@ -114,6 +114,9 @@ function neo_preprocess_select(&$variables) {
   if (empty($variables['element']['#options'])) {
     return;
   }
+  if (!empty($variables['element']['#is_weight'])) {
+    return;
+  }
   $variables['attributes']['class'][] = 'neo-select';
   $variables['#attached']['library'][] = 'neo/tom-select';
   if (!empty($variables['element']['#multiple'])) {
