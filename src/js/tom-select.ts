@@ -116,6 +116,7 @@
           valueField: 'value',
           labelField: 'value',
           searchField: 'label',
+          create: true,
           dropdownParent: document.body,
           maxItems: 1,
           load: function(query:any, callback:any) {
@@ -130,6 +131,15 @@
               });
           }
         } as any;
+        const blacklist = el.dataset.autocompleteFirstCharacterBlacklist || false;
+        if (blacklist) {
+          settings.shouldLoad = function(query:any) {
+            if (query.length > 0 && blacklist.includes(query[0])) {
+              return false;
+            }
+            return true;
+          }
+        }
         if (multiple) {
           settings = {...settings, ...{
             maxItems: null,
