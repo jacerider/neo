@@ -64,7 +64,7 @@ function neo_menu_link_module_implements_alter(&$implementations, $hook) {
  */
 function neo_menu_link_form_node_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
   if (function_exists('menu_ui_form_node_form_alter')) {
-    menu_ui_form_node_form_alter($form, $form_state, $form_id);
+    menu_ui_form_node_form_alter($form, $form_state);
     if (isset($form['menu'])) {
       /** @var \Drupal\Core\Entity\EntityFormInterface $form_object */
       $form_object = $form_state->getFormObject();

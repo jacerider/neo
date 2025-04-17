@@ -30,4 +30,5 @@ class NeoCleanStyle extends StylePluginBase {
    * @var bool
    */
   protected $usesRowClass = FALSE;
+
 }
