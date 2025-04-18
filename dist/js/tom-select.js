@@ -3,11 +3,11 @@
     dropdownParent: document.body,
     maxOptions: null,
     onInitialize: function() {
-      const t = this, n = t.input, o = t.control;
-      if (console.log(o), n.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
-        o.classList.add("use-neo-tooltip");
-        for (const e in n.dataset)
-          e.startsWith("tippy") && (o.dataset[e] = n.dataset[e]);
+      const t = this, o = t.input, n = t.control;
+      if (o.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
+        n.classList.add("use-neo-tooltip");
+        for (const e in o.dataset)
+          e.startsWith("tippy") && (n.dataset[e] = o.dataset[e]);
         i.behaviors.neoTooltip.attach(t.wrapper);
       }
       t.dropdownWatch = null, t.dropdownWatchCb = () => {
@@ -47,9 +47,9 @@
     }
   };
   function v(t) {
-    const n = t.options;
-    for (let o = 0; o < n.length; o++) {
-      const e = n[o];
+    const o = t.options;
+    for (let n = 0; n < o.length; n++) {
+      const e = o[n];
       if (e.value === "")
         return e;
     }
@@ -59,8 +59,8 @@
     attach: () => {
       d("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
-          var n = new IntersectionObserver((o, e) => {
-            o.forEach((l) => {
+          var o = new IntersectionObserver((n, e) => {
+            n.forEach((l) => {
               if (l.intersectionRatio > 0) {
                 e.disconnect();
                 const a = t.parentElement;
@@ -76,11 +76,11 @@
               }
             });
           });
-          n.observe(t);
+          o.observe(t);
         }
       }), d("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
-        var n = new IntersectionObserver((o, e) => {
-          o.forEach((l) => {
+        var o = new IntersectionObserver((n, e) => {
+          n.forEach((l) => {
             if (l.intersectionRatio > 0) {
               e.disconnect();
               const a = t.parentElement, r = t.classList.contains("neo-multi-select");
@@ -89,7 +89,7 @@
                 valueField: "value",
                 labelField: "value",
                 searchField: "label",
-                create: !0,
+                create: t.classList.contains("neo-autocreate"),
                 dropdownParent: document.body,
                 maxItems: 1,
                 load: function(s, h) {
@@ -115,7 +115,7 @@
             }
           });
         });
-        n.observe(t);
+        o.observe(t);
       });
     }
   };
