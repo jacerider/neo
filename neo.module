@@ -145,6 +145,9 @@ function neo_preprocess_input__textfield(&$variables) {
       return $class !== 'form-autocomplete';
     });
     $variables['attributes']['class'][] = 'neo-entity-autocomplete';
+    if (!empty($variables['element']['#autocreate'])) {
+      $variables['attributes']['class'][] = 'neo-autocreate';
+    }
     if (!empty($variables['element']['#tags'])) {
       $variables['attributes']['class'][] = 'neo-multi-select';
     }

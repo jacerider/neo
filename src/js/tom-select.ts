@@ -6,7 +6,7 @@
     onInitialize: function() {
       const instance = this as any;
       const el = instance.input;
-      const control = instance.control;
+      const control = instance.control as HTMLElement;
       if (el.classList.contains('use-neo-tooltip') && Drupal.behaviors.neoTooltip) {
         control.classList.add('use-neo-tooltip');
         for (const key in el.dataset) {
@@ -84,78 +84,95 @@
 
       once('neo.tom', 'select.neo-select').forEach((el) => {
         if (el instanceof HTMLSelectElement) {
-          const parent = el.parentElement;
-          if (parent) {
-            parent.classList.add('neo-tom-wrapper');
-            parent.classList.add('neo-tom-select-wrapper');
-          }
-          let settings = {
-            allowEmptyOption: findEmptyOption(el) !== null,
-          } as any;
-          if (el.multiple) {
-            settings = {...settings, ...{
-              maxOptions: null,
-              plugins: {
-                remove_button: {
-                  title:'Remove this item',
+          var observer = new IntersectionObserver((entries, observer) => {
+            entries.forEach(entry => {
+              if (entry.intersectionRatio > 0) {
+                observer.disconnect();
+                const parent = el.parentElement;
+                if (parent) {
+                  parent.classList.add('neo-tom-wrapper');
+                  parent.classList.add('neo-tom-select-wrapper');
                 }
+                let settings = {
+                  allowEmptyOption: findEmptyOption(el) !== null,
+                } as any;
+                if (el.multiple) {
+                  settings = {...settings, ...{
+                    maxOptions: null,
+                    plugins: {
+                      remove_button: {
+                        title:'Remove this item',
+                      }
+                    }
+                  }};
+                }
+                new TomSelect(el, {...settings, ...baseSettings});
               }
-            }};
-          }
-          new TomSelect(el, {...settings, ...baseSettings});
+            });
+          });
+          observer.observe(el);
         }
       });
 
       once('neo.tom', 'input.neo-entity-autocomplete').forEach(el => {
-        const parent = el.parentElement;
-        const multiple = el.classList.contains('neo-multi-select');
-        if (parent) {
-          parent.classList.add('neo-tom-wrapper');
-        }
-        let settings = {
-          valueField: 'value',
-          labelField: 'value',
-          searchField: 'label',
-          create: true,
-          dropdownParent: document.body,
-          maxItems: 1,
-          load: function(query:any, callback:any) {
-            const path = el.dataset.autocompletePath as string;
-            const url = path + (path.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(query);
-            fetch(url)
-              .then(response => response.json())
-              .then(json => {
-                callback(json);
-              }).catch(()=>{
-                callback();
-              });
-          }
-        } as any;
-        const blacklist = el.dataset.autocompleteFirstCharacterBlacklist || false;
-        if (blacklist) {
-          settings.shouldLoad = function(query:any) {
-            if (query.length > 0 && blacklist.includes(query[0])) {
-              return false;
-            }
-            return true;
-          }
-        }
-        if (multiple) {
-          settings = {...settings, ...{
-            maxItems: null,
-            onItemAdd: function() {
-              const select = this as any;
-              select.setTextboxValue('');
-              select.refreshOptions();
-            },
-            plugins: {
-              remove_button: {
-                title:'Remove this item',
+
+        var observer = new IntersectionObserver((entries, observer) => {
+          entries.forEach(entry => {
+            if (entry.intersectionRatio > 0) {
+              observer.disconnect();
+              const parent = el.parentElement;
+              const multiple = el.classList.contains('neo-multi-select');
+              if (parent) {
+                parent.classList.add('neo-tom-wrapper');
               }
+              let settings = {
+                valueField: 'value',
+                labelField: 'value',
+                searchField: 'label',
+                create: el.classList.contains('neo-autocreate'),
+                dropdownParent: document.body,
+                maxItems: 1,
+                load: function(query:any, callback:any) {
+                  const path = el.dataset.autocompletePath as string;
+                  const url = path + (path.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(query);
+                  fetch(url)
+                    .then(response => response.json())
+                    .then(json => {
+                      callback(json);
+                    }).catch(()=>{
+                      callback();
+                    });
+                }
+              } as any;
+              const blacklist = el.dataset.autocompleteFirstCharacterBlacklist || false;
+              if (blacklist) {
+                settings.shouldLoad = function(query:any) {
+                  if (query.length > 0 && blacklist.includes(query[0])) {
+                    return false;
+                  }
+                  return true;
+                }
+              }
+              if (multiple) {
+                settings = {...settings, ...{
+                  maxItems: null,
+                  onItemAdd: function() {
+                    const select = this as any;
+                    select.setTextboxValue('');
+                    select.refreshOptions();
+                  },
+                  plugins: {
+                    remove_button: {
+                      title:'Remove this item',
+                    }
+                  }
+                }};
+              }
+              new TomSelect(el, {...settings, ...baseSettings});
             }
-          }};
-        }
-        new TomSelect(el, {...settings, ...baseSettings});
+          });
+        });
+        observer.observe(el);
       });
     }
   };

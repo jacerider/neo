@@ -17,7 +17,7 @@
     }
 
     > input {
-      @apply min-w-10 flex-1;
+      @apply h-6 min-w-2 flex-1;
     }
   }
 
@@ -52,6 +52,14 @@
     }
   }
 
+  :not(.multi) .ts-control {
+    @apply flex-nowrap;
+
+    .item {
+      @apply overflow-hidden text-ellipsis whitespace-nowrap;
+    }
+  }
+
   .optgroup {
     .optgroup-header {
       @apply font-bold;
@@ -63,7 +71,8 @@
 }
 
 .neo-tom-dropdown {
-  @apply z-50 rounded border-2 border-solid border-base-300 text-sm shadow-md;
+  @apply rounded border-2 border-solid border-base-300 text-sm shadow-md;
+  z-index: 100;
 
   [data-selectable].option:first-child {
     @apply rounded-t;
