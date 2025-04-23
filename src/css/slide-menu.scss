@@ -1,0 +1,57 @@
+$sm-menu-width: 320px !default;
+$sm-transition-dur: 300ms !default;
+$sm-transition-easing: ease-in-out !default;
+
+.neo-slide-menu {
+  max-width: 100%;
+  overflow: hidden;
+  will-change: transform;
+
+  .neo-slide-menu--slider {
+    width: 100%;
+    transition: transform $sm-transition-dur $sm-transition-easing, height $sm-transition-dur $sm-transition-easing;
+    transform: translateX(0);
+    will-change: transform;
+  }
+
+  ul {
+    position: relative;
+    width: 100%;
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+
+    ul {
+      position: absolute;
+      top: 0;
+      left: 100%;
+      visibility: hidden;
+    }
+
+    a {
+      display: flex;
+    }
+  }
+
+  a {
+    cursor: pointer;
+  }
+
+  .neo-slide-menu--item {
+    opacity: 0;
+  }
+
+  .neo-slide-menu--focus {
+
+    > li > .neo-slide-menu--item {
+      animation-name: slideIn;
+      animation-duration: $sm-transition-dur;
+      animation-fill-mode: forwards;
+    }
+  }
+}
+
+@keyframes slideIn {
+  0%   {transform: translateX(100px); opacity: 0}
+  100% {transform: translateX(0); opacity: 1}
+}

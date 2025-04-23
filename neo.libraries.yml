@@ -8,6 +8,18 @@ coloris:
     - core/drupal
     - neo/library.coloris
 
+slide-menu:
+  version: VERSION
+  neo: { group: contrib }
+  css:
+    component:
+      src/css/slide-menu.scss: {}
+  js:
+    src/js/slide-menu.ts: {}
+  dependencies:
+    - core/once
+    - core/drupal
+
 tom-select:
   version: VERSION
   neo: { group: contrib }
