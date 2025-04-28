@@ -106,7 +106,8 @@
                     }
                   }};
                 }
-                new TomSelect(el, {...settings, ...baseSettings});
+                const control = new TomSelect(el, {...settings, ...baseSettings});
+                control.removeOption('_none');
               }
             });
           });

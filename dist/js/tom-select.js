@@ -1,22 +1,22 @@
-(function(i, d, w) {
+(function(i, d, v) {
   const u = {
     dropdownParent: document.body,
     maxOptions: null,
     onInitialize: function() {
-      const t = this, o = t.input, n = t.control;
-      if (o.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
+      const t = this, e = t.input, n = t.control;
+      if (e.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
         n.classList.add("use-neo-tooltip");
-        for (const e in o.dataset)
-          e.startsWith("tippy") && (n.dataset[e] = o.dataset[e]);
+        for (const o in e.dataset)
+          o.startsWith("tippy") && (n.dataset[o] = e.dataset[o]);
         i.behaviors.neoTooltip.attach(t.wrapper);
       }
       t.dropdownWatch = null, t.dropdownWatchCb = () => {
         if (t.isOpen) {
           t.popper.update();
-          const e = t.wrapper.getBoundingClientRect();
-          t.dropdown.style.width = e.width + "px";
+          const o = t.wrapper.getBoundingClientRect();
+          t.dropdown.style.width = o.width + "px";
         }
-      }, t.popper = w.createPopper(t.wrapper, t.dropdown, {
+      }, t.popper = v.createPopper(t.wrapper, t.dropdown, {
         modifiers: [
           {
             name: "preventOverflow",
@@ -46,12 +46,12 @@
       }
     }
   };
-  function v(t) {
-    const o = t.options;
-    for (let n = 0; n < o.length; n++) {
-      const e = o[n];
-      if (e.value === "")
-        return e;
+  function w(t) {
+    const e = t.options;
+    for (let n = 0; n < e.length; n++) {
+      const o = e[n];
+      if (o.value === "")
+        return o;
     }
     return null;
   }
@@ -59,30 +59,30 @@
     attach: () => {
       d("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
-          var o = new IntersectionObserver((n, e) => {
+          var e = new IntersectionObserver((n, o) => {
             n.forEach((l) => {
               if (l.intersectionRatio > 0) {
-                e.disconnect();
+                o.disconnect();
                 const a = t.parentElement;
                 a && (a.classList.add("neo-tom-wrapper"), a.classList.add("neo-tom-select-wrapper"));
                 let r = {
-                  allowEmptyOption: v(t) !== null
+                  allowEmptyOption: w(t) !== null
                 };
                 t.multiple && (r = { ...r, maxOptions: null, plugins: {
                   remove_button: {
                     title: "Remove this item"
                   }
-                } }), new TomSelect(t, { ...r, ...u });
+                } }), new TomSelect(t, { ...r, ...u }).removeOption("_none");
               }
             });
           });
-          o.observe(t);
+          e.observe(t);
         }
       }), d("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
-        var o = new IntersectionObserver((n, e) => {
+        var e = new IntersectionObserver((n, o) => {
           n.forEach((l) => {
             if (l.intersectionRatio > 0) {
-              e.disconnect();
+              o.disconnect();
               const a = t.parentElement, r = t.classList.contains("neo-multi-select");
               a && a.classList.add("neo-tom-wrapper");
               let c = {
@@ -115,7 +115,7 @@
             }
           });
         });
-        o.observe(t);
+        e.observe(t);
       });
     }
   };
