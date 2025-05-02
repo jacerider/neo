@@ -1,4 +1,4 @@
-(function(i, d, v) {
+(function(i, d, w) {
   const u = {
     dropdownParent: document.body,
     maxOptions: null,
@@ -14,9 +14,9 @@
         if (t.isOpen) {
           t.popper.update();
           const o = t.wrapper.getBoundingClientRect();
-          t.dropdown.style.width = o.width + "px";
+          t.dropdown.style.width = Math.max(o.width, 140) + "px";
         }
-      }, t.popper = v.createPopper(t.wrapper, t.dropdown, {
+      }, t.popper = w.createPopper(t.wrapper, t.dropdown, {
         modifiers: [
           {
             name: "preventOverflow",
@@ -46,7 +46,7 @@
       }
     }
   };
-  function w(t) {
+  function v(t) {
     const e = t.options;
     for (let n = 0; n < e.length; n++) {
       const o = e[n];
@@ -65,16 +65,20 @@
                 o.disconnect();
                 const a = t.closest(".form--item");
                 a && (a.classList.add("neo-tom-wrapper"), a.classList.add("neo-tom-select-wrapper"));
-                let r = {
-                  allowEmptyOption: w(t) !== null
+                let c = {
+                  allowEmptyOption: v(t) !== null,
+                  plugins: {
+                    dropdown_input: {}
+                  },
+                  placeholder: "Search..."
                 };
-                t.multiple && (r = { ...r, maxOptions: null, plugins: {
+                t.multiple && (c = { ...c, maxOptions: null, plugins: {
                   remove_button: {
                     title: "Remove this item"
                   }
                 } });
-                const c = new TomSelect(t, { ...r, ...u });
-                t.multiple && c.removeOption("_none");
+                const r = new TomSelect(t, { ...c, ...u });
+                t.multiple && r.removeOption("_none");
               }
             });
           });
@@ -85,35 +89,35 @@
           n.forEach((l) => {
             if (l.intersectionRatio > 0) {
               o.disconnect();
-              const a = t.parentElement, r = t.classList.contains("neo-multi-select");
+              const a = t.parentElement, c = t.classList.contains("neo-multi-select");
               a && a.classList.add("neo-tom-wrapper");
-              let c = {
+              let r = {
                 valueField: "value",
                 labelField: "value",
                 searchField: "label",
                 create: t.classList.contains("neo-autocreate"),
                 dropdownParent: document.body,
                 maxItems: 1,
-                load: function(s, m) {
-                  const h = t.dataset.autocompletePath, b = h + (h.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
+                load: function(s, f) {
+                  const m = t.dataset.autocompletePath, b = m + (m.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
                   fetch(b).then((p) => p.json()).then((p) => {
-                    m(p);
+                    f(p);
                   }).catch(() => {
-                    m();
+                    f();
                   });
                 }
               };
-              const f = t.dataset.autocompleteFirstCharacterBlacklist || !1;
-              f && (c.shouldLoad = function(s) {
-                return !(s.length > 0 && f.includes(s[0]));
-              }), r && (c = { ...c, maxItems: null, onItemAdd: function() {
+              const h = t.dataset.autocompleteFirstCharacterBlacklist || !1;
+              h && (r.shouldLoad = function(s) {
+                return !(s.length > 0 && h.includes(s[0]));
+              }), c && (r = { ...r, maxItems: null, onItemAdd: function() {
                 const s = this;
                 s.setTextboxValue(""), s.refreshOptions();
               }, plugins: {
                 remove_button: {
                   title: "Remove this item"
                 }
-              } }), new TomSelect(t, { ...c, ...u });
+              } }), new TomSelect(t, { ...r, ...u });
             }
           });
         });
