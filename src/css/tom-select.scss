@@ -9,6 +9,14 @@
     }
   }
 
+  &[data-neo-size='xs'] .ts-wrapper {
+    @apply min-h-6;
+  }
+
+  &[data-neo-size='sm'] .ts-wrapper {
+    @apply min-h-8;
+  }
+
   .ts-control {
     @apply flex gap-2 border-none;
 
@@ -33,6 +41,14 @@
     .ts-control {
       @apply flex-nowrap p-0 pr-5 #{!important};
     }
+
+    // &.input-active {
+    //   // @apply pr-0;
+
+    //   // .ts-control {
+    //   //   @apply pr-0 #{!important};
+    //   // }
+    // }
   }
 
   .multi .ts-control,
@@ -68,11 +84,23 @@
       @apply pl-5;
     }
   }
+
+  .plugin-dropdown_input {
+    &.input-active .ts-control {
+      border: none;
+      outline: none;
+    }
+
+    &.focus.dropdown-active .ts-control {
+      border: none;
+    }
+  }
 }
 
 .neo-tom-dropdown {
-  @apply rounded border-2 border-solid border-base-300 text-sm shadow-md;
+  @apply whitespace-nowrap rounded border-2 border-solid border-base-300 text-sm shadow-md;
   z-index: 100;
+  max-width: none;
 
   [data-selectable].option:first-child {
     @apply rounded-t;
@@ -98,6 +126,12 @@
   .optgroup-header {
     @apply font-bold;
   }
+
+  &.plugin-dropdown_input {
+    .dropdown-input {
+      @apply bg-base-0 p-2 text-sm;
+    }
+  }
 }
 
 .neo-entity-autocomplete {
@@ -110,6 +144,7 @@
 }
 
 .neo-tom-select-wrapper {
+  .ts-wrapper.single.input-active .ts-control,
   .ts-control {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
     background-position: right -4px center;

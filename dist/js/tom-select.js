@@ -63,7 +63,7 @@
             n.forEach((l) => {
               if (l.intersectionRatio > 0) {
                 o.disconnect();
-                const a = t.parentElement;
+                const a = t.closest(".form--item");
                 a && (a.classList.add("neo-tom-wrapper"), a.classList.add("neo-tom-select-wrapper"));
                 let r = {
                   allowEmptyOption: w(t) !== null
@@ -72,7 +72,9 @@
                   remove_button: {
                     title: "Remove this item"
                   }
-                } }), new TomSelect(t, { ...r, ...u }).removeOption("_none");
+                } });
+                const c = new TomSelect(t, { ...r, ...u });
+                t.multiple && c.removeOption("_none");
               }
             });
           });
@@ -92,12 +94,12 @@
                 create: t.classList.contains("neo-autocreate"),
                 dropdownParent: document.body,
                 maxItems: 1,
-                load: function(s, h) {
-                  const m = t.dataset.autocompletePath, b = m + (m.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
+                load: function(s, m) {
+                  const h = t.dataset.autocompletePath, b = h + (h.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
                   fetch(b).then((p) => p.json()).then((p) => {
-                    h(p);
+                    m(p);
                   }).catch(() => {
-                    h();
+                    m();
                   });
                 }
               };

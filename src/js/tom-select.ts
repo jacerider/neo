@@ -24,7 +24,7 @@
         if (instance.isOpen) {
           instance.popper.update();
           const rect = instance.wrapper.getBoundingClientRect();
-          instance.dropdown.style.width = rect.width + 'px';
+          instance.dropdown.style.width = Math.max(rect.width, 140) + 'px';
         }
       }
 
@@ -88,13 +88,17 @@
             entries.forEach(entry => {
               if (entry.intersectionRatio > 0) {
                 observer.disconnect();
-                const parent = el.parentElement;
+                const parent = el.closest('.form--item') as HTMLElement;
                 if (parent) {
                   parent.classList.add('neo-tom-wrapper');
                   parent.classList.add('neo-tom-select-wrapper');
                 }
                 let settings = {
                   allowEmptyOption: findEmptyOption(el) !== null,
+                  plugins: {
+                    dropdown_input: {},
+                  },
+                  placeholder: 'Search...',
                 } as any;
                 if (el.multiple) {
                   settings = {...settings, ...{
@@ -107,7 +111,9 @@
                   }};
                 }
                 const control = new TomSelect(el, {...settings, ...baseSettings});
-                control.removeOption('_none');
+                if (el.multiple) {
+                  control.removeOption('_none');
+                }
               }
             });
           });
