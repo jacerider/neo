@@ -10,6 +10,8 @@ declare(strict_types=1);
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\taxonomy\TermForm;
+use Drupal\taxonomy_manager\Form\TaxonomyManagerForm;
+use Drupal\taxonomy_manager\Form\TaxonomyManagerTermForm;
 
 /**
  * Implements hook_form_alter().
@@ -28,6 +30,37 @@ function neo_taxonomy_form_alter(&$form, FormStateInterface $form_state, $form_i
 
     if (isset($controls['nest']) && empty($controls['nest'])) {
       $form['relations']['#access'] = FALSE;
+    }
+  }
+
+  if ($form_object instanceof TaxonomyManagerForm) {
+    $form['toolbar']['search_terms']['#prefix'] = '<div class="taxonomy-manager-autocomplete-input hidden mt-4">';
+    $form['taxonomy']['#prefix'] = '<div class="flex-0">';
+    $form['taxonomy']['#suffix'] = '</div>';
+    $form['term-data']['#prefix'] = '<div class="flex-1"><div id="taxonomy-term-data-form">';
+    $form['term-data']['#suffix'] = '</div></div>';
+    $form['taxonomy'] = [
+      '#prefix' => '<div class="flex gap-4">',
+      '#suffix' => '</div>',
+      'taxonomy' => $form['taxonomy'],
+      'term-data' => $form['term-data'],
+    ];
+    unset($form['term-data']);
+    $form['load-term-data']['#attributes']['class'][] = 'hidden';
+  }
+
+  if ($form_object instanceof TaxonomyManagerTermForm) {
+    $form['#neo_style'] = 'flush';
+    $term = $form_object->getEntity();
+    /** @var \Drupal\taxonomy\VocabularyInterface $vocabulary */
+    $vocabulary = \Drupal::entityTypeManager()->getStorage('taxonomy_vocabulary')->load($term->bundle());
+    $controls = $vocabulary->getThirdPartySettings('neo_taxonomy');
+
+    $form['fieldset']['original']['revision_information']['#access'] = FALSE;
+    $form['fieldset']['original']['revision']['#access'] = FALSE;
+
+    if (isset($controls['nest']) && empty($controls['nest'])) {
+      $form['fieldset']['original']['relations']['#access'] = FALSE;
     }
   }
 }
@@ -138,4 +171,13 @@ function neo_taxonomy_form_taxonomy_vocabulary_form_submit(array $form, FormStat
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'order', !empty($controls['order']));
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'nest', !empty($controls['order']) && !empty($controls['nest']));
   $vocabulary->save();
+}
+
+/**
+ * Implements hook_library_info_alter().
+ */
+function neo_taxonomy_library_info_alter(&$libraries, $extension) {
+  if ($extension == 'taxonomy_manager') {
+    $libraries['form']['css'] = [];
+  }
 }
