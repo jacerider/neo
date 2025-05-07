@@ -11,9 +11,11 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 use Drupal\neo\NeoPreRender;
 use Drupal\neo\NeoProcess;
+use Drupal\views\Plugin\views\style\Table;
 
 /**
  * Implements hook_theme().
@@ -232,5 +234,138 @@ function neo_element_info_alter(&$type) {
   }
   if (isset($type['view'])) {
     $type['view']['#pre_render'][] = [NeoPreRender::class, 'view'];
+  }
+}
+
+/**
+ * Get table props.
+ *
+ * @return array
+ */
+function neo_table_props(): array {
+  return [
+    'neo_style' => [
+      'label' => t('Neo Style'),
+      'options' => [
+        'default' => t('Default'),
+        'heading' => t('Heading'),
+        'sm' => t('Small'),
+        'xs' => t('Extra Small'),
+      ],
+    ],
+    'neo_size' => [
+      'label' => t('Neo Size'),
+      'options' => [
+        'default' => t('Default'),
+        'min' => t('Minimum'),
+      ],
+    ],
+    'neo_align' => [
+      'label' => t('Neo Align'),
+      'options' => [],
+    ],
+  ];
+}
+
+/**
+ * Alter the views UI for the table style plugin.
+ */
+function neo_form_views_ui_edit_display_form_alter(&$form, &$form_state, $form_id) {
+  $view = $form_state->get('view');
+  /** @var \Drupal\views\ViewExecutable $executable */
+  $executable = $view->getExecutable();
+  $style = $executable->style_plugin;
+  if (!$style instanceof Table) {
+    return;
+  }
+  if (!empty($form['options']['style_options']['info'])) {
+    $props = array_filter(neo_table_props(), fn ($prop) => !empty($prop['options']));
+    foreach ($props as $key => $prop) {
+      $form['options']['style_options']['#neo_header'][$key] = $prop['label'];
+    }
+    foreach ($form['options']['style_options']['info'] as $rowId => $row) {
+      foreach ($props as $key => $prop) {
+        $form['options']['style_options']['neo'][$rowId][$key] = [
+          '#type' => 'select',
+          '#options' => ['' => t('- Auto -')] + $prop['options'],
+          '#parents' => [
+            'style_options',
+            'info',
+            $rowId,
+            $key,
+          ],
+          '#default_value' => $style->options['info'][$rowId][$key] ?? '',
+        ];
+      }
+    }
+  }
+}
+
+/**
+ * Prepares variables for style plugin table templates.
+ *
+ * Default template: views-ui-style-plugin-table.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - form: A render element representing the form.
+ */
+function neo_preprocess_views_ui_style_plugin_table(&$variables) {
+  $form = $variables['form'];
+  if (empty($form['neo'])) {
+    return;
+  }
+  foreach ($form['#neo_header'] as $key => $label) {
+    $variables['table']['#header'][$key] = $label;
+  }
+  $props = array_filter(neo_table_props(), fn ($prop) => !empty($prop['options']));
+  $delta = 0;
+  foreach (Element::children($form['neo']) as $id) {
+    foreach ($props as $key => $prop) {
+      $variables['table']['#rows'][$delta][]['data'] = $form['neo'][$id][$key];
+    }
+    $delta++;
+  }
+  unset($variables['form']['neo']);
+}
+
+/**
+ * Prepares variables for views table templates.
+ *
+ * Default template: views-view-table.html.twig.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - view: A ViewExecutable object.
+ *   - rows: The raw row data.
+ */
+function neo_preprocess_views_view_table(&$variables) {
+  $view = $variables['view'];
+  $options = $view->style_plugin->options;
+  $props = neo_table_props();
+  foreach ($variables['rows'] as $row_id => $row) {
+    foreach ($row['columns'] as $column_id => $column) {
+      foreach ($props as $key => $prop) {
+        $className = $options['info'][$column_id][$key] ?? NULL;
+        if ($className) {
+          foreach ($prop['options'] as $option => $label) {
+            $column['attributes']->removeClass(str_replace('neo_', '', $key) . '--' . $option);
+          }
+          $column['attributes']->addClass(str_replace('neo_', '', $key) . '--' . $className);
+        }
+      }
+    }
+  }
+}
+
+/**
+ * Implements hook_config_schema_info_alter().
+ */
+function neo_config_schema_info_alter(&$definitions) {
+  foreach (neo_table_props() as $key => $prop) {
+    $definitions['views.style.table']['mapping']['info']['sequence']['mapping'][$key] = [
+      'type' => 'string',
+      'label' => $prop['label'],
+    ];
   }
 }
