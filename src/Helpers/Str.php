@@ -2,6 +2,8 @@
 
 namespace Drupal\neo\Helpers;
 
+use Drupal\Core\Language\LanguageInterface;
+
 /**
  * Various string helpers.
  *
@@ -106,6 +108,24 @@ class Str {
     }
 
     return static::$camelCache[$value] = lcfirst(static::studly($value));
+  }
+
+  /**
+   * Convert string to machine name.
+   *
+   * @param string $value
+   *   The string to convert.
+   * @param string $delimiter
+   *   The delimiter to use.
+   *
+   * @return string
+   *   The converted string.
+   */
+  public static function machine($value, $delimiter = '_') {
+    $new_value = \Drupal::service('transliteration')->transliterate($value, LanguageInterface::LANGCODE_DEFAULT, '_');
+    $new_value = strtolower($new_value);
+    $new_value = preg_replace('/[^a-z0-9_]+/', '_', $new_value);
+    return rtrim(preg_replace('/_+/', $delimiter, $new_value), $delimiter);
   }
 
 }
