@@ -22,7 +22,10 @@
     set summary_classes = [
       required ? 'js-form-required',
       required ? 'form-required',
-      'text-base form-label relative z-10 flex items-center justify-between w-full text-left px-form-item py-4 m-0 rounded focus transition hover:text-primary-500',
+      'text-base relative z-10 flex items-center justify-between w-full text-left m-0 rounded focus transition hover:text-primary-500',
+      neo_size == 'md' ? 'p-4 font-bold',
+      neo_size == 'sm' ? 'px-4 py-2 font-semibold text-sm',
+      neo_size == 'xs' ? 'px-4 py-1 font-semibold text-xm',
     ]
   %}
   {%- if title -%}
