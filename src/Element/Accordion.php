@@ -5,6 +5,7 @@ namespace Drupal\neo\Element;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Element\FormElementBase;
+use Drupal\neo\Helpers\Str;
 
 /**
  * Provides a render element for accordions in a form.
@@ -97,7 +98,7 @@ class Accordion extends FormElementBase {
     foreach ($alterElements as &$alterElement) {
       if ($alterElement['#type'] === 'details') {
         $alterElement['#theme_wrappers'] = ['accordion_item'];
-        $open[] = 'acc' . str_replace('-', '_', implode('', $alterElement['#parents'])) . ':' . (!empty($alterElement['#open']) ? 'true' : 'false');
+        $open[] = Str::machine('acc' . implode('', $alterElement['#parents'])) . ':' . (!empty($alterElement['#open']) ? 'true' : 'false');
       }
       $alterElement['#attributes']['class'][] = 'accordion-item';
     }
