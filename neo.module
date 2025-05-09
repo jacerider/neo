@@ -13,6 +13,7 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
+use Drupal\neo\Helpers\Str;
 use Drupal\neo\NeoPreRender;
 use Drupal\neo\NeoProcess;
 use Drupal\views\Plugin\views\style\Table;
@@ -202,9 +203,7 @@ function template_preprocess_accordion_item(&$variables) {
       $variables['content_attributes']['aria-labelledby'] = $element['#attributes']['id'] . '-summary';
     }
     $variables['summary_attributes']['aria-expanded'] = !empty($element['#attributes']['open']) ? 'true' : 'false';
-    // $variables['attributes']['x-data'] = '{ expanded: ' . $variables['summary_attributes']['aria-expanded'] . ' }';
-    // $variables['attributes']['x-data'] = '{ expanded: open.' . implode('_', $element['#parents']) . '}';
-    $variables['alpine_id'] = 'acc' . str_replace('-', '_', implode('', $element['#parents']));
+    $variables['alpine_id'] = 'acc' . Str::machine(implode('', $element['#parents']));
   }
   $variables['title'] = (!empty($element['#title'])) ? $element['#title'] : '';
   // If the element title is a string, wrap it a render array so that markup
