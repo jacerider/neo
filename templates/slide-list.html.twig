@@ -1,0 +1,23 @@
+{#
+/**
+ * @file
+ * Default theme implementation for a slide list.
+ *
+ * Available variables:
+ * - items: A list of items. Each item contains:
+ *   - attributes: HTML attributes to be applied to each list item.
+ *   - value: The content of the list element.
+ * - attributes: HTML attributes to be applied to the list.
+ *
+ * @see template_preprocess_item_list()
+ *
+ * @ingroup themeable
+ */
+#}
+{%- if items -%}
+  <ul{{ attributes }}>
+    {%- for item in items -%}
+      <li{{ item.attributes }}>{{ item.value }}</li>
+    {%- endfor -%}
+  </ul>
+{%- endif %}

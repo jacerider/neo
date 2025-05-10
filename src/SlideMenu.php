@@ -469,7 +469,7 @@ class SlideMenu implements RenderableInterface {
    */
   protected function buildItems(array $items): array {
     $build = [
-      '#theme' => 'item_list',
+      '#theme' => 'slide_list',
       '#items' => [],
     ];
 
