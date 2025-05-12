@@ -86,6 +86,15 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
   /** @var \Drupal\taxonomy\VocabularyInterface $vocabulary */
   $vocabulary = $form_state->get(['taxonomy', 'vocabulary']);
   $controls = $vocabulary->getThirdPartySettings('neo_taxonomy');
+
+  $form['help']['#attributes']['class'][] = 'card bg-base-100 text-xs text-base-700 p-2';
+  if (
+    isset($controls['order']) && empty($controls['order'])
+    ||
+    isset($controls['nest']) && empty($controls['nest'])
+  ) {
+    $form['help']['message']['#markup'] = $vocabulary->getDescription();
+  }
   if (isset($controls['order']) && empty($controls['order'])) {
     $form['actions']['reset_alphabetical']['#access'] = FALSE;
     unset($form['terms']['#tabledrag']);
