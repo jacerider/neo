@@ -1,3 +1,12 @@
+ajax:
+  version: VERSION
+  neo: { group: contrib }
+  js:
+    src/js/ajax.ts: {}
+  dependencies:
+    - core/drupal
+    - core/drupal.ajax
+
 coloris:
   version: VERSION
   neo: { group: contrib }
