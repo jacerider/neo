@@ -1,6 +1,6 @@
 import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from './utils/dom';
 
-(function (Drupal) {
+(function (Drupal, once) {
 
   interface MenuHTMLElement extends HTMLElement {
     _slideMenu?: SlideMenu;
@@ -554,6 +554,6 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
     }
   };
 
-})(Drupal);
+})(Drupal, once);
 
 export {};
