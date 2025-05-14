@@ -7,6 +7,15 @@ ajax:
     - core/drupal
     - core/drupal.ajax
 
+disable:
+  version: VERSION
+  neo: { group: contrib }
+  js:
+    src/js/disable.ts: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+
 coloris:
   version: VERSION
   neo: { group: contrib }
