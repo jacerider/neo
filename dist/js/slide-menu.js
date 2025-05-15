@@ -1,93 +1,82 @@
-var w = Object.defineProperty;
-var A = (r, o, c) => o in r ? w(r, o, { enumerable: !0, configurable: !0, writable: !0, value: c }) : r[o] = c;
-var f = (r, o, c) => A(r, typeof o != "symbol" ? o + "" : o, c);
-function S(r, o) {
-  if (r.parentElement === null)
+function g(l, c) {
+  if (l.parentElement === null)
     throw Error("`elem` has no parentElement");
-  return r.parentElement.insertBefore(o, r), o.appendChild(r), r;
+  return l.parentElement.insertBefore(c, l), c.appendChild(l), l;
 }
-function $(r) {
-  const o = r.parentElement;
-  if (o === null)
+function w(l) {
+  const c = l.parentElement;
+  if (c === null)
     throw Error("`elem` has no parentElement");
-  for (; r.firstChild; )
-    o.insertBefore(r.firstChild, r);
-  o.removeChild(r);
+  for (; l.firstChild; )
+    c.insertBefore(l.firstChild, l);
+  c.removeChild(l);
 }
-function b(r, o, c) {
-  const h = [];
-  for (; r && r.parentElement !== null && (c === void 0 || h.length < c); )
-    r instanceof HTMLElement && r.matches(o) && h.push(r), r = r.parentElement;
-  return h;
+function k(l, c, h) {
+  const d = [];
+  for (; l && l.parentElement !== null && (h === void 0 || d.length < h); )
+    l instanceof HTMLElement && l.matches(c) && d.push(l), l = l.parentElement;
+  return d;
 }
-function k(r, o) {
-  const c = b(r, o, 1);
-  return c.length ? c[0] : null;
+function y(l, c) {
+  const h = k(l, c, 1);
+  return h.length ? h[0] : null;
 }
-function T(r, o, c) {
-  const h = [];
-  let m = r.parentElement;
-  for (; m && (m.matches(o) && h.push(m), m !== c); )
-    m = m.parentElement;
-  return h;
+function A(l, c, h) {
+  const d = [];
+  let u = l.parentElement;
+  for (; u && (u.matches(c) && d.push(u), u !== h); )
+    u = u.parentElement;
+  return d;
 }
-function g(r, o, c) {
-  r.querySelectorAll("li").forEach((m) => {
-    const d = document.createElement("div");
-    if (o && d.classList.add(o), c) {
-      const l = T(m, "ul", r);
-      m.classList.add(`${c}-${l.length}`);
+function b(l, c, h) {
+  l.querySelectorAll("li").forEach((u) => {
+    const m = document.createElement("div");
+    if (c && m.classList.add(c), h) {
+      const r = A(u, "ul", l);
+      u.classList.add(`${h}-${r.length}`);
     }
-    const a = Array.from(m.childNodes), L = [];
-    a.forEach((l) => {
-      l.nodeType === Node.ELEMENT_NODE && l.tagName.toLowerCase() === "ul" ? L.push(l) : d.appendChild(l.cloneNode(!0));
-    }), m.innerHTML = "", d.hasChildNodes() && m.appendChild(d), L.forEach((l) => {
-      m.appendChild(l), g(l);
+    const a = Array.from(u.childNodes), v = [];
+    a.forEach((r) => {
+      r.nodeType === Node.ELEMENT_NODE && r.tagName.toLowerCase() === "ul" ? v.push(r) : m.appendChild(r.cloneNode(!0));
+    }), u.innerHTML = "", m.hasChildNodes() && u.appendChild(m), v.forEach((r) => {
+      u.appendChild(r), b(r);
     });
   });
 }
-(function(r, o) {
-  let c;
-  ((l) => {
-    l[l.Backward = -1] = "Backward", l[l.Forward = 1] = "Forward";
-  })(c || (c = {}));
+(function(l, c) {
   let h;
-  ((l) => {
-    l.Back = "back", l.Close = "close", l.Forward = "forward", l.Navigate = "navigate", l.Open = "open";
+  ((r) => {
+    r[r.Backward = -1] = "Backward", r[r.Forward = 1] = "Forward";
   })(h || (h = {}));
-  const m = {
+  let d;
+  ((r) => {
+    r.Back = "back", r.Close = "close", r.Forward = "forward", r.Navigate = "navigate", r.Open = "open";
+  })(d || (d = {}));
+  const u = {
     backLinkAfter: "",
     backLinkBefore: "",
     position: "right",
     showBackLink: !1,
     submenuLinkAfter: "",
     submenuLinkBefore: ""
-  }, d = "neo-slide-menu", a = {
-    active: `${d}--active`,
-    focus: `${d}--focus`,
+  }, m = "neo-slide-menu", a = {
+    active: `${m}--active`,
+    focus: `${m}--focus`,
     activeLi: "is-active",
-    backlink: `${d}--backlink`,
-    control: `${d}--control`,
-    decorator: `${d}--decorator`,
-    level: `${d}--level-`,
-    wrapper: `${d}--slider`,
-    wrapperLi: `${d}--item`
+    backlink: `${m}--backlink`,
+    control: `${m}--control`,
+    decorator: `${m}--decorator`,
+    level: `${m}--level-`,
+    wrapper: `${m}--slider`,
+    wrapperLi: `${m}--item`
   };
-  class L {
+  class v {
     constructor(t, e) {
-      f(this, "level", 0);
-      f(this, "isOpen", !1);
-      f(this, "isAnimating", !1);
-      f(this, "lastAction", null);
-      f(this, "options");
-      f(this, "menuElem");
-      f(this, "wrapperElem");
-      f(this, "focusElem", null);
-      if (t === null)
+      if (this.level = 0, this.isOpen = !1, this.isAnimating = !1, this.lastAction = null, this.focusElem = null, t === null)
         throw new Error("Argument `elem` must be a valid HTML node");
-      this.options = Object.assign({}, m, e), this.menuElem = t, this.wrapperElem = document.createElement("div"), this.wrapperElem.classList.add(a.wrapper);
+      this.options = Object.assign({}, u, e), this.menuElem = t, this.wrapperElem = document.createElement("div"), this.wrapperElem.classList.add(a.wrapper);
       const s = this.menuElem.querySelector("ul");
-      s && (s.classList.add(a.active), S(s, this.wrapperElem)), this.initMenu(), this.setFocus(0), this.initSubmenus(), this.initEventHandlers(), this.menuElem._slideMenu = this;
+      s && (s.classList.add(a.active), g(s, this.wrapperElem)), this.initMenu(), this.setFocus(0), this.initSubmenus(), this.initEventHandlers(), this.menuElem._slideMenu = this;
     }
     /**
      * Navigate one menu hierarchy back if possible
@@ -110,9 +99,9 @@ function g(r, o, c) {
       }), s && Array.from(
         this.wrapperElem.querySelectorAll(`.${a.control}`)
       ).forEach((i) => {
-        const u = k(i, "li");
-        u && u.parentElement && u.parentElement.removeChild(u);
-      }), $(this.wrapperElem), this.menuElem.style.cssText = "", this.menuElem.querySelectorAll("ul").forEach((n) => n.style.cssText = ""), delete this.menuElem._slideMenu;
+        const o = y(i, "li");
+        o && o.parentElement && o.parentElement.removeChild(o);
+      }), w(this.wrapperElem), this.menuElem.style.cssText = "", this.menuElem.querySelectorAll("ul").forEach((n) => n.style.cssText = ""), delete this.menuElem._slideMenu;
     }
     /**
      * Navigate to a specific link on any level (useful to open the correct hierarchy directly)
@@ -133,7 +122,7 @@ function g(r, o, c) {
       ).forEach((i) => {
         i.style.visibility = "hidden", i.classList.remove(a.active);
       });
-      const s = b(t, "ul"), n = s.length - 1;
+      const s = k(t, "ul"), n = s.length - 1;
       s.forEach((i) => {
         i.style.visibility = "visible", i.classList.add(a.active);
       }), n >= 0 && n !== this.level && (this.level = n, this.moveSlider(this.wrapperElem, -this.level * 100));
@@ -144,7 +133,7 @@ function g(r, o, c) {
     initEventHandlers() {
       Array.from(this.menuElem.querySelectorAll("a")).forEach(
         (e) => e.addEventListener("click", (s) => {
-          const n = s.target, i = n.matches("a") ? n : k(n, "a");
+          const n = s.target, i = n.matches("a") ? n : y(n, "a");
           i && this.navigate(1, i);
         })
       ), this.menuElem.addEventListener("transitionend", this.onTransitionEnd.bind(this)), this.wrapperElem.addEventListener("transitionend", this.onTransitionEnd.bind(this)), this.initSubmenuVisibility();
@@ -187,10 +176,10 @@ function g(r, o, c) {
         const i = e.closest("li");
         if (!i)
           return;
-        const u = i.querySelector("ul");
-        if (!u)
+        const o = i.querySelector("ul");
+        if (!o)
           return;
-        u.classList.add(a.active), u.style.visibility = "visible";
+        o.classList.add(a.active), o.style.visibility = "visible";
       }
       const n = t === 1 ? "forward" : "back";
       this.triggerEvent(n), this.level = this.level + t, this.moveSlider(this.wrapperElem, s);
@@ -236,7 +225,7 @@ function g(r, o, c) {
      */
     initSubmenus() {
       let t = null;
-      g(this.menuElem, a.wrapperLi, a.level), this.menuElem.querySelectorAll("ul").forEach((e) => {
+      b(this.menuElem, a.wrapperLi, a.level), this.menuElem.querySelectorAll("ul").forEach((e) => {
         e.querySelectorAll(`:scope > li > .${a.wrapperLi}`).forEach((n, i) => {
           n.style.animationDelay = `${300 + i * 30}ms`;
         });
@@ -251,19 +240,19 @@ function g(r, o, c) {
         const i = n.querySelector("ul");
         if (!i)
           return;
-        e.addEventListener("click", (p) => {
-          p.preventDefault();
+        e.addEventListener("click", (E) => {
+          E.preventDefault();
         });
-        const u = e.textContent;
+        const o = e.textContent;
         if (this.addLinkDecorators(e), this.options.showBackLink) {
-          const { backLinkBefore: p, backLinkAfter: y } = this.options, E = document.createElement("a");
-          E.innerHTML = p + u + y, E.classList.add(a.backlink, a.control), E.setAttribute(
+          const { backLinkBefore: E, backLinkAfter: L } = this.options, f = document.createElement("a");
+          f.innerHTML = E + o + L, f.classList.add(a.backlink, a.control), f.setAttribute(
             "data-action",
             "back"
             /* Back */
           );
-          const v = document.createElement("li");
-          v.appendChild(E), i.insertBefore(v, i.firstChild);
+          const p = document.createElement("li");
+          p.appendChild(f), i.insertBefore(p, i.firstChild);
         }
       }), t instanceof HTMLElement && (t.classList.add(a.activeLi), this.runWithoutAnimation(() => {
         this.navigateTo(t);
@@ -283,46 +272,46 @@ function g(r, o, c) {
       return t;
     }
   }
-  document.addEventListener("click", (l) => {
-    if (!(l.target instanceof HTMLElement))
+  document.addEventListener("click", (r) => {
+    if (!(r.target instanceof HTMLElement))
       return;
-    const t = l.target.className.includes(a.control) ? l.target : k(l.target, `.${a.control}`);
+    const t = r.target.className.includes(a.control) ? r.target : y(r.target, `.${a.control}`);
     if (!t || !t.className.includes(a.control))
       return;
-    const e = t.getAttribute("data-target"), s = !e || e === "this" ? k(t, `.${d}`) : document.getElementById(e);
+    const e = t.getAttribute("data-target"), s = !e || e === "this" ? y(t, `.${m}`) : document.getElementById(e);
     if (!s)
       throw new Error(`Unable to find menu ${e}`);
-    const n = s._slideMenu, i = t.getAttribute("data-action"), u = t.getAttribute("data-arg");
-    n && i && typeof n[i] == "function" && (u ? n[i](u) : n[i]());
-  }), r.behaviors.neoSlideMenu = {
+    const n = s._slideMenu, i = t.getAttribute("data-action"), o = t.getAttribute("data-arg");
+    n && i && typeof n[i] == "function" && (o ? n[i](o) : n[i]());
+  }), l.behaviors.neoSlideMenu = {
     attach: () => {
-      o("neo-slide-menu", ".neo-slide-menu").forEach((l) => {
-        new L(l);
+      c("neo-slide-menu", ".neo-slide-menu").forEach((r) => {
+        new v(r);
       });
     },
     // When opening in a modal, you can pass this method as a titleCallback
     // and it will swap the title with the current menu item parent.
-    modalTitle: (l, t) => {
+    modalTitle: (r, t) => {
       var s;
-      const e = (s = l.getContent()) == null ? void 0 : s.querySelector(".neo-slide-menu");
+      const e = (s = r.getContent()) == null ? void 0 : s.querySelector(".neo-slide-menu");
       if (e) {
         const n = e._slideMenu;
         if (n && n.focusElem) {
           const i = document.createElement("div");
-          i.style.transition = "opacity 300ms ease-in-out", i.classList.add("flex", "items-center", "gap-4", "hover:text-primary", "transition", "cursor-pointer"), i.addEventListener("click", (v) => {
-            v.preventDefault(), n.back();
+          i.style.transition = "opacity 300ms ease-in-out", i.classList.add("flex", "items-center", "gap-4", "hover:text-primary", "transition", "cursor-pointer"), i.addEventListener("click", (p) => {
+            p.preventDefault(), n.back();
           });
-          const u = document.createElement("div");
-          u.innerHTML = '<i class="text-base-700 text-sm neo-icon neo-icon-font icon-regular-chevron-left" title="Back" aria-hidden="true"></i>', i.appendChild(u);
-          const p = document.createElement("div");
-          i.appendChild(p);
-          const y = () => {
+          const o = document.createElement("div");
+          o.innerHTML = '<i class="text-base-700 text-sm neo-icon neo-icon-font icon-regular-chevron-left" title="Back" aria-hidden="true"></i>', i.appendChild(o);
+          const E = document.createElement("div");
+          i.appendChild(E);
+          const L = () => {
             i.style.opacity = "0";
-          }, E = () => {
-            let v = l.getOption("title");
-            i.style.opacity = "1", i.style.pointerEvents = "none", u.style.display = "none", n && n.focusElem && n.focusElem.dataset.parentTitle && (i.style.pointerEvents = "", u.style.display = "block", v = n.focusElem.dataset.parentTitle), p.innerHTML = v;
+          }, f = () => {
+            let p = r.getOption("title");
+            i.style.opacity = "1", i.style.pointerEvents = "none", o.style.display = "none", n && n.focusElem && n.focusElem.dataset.parentTitle && (i.style.pointerEvents = "", o.style.display = "block", p = n.focusElem.dataset.parentTitle), E.innerHTML = p;
           };
-          e.addEventListener("sm.forward", y), e.addEventListener("sm.forward-after", E), e.addEventListener("sm.back", y), e.addEventListener("sm.back-after", E), t.appendChild(i), E();
+          e.addEventListener("sm.forward", L), e.addEventListener("sm.forward-after", f), e.addEventListener("sm.back", L), e.addEventListener("sm.back-after", f), t.appendChild(i), f();
         }
       }
       return "Menu";
