@@ -1,5 +1,5 @@
 interface BodyScrollLock {
-  lock: (target?: HTMLElement, options?:any) => void;
+  lock: (target?: HTMLElement|HTMLElement[], options?:any) => void;
   unlock: (target?: HTMLElement, options?:any) => void;
   clearBodyLocks: () => void;
 }
