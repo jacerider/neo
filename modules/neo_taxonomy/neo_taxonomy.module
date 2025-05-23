@@ -104,7 +104,7 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
     }
   }
   foreach (Element::children($form['terms']) as $key) {
-    $form['terms'][$key]['status']['#markup'] = neo_admin_icon($form['terms'][$key]['status']['#markup'])->iconOnly();
+    $form['terms'][$key]['status']['#markup'] = neo_icon_admin($form['terms'][$key]['status']['#markup'])->iconOnly();
     if (isset($controls['link']) && empty($controls['link'])) {
       $form['terms'][$key]['term'] = [
         '#markup' => $form['terms'][$key]['term']['#title'],
