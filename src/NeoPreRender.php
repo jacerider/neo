@@ -2,6 +2,7 @@
 
 namespace Drupal\neo;
 
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\Security\TrustedCallbackInterface;
 
 /**
@@ -28,11 +29,26 @@ class NeoPreRender implements TrustedCallbackInterface {
   }
 
   /**
+   * Prerender callback for disabling-on-click elements.
+   */
+  public static function disable($element) {
+    if (!empty($element['#disabled_on_click'])) {
+      $element['#attached']['library'][] = 'neo/disable';
+      $element['#attributes']['class'][] = 'neo-disable';
+      if (is_string($element['#disabled_on_click']) || $element['#disabled_on_click'] instanceof MarkupInterface) {
+        $element['#attributes']['data-neo-disable-message'] = $element['#disabled_on_click'];
+      }
+    }
+    return $element;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public static function trustedCallbacks() {
     return [
       'view',
+      'disable',
     ];
   }
 

@@ -292,14 +292,25 @@ function template_preprocess_slide_list(&$variables) {
 /**
  * Implements hook_element_info_alter().
  */
-function neo_element_info_alter(&$type) {
-  if (isset($type['details'])) {
-    $processes = !empty($type['details']['#process']) ? $type['details']['#process'] : [];
+function neo_element_info_alter(&$info) {
+  if (isset($info['details'])) {
+    $processes = !empty($info['details']['#process']) ? $info['details']['#process'] : [];
     array_unshift($processes, [NeoProcess::class, 'details']);
-    $type['details']['#process'] = $processes;
+    $info['details']['#process'] = $processes;
   }
-  if (isset($type['view'])) {
-    $type['view']['#pre_render'][] = [NeoPreRender::class, 'view'];
+  if (isset($info['view'])) {
+    $info['view']['#pre_render'][] = [NeoPreRender::class, 'view'];
+  }
+  foreach ([
+    'link',
+    'button',
+    'submit',
+    'neo_modal_link',
+  ] as $type) {
+    $info[$type]['#pre_render'] = array_merge(
+      [[NeoPreRender::class, 'disable']],
+      $info[$type]['#pre_render'] ?? []
+    );
   }
 }
 

@@ -60,7 +60,11 @@
     /**
      * Handle trigger click events
      */
-    private handleTriggerClick(_e: MouseEvent): void {
+    private handleTriggerClick(e: MouseEvent): void {
+      if (e.button === 2) {
+        // Ignore right-clicks
+        return;
+      }
       // Store active trigger for form submissions
       if (this.form) {
         activeTrigger = this.trigger;
@@ -71,8 +75,11 @@
       if (onceValue.includes('drupal-ajax')) {
         this.handleAjaxTrigger();
       } else if (!this.form) {
-        // If not a form element, disable the trigger directly
-        this.disable(this.trigger, this.trigger);
+        // If not a form element, disable the trigger directly. Use delay
+        // to ensure it doesn't interfere with other events.
+        setTimeout(() => {
+          this.disable(this.trigger, this.trigger);
+        }, 100);
       }
     }
 
@@ -138,7 +145,6 @@
       // Clone the trigger element
       this.clone = trigger.cloneNode(true) as HTMLElement;
       this.clone.style.minWidth = `${trigger.offsetWidth}px`;
-      // this.clone.classList.add('btn-ignore');
 
       // Set appropriate text content based on element type
       if (this.clone instanceof HTMLButtonElement ||

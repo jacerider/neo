@@ -1,16 +1,16 @@
-(function(a, i, l) {
+(function(a, s, l) {
   let t = null;
-  class h {
+  class r {
     /**
      * Creates a new NeoDisable instance
      *
      * @param trigger - The element that triggers the disable behavior
      * @param options - Optional configuration options
      */
-    constructor(e, s = {}) {
+    constructor(e, i = {}) {
       this.trigger = e, this.clone = null, this.form = this.trigger.closest("form"), this.options = {
         disabledClasses: ["opacity-50", "pointer-events-none"],
-        ...s
+        ...i
       }, this.initEvents();
     }
     /**
@@ -23,7 +23,11 @@
      * Handle trigger click events
      */
     handleTriggerClick(e) {
-      this.form && (t = this.trigger), (this.trigger.dataset.once || "").includes("drupal-ajax") ? this.handleAjaxTrigger() : this.form || this.disable(this.trigger, this.trigger);
+      if (e.button === 2)
+        return;
+      this.form && (t = this.trigger), (this.trigger.dataset.once || "").includes("drupal-ajax") ? this.handleAjaxTrigger() : this.form || setTimeout(() => {
+        this.disable(this.trigger, this.trigger);
+      }, 100);
     }
     /**
      * Handle AJAX triggers with appropriate disable/enable lifecycle
@@ -51,12 +55,12 @@
      * @param element - The element to disable
      * @param trigger - The trigger element that may show a loading message
      */
-    disable(e, s = null) {
-      if (t = null, !!e && (e.classList.add(...this.options.disabledClasses), s && s.dataset.neoDisableMessage))
+    disable(e, i = null) {
+      if (t = null, !!e && (e.classList.add(...this.options.disabledClasses), i && i.dataset.neoDisableMessage))
         try {
-          this.showLoadingMessage(s);
-        } catch (r) {
-          console.error("Error showing loading message:", r);
+          this.showLoadingMessage(i);
+        } catch (h) {
+          console.error("Error showing loading message:", h);
         }
     }
     /**
@@ -65,8 +69,8 @@
      * @param trigger - The trigger element
      */
     showLoadingMessage(e) {
-      const s = i.t(e.dataset.neoDisableMessage || "");
-      s && (this.clone = e.cloneNode(!0), this.clone.style.minWidth = `${e.offsetWidth}px`, this.clone instanceof HTMLButtonElement || this.clone instanceof HTMLAnchorElement ? this.clone.innerHTML = s : this.clone instanceof HTMLInputElement && this.clone.type === "submit" && (this.clone.value = s), e.after(this.clone), e.style.display = "none");
+      const i = s.t(e.dataset.neoDisableMessage || "");
+      i && (this.clone = e.cloneNode(!0), this.clone.style.minWidth = `${e.offsetWidth}px`, this.clone instanceof HTMLButtonElement || this.clone instanceof HTMLAnchorElement ? this.clone.innerHTML = i : this.clone instanceof HTMLInputElement && this.clone.type === "submit" && (this.clone.value = i), e.after(this.clone), e.style.display = "none");
     }
     /**
      * Re-enable an element and restore original trigger
@@ -74,16 +78,16 @@
      * @param element - The element to enable
      * @param trigger - The trigger element to restore
      */
-    enable(e, s = null) {
-      !e || !document.body.contains(e) || (e.classList.remove(...this.options.disabledClasses), s && this.clone && (s.style.display = "", this.clone.remove(), this.clone = null));
+    enable(e, i = null) {
+      !e || !document.body.contains(e) || (e.classList.remove(...this.options.disabledClasses), i && this.clone && (i.style.display = "", this.clone.remove(), this.clone = null));
     }
   }
-  const n = i.behaviors.AJAX || null;
-  n && delete i.behaviors.AJAX, i.behaviors.neoDisable = {
+  const n = s.behaviors.AJAX || null;
+  n && delete s.behaviors.AJAX, s.behaviors.neoDisable = {
     attach: (o, e) => {
-      l("neo-disable", ".neo-disable", o).forEach((s) => {
-        s instanceof HTMLElement && new h(s);
-      }), n && (i.behaviors.AJAX = n, i.behaviors.AJAX.attach(o, e));
+      l("neo-disable", ".neo-disable", o).forEach((i) => {
+        i instanceof HTMLElement && new r(i);
+      }), n && (s.behaviors.AJAX = n, s.behaviors.AJAX.attach(o, e));
     }
   };
 })(jQuery, Drupal, once);
