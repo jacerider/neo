@@ -94,13 +94,14 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
     return $replacements;
   }
 
+  $entities = [];
   foreach ($data as $dataType => $value) {
     if ($value instanceof ContentEntityInterface) {
-      $entities[$dataType] = $value;
+      $entities[] = $value;
     }
   }
   if (!$entities) {
-    return $replacements;
+    $entities[] = NULL;
   }
   $cache = &drupal_static(__FUNCTION__);
   $definitions = neo_tokens_definitions();
@@ -110,11 +111,13 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
     if (!isset($definitions[$name])) {
       continue;
     }
-    foreach ($entities as $entityTypeId => $entity) {
-      $key = implode(':', array_merge([
+    foreach ($entities as $entity) {
+      $key = implode(':', array_merge($entity ? [
         $entity->getEntityTypeId(),
         $entity->id(),
-        $dataType,
+        $name,
+      ] : [
+        'no-entity',
         $name,
       ], $params));
       if (isset($cache[$key])) {
@@ -122,10 +125,10 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
         continue 2;
       }
       $value = match ($name) {
-        'title' => neo_tokens_title($entity),
-        'description' => neo_tokens_description($entity),
-        'logo' => neo_tokens_logo($entity, $params),
-        'image' => neo_tokens_image($entity, $params),
+        'title' => neo_tokens_title($params, $entity),
+        'description' => neo_tokens_description($params, $entity),
+        'logo' => neo_tokens_logo($params, $entity),
+        'image' => neo_tokens_image($params, $entity),
         default => NULL,
       };
       $cache[$key] = $value;
@@ -146,6 +149,8 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
  * 2. From the current route's page title.
  * 3. From the entity's label.
  *
+ * @param array $params
+ *   Additional parameters, such as image effect and dimensions.
  * @param \Drupal\Core\Entity\ContentEntityInterface $entity
  *   The entity being processed.
  *
@@ -154,7 +159,7 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
  *
  * @see hook_neo_token_title_alter()
  */
-function neo_tokens_title(ContentEntityInterface $entity, array $params = []) {
+function neo_tokens_title(array $params = [], ?ContentEntityInterface $entity = NULL) {
   $title = NULL;
 
   if (\Drupal::service('path.matcher')->isFrontPage()) {
@@ -185,15 +190,15 @@ function neo_tokens_title(ContentEntityInterface $entity, array $params = []) {
  * This function retrieves the best description to represent an entity,
  * allowing for optional parameters to specify the desired description.
  *
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
- *   The entity being processed.
  * @param array $params
  *   Additional parameters, such as image effect and dimensions.
+ * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+ *   The entity being processed.
  *
  * @return string|null
  *   A formatted description or NULL if no suitable description is found.
  */
-function neo_tokens_description(ContentEntityInterface $entity, array $params = []) {
+function neo_tokens_description(array $params = [], ?ContentEntityInterface $entity = NULL) {
   $description = NULL;
 
   if (\Drupal::service('path.matcher')->isFrontPage()) {
@@ -204,10 +209,12 @@ function neo_tokens_description(ContentEntityInterface $entity, array $params = 
   \Drupal::moduleHandler()->alter('neo_token_description', $description, $params, $entity);
 
   if (!$description) {
-    $description = match($entity->getEntityTypeId()) {
-      'taxonomy_term' => $entity->get('description')->value,
-      default => NULL,
-    };
+    if ($entity) {
+      $description = match($entity->getEntityTypeId()) {
+        'taxonomy_term' => $entity->get('description')->value,
+        default => NULL,
+      };
+    }
     if (!$description) {
       $description = \Drupal::config('system.site')->get('slogan');
     }
@@ -222,15 +229,15 @@ function neo_tokens_description(ContentEntityInterface $entity, array $params = 
  * This function retrieves the best image to represent an entity, allowing
  * for optional parameters to specify the desired image dimensions or effects.
  *
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
- *   The entity being processed.
  * @param array $params
  *   Additional parameters, such as image effect and dimensions.
+ * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+ *   The entity being processed.
  *
  * @return string
  *   A formatted image URL or 'image' if no suitable image is found.
  */
-function neo_tokens_logo(ContentEntityInterface $entity, array $params = []) {
+function neo_tokens_logo(array $params = [], ?ContentEntityInterface $entity = NULL) {
   $op = $params[0] ?? NULL;
   if (in_array($op, ['width', 'height'])) {
     // If the first parameter is 'width' or 'height', we will return the
@@ -238,7 +245,7 @@ function neo_tokens_logo(ContentEntityInterface $entity, array $params = []) {
     $params = array_slice($params, 1);
   }
 
-  if ($url = neo_tokens_image_url($entity, $params, 'neo_token_logo', FALSE)) {
+  if ($url = neo_tokens_image_url($params, 'neo_token_logo', $entity, FALSE)) {
     return match ($op) {
       'width' => ((string) getimagesize($url)[0]) ?? NULL,
       'height' => ((string) getimagesize($url)[1]) ?? NULL,
@@ -254,18 +261,18 @@ function neo_tokens_logo(ContentEntityInterface $entity, array $params = []) {
  * This function retrieves the best image to represent an entity, allowing
  * for optional parameters to specify the desired image dimensions or effects.
  *
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
- *   The entity being processed.
  * @param array $params
  *   Additional parameters, such as image effect and dimensions.
+ * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+ *   The entity being processed.
  *
  * @return string
  *   A formatted image URL or 'image' if no suitable image is found.
  */
-function neo_tokens_image(ContentEntityInterface $entity, array $params = []) {
+function neo_tokens_image(array $params = [], ?ContentEntityInterface $entity = NULL) {
   if (\Drupal::service('path.matcher')->isFrontPage()) {
     // We are on the front page, so we want to use the logo.
-    return neo_tokens_logo($entity, $params);
+    return neo_tokens_logo($params, $entity);
   }
   $op = $params[0] ?? NULL;
   if (in_array($op, ['width', 'height'])) {
@@ -274,7 +281,7 @@ function neo_tokens_image(ContentEntityInterface $entity, array $params = []) {
     $params = array_slice($params, 1);
   }
 
-  if ($url = neo_tokens_image_url($entity, $params, 'neo_token_image', FALSE)) {
+  if ($url = neo_tokens_image_url($params, 'neo_token_image', $entity, TRUE)) {
     return match ($op) {
       'width' => ((string) getimagesize($url)[0]) ?? NULL,
       'height' => ((string) getimagesize($url)[1]) ?? NULL,
@@ -291,28 +298,33 @@ function neo_tokens_image(ContentEntityInterface $entity, array $params = []) {
  * 1. Media reference fields of type 'image'
  * 2. From another module's hook_neo_token_image_alter() implementation.
  *
- * @param \Drupal\Core\Entity\ContentEntityInterface $entity
- *   The entity being processed.
  * @param array $params
  *   Additional parameters.
  * @param string $hook
  *   The hook name to use for altering the image URI, e.g., 'neo_token_image'.
+ * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+ *   The entity being processed.
+ * @param bool $crawlEntity
+ *   Whether to crawl the entity for media images. Defaults to TRUE.
  *
  * @return string|null
  *   A formatted image URL or NULL if no suitable image found.
  */
-function neo_tokens_image_url(ContentEntityInterface $entity, array $params, string $hook, bool $crawlEntity = TRUE): ?string {
+function neo_tokens_image_url(array $params, string $hook, ?ContentEntityInterface $entity = NULL, bool $crawlEntity = TRUE): ?string {
   $cache = &drupal_static(__FUNCTION__);
   $moduleHandler = \Drupal::moduleHandler();
-  $key = implode(':', [
+  $key = implode(':', $entity ? [
     $entity->getEntityTypeId(),
     $entity->id(),
+    $hook,
+  ] : [
+    'no-entity',
     $hook,
   ]);
   $uri = $cache[$key] ?? NULL;
   if (!$uri) {
 
-    if ($crawlEntity) {
+    if ($entity && $crawlEntity) {
       // Try to get a media image from the entity's fields.
       $uri = neo_tokens_entity_to_media_image_uri($entity);
     }
