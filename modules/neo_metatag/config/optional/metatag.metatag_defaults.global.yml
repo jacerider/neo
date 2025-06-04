@@ -1,0 +1,42 @@
+uuid: 98baa5ba-a6db-48e9-a029-c6a89980e1c1
+langcode: en
+status: true
+dependencies: {  }
+_core:
+  default_config_hash: sL588ui1E_8-2c_UupwyYxcqX2OVyMFp3HTLbbFqvPc
+id: global
+label: Global
+tags:
+  canonical_url: '[current-page:url]'
+  description: '[neo:description]'
+  image_src: '[neo:image]'
+  og_country_name: '[site:address:country]'
+  og_image: '[neo:image]'
+  og_image_height: '[neo:image:height]'
+  og_image_url: '[neo:image]'
+  og_image_width: '[neo:image:width]'
+  og_locality: '[site:address:city]'
+  og_phone_number: '[site:phone]'
+  og_postal_code: '[site:address:zip]'
+  og_region: '[site:address:state]'
+  og_street_address: '[site:address:street_1][site:address:street_2]'
+  schema_article_description: '[neo:description]'
+  schema_article_headline: '[neo:title]'
+  schema_article_image: 'a:5:{s:5:"@type";s:11:"ImageObject";s:20:"representativeOfPage";s:5:"False";s:3:"url";s:11:"[neo:image]";s:5:"width";s:17:"[neo:image:width]";s:6:"height";s:18:"[neo:image:height]";}'
+  schema_article_name: '[neo:title]'
+  schema_article_type: Article
+  schema_organization_address: 'a:6:{s:5:"@type";s:13:"PostalAddress";s:13:"streetAddress";s:46:"[site:address:street_1][site:address:street_2]";s:15:"addressLocality";s:19:"[site:address:city]";s:13:"addressRegion";s:20:"[site:address:state]";s:10:"postalCode";s:18:"[site:address:zip]";s:14:"addressCountry";s:22:"[site:address:country]";}'
+  schema_organization_description: '[site:slogan]'
+  schema_organization_logo: 'a:5:{s:5:"@type";s:11:"ImageObject";s:20:"representativeOfPage";s:5:"False";s:3:"url";s:10:"[neo:logo]";s:5:"width";s:16:"[neo:logo:width]";s:6:"height";s:17:"[neo:logo:height]";}'
+  schema_organization_name: '[site:name]'
+  schema_organization_telephone: '[site:phone]'
+  schema_organization_type: Organization
+  schema_organization_url: '[site:url]'
+  schema_web_site_name: '[site:name]'
+  schema_web_site_type: WebSite
+  schema_web_site_url: '[site:url]'
+  title: '[neo:title] | [site:name]'
+  twitter_cards_description: '[neo:description]'
+  twitter_cards_image: '[neo:image]'
+  twitter_cards_title: '[neo:title]'
+  twitter_cards_type: summary_large_image

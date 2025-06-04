@@ -1,0 +1,21 @@
+<?php
+
+/**
+ * @file
+ * Install, update and uninstall functions for the neo_metatag module.
+ */
+
+use Drupal\Core\Config\FileStorage;
+
+/**
+ * Implements hook_install().
+ */
+function neo_metatag_install() {
+  $config_path = \Drupal::service('extension.list.module')->getPath('neo_metatag') . '/config/optional';
+  $source = new FileStorage($config_path);
+  $config_storage = \Drupal::service('config.storage');
+  $files = $source->listAll('');
+  foreach ($files as $name) {
+    $config_storage->write($name, $source->read($name));
+  }
+}
