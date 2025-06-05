@@ -8,7 +8,7 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Template\Attribute;
 use Drupal\neo\Helpers\Str;
-use Drupal\neo_icon\IconTranslationTrait;
+use Drupal\neo_icon\IconTrait;
 
 /**
  * Provides a slide menu component for Drupal.
@@ -41,7 +41,7 @@ use Drupal\neo_icon\IconTranslationTrait;
 class SlideMenu implements RenderableInterface {
 
   use StringTranslationTrait;
-  use IconTranslationTrait;
+  use IconTrait;
 
   /**
    * The menu items.
