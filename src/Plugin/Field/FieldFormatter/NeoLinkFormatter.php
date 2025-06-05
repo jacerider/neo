@@ -9,7 +9,7 @@ use Drupal\Core\Path\PathValidatorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Utility\Token;
-use Drupal\neo_icon\IconTranslationTrait;
+use Drupal\neo_icon\IconTrait;
 
 /**
  * Plugin implementation of the 'neo_link' formatter.
@@ -24,7 +24,7 @@ use Drupal\neo_icon\IconTranslationTrait;
  */
 class NeoLinkFormatter extends LinkFormatter {
 
-  use IconTranslationTrait;
+  use IconTrait;
 
   /**
    * The token service.
