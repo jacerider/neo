@@ -283,8 +283,8 @@ function neo_tokens_image(array $params = [], ?ContentEntityInterface $entity = 
 
   if ($url = neo_tokens_image_url($params, 'neo_token_image', $entity, TRUE)) {
     return match ($op) {
-      'width' => ((string) getimagesize($url)[0]) ?? NULL,
-      'height' => ((string) getimagesize($url)[1]) ?? NULL,
+      'width' => file_exists($url) ? (((string) getimagesize($url)[0]) ?? NULL) : NULL,
+      'height' => file_exists($url) ? (((string) getimagesize($url)[1]) ?? NULL) : NULL,
       default => $url,
     };
   }
