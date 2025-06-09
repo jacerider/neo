@@ -95,6 +95,7 @@
                 }
                 let settings = {
                   allowEmptyOption: findEmptyOption(el) !== null,
+                  selectOnTab: true,
                   plugins: {
                     dropdown_input: {},
                   },
@@ -136,7 +137,8 @@
                 valueField: 'value',
                 labelField: 'value',
                 searchField: 'label',
-                create: el.classList.contains('neo-autocreate'),
+                create: true,
+                createOnBlur: true,
                 dropdownParent: document.body,
                 maxItems: 1,
                 load: function(query:any, callback:any) {
@@ -175,7 +177,14 @@
                   }
                 }};
               }
-              new TomSelect(el, {...settings, ...baseSettings});
+              const finalSettings = {...settings, ...baseSettings};
+              finalSettings.render.option_create = function(data:any, escape:any) {
+                if (el.classList.contains('neo-autocreate')) {
+                  return '<div class="create">Create <strong>' + escape(data.input) + '</strong>&hellip;</div>';
+                }
+                return '<div class="create">Use <strong>' + escape(data.input) + '</strong></div>';
+              }
+              new TomSelect(el, finalSettings);
             }
           });
         });
