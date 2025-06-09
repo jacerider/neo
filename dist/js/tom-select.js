@@ -1,20 +1,20 @@
-(function(i, d, w) {
-  const u = {
+(function(s, u, w) {
+  const f = {
     dropdownParent: document.body,
     maxOptions: null,
     onInitialize: function() {
-      const t = this, e = t.input, n = t.control;
-      if (e.classList.contains("use-neo-tooltip") && i.behaviors.neoTooltip) {
+      const t = this, o = t.input, n = t.control;
+      if (o.classList.contains("use-neo-tooltip") && s.behaviors.neoTooltip) {
         n.classList.add("use-neo-tooltip");
-        for (const o in e.dataset)
-          o.startsWith("tippy") && (n.dataset[o] = e.dataset[o]);
-        i.behaviors.neoTooltip.attach(t.wrapper);
+        for (const e in o.dataset)
+          e.startsWith("tippy") && (n.dataset[e] = o.dataset[e]);
+        s.behaviors.neoTooltip.attach(t.wrapper);
       }
       t.dropdownWatch = null, t.dropdownWatchCb = () => {
         if (t.isOpen) {
           t.popper.update();
-          const o = t.wrapper.getBoundingClientRect();
-          t.dropdown.style.width = Math.max(o.width, 140) + "px";
+          const e = t.wrapper.getBoundingClientRect();
+          t.dropdown.style.width = Math.max(e.width, 140) + "px";
         }
       }, t.popper = w.createPopper(t.wrapper, t.dropdown, {
         modifiers: [
@@ -35,10 +35,10 @@
       clearInterval(this.dropdownWatch);
     },
     onFocus: function() {
-      i.behaviors.neoTooltip && i.behaviors.neoTooltip.disableAll();
+      s.behaviors.neoTooltip && s.behaviors.neoTooltip.disableAll();
     },
     onBlur: function() {
-      i.behaviors.neoTooltip && i.behaviors.neoTooltip.enableAll();
+      s.behaviors.neoTooltip && s.behaviors.neoTooltip.enableAll();
     },
     render: {
       dropdown: function() {
@@ -46,27 +46,28 @@
       }
     }
   };
-  function v(t) {
-    const e = t.options;
-    for (let n = 0; n < e.length; n++) {
-      const o = e[n];
-      if (o.value === "")
-        return o;
+  function b(t) {
+    const o = t.options;
+    for (let n = 0; n < o.length; n++) {
+      const e = o[n];
+      if (e.value === "")
+        return e;
     }
     return null;
   }
-  i.behaviors.neoTomSelect = {
+  s.behaviors.neoTomSelect = {
     attach: () => {
-      d("neo.tom", "select.neo-select").forEach((t) => {
+      u("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
-          var e = new IntersectionObserver((n, o) => {
-            n.forEach((l) => {
-              if (l.intersectionRatio > 0) {
-                o.disconnect();
-                const a = t.closest(".form--item");
-                a && (a.classList.add("neo-tom-wrapper"), a.classList.add("neo-tom-select-wrapper"));
+          var o = new IntersectionObserver((n, e) => {
+            n.forEach((p) => {
+              if (p.intersectionRatio > 0) {
+                e.disconnect();
+                const r = t.closest(".form--item");
+                r && (r.classList.add("neo-tom-wrapper"), r.classList.add("neo-tom-select-wrapper"));
                 let c = {
-                  allowEmptyOption: v(t) !== null,
+                  allowEmptyOption: b(t) !== null,
+                  selectOnTab: !0,
                   plugins: {
                     dropdown_input: {}
                   },
@@ -77,51 +78,56 @@
                     title: "Remove this item"
                   }
                 } });
-                const r = new TomSelect(t, { ...c, ...u });
-                t.multiple && r.removeOption("_none");
+                const a = new TomSelect(t, { ...c, ...f });
+                t.multiple && a.removeOption("_none");
               }
             });
           });
-          e.observe(t);
+          o.observe(t);
         }
-      }), d("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
-        var e = new IntersectionObserver((n, o) => {
-          n.forEach((l) => {
-            if (l.intersectionRatio > 0) {
-              o.disconnect();
-              const a = t.parentElement, c = t.classList.contains("neo-multi-select");
-              a && a.classList.add("neo-tom-wrapper");
-              let r = {
+      }), u("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
+        var o = new IntersectionObserver((n, e) => {
+          n.forEach((p) => {
+            if (p.intersectionRatio > 0) {
+              e.disconnect();
+              const r = t.parentElement, c = t.classList.contains("neo-multi-select");
+              r && r.classList.add("neo-tom-wrapper");
+              let a = {
                 valueField: "value",
                 labelField: "value",
                 searchField: "label",
-                create: t.classList.contains("neo-autocreate"),
+                create: !0,
+                createOnBlur: !0,
                 dropdownParent: document.body,
                 maxItems: 1,
-                load: function(s, f) {
-                  const m = t.dataset.autocompletePath, b = m + (m.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(s);
-                  fetch(b).then((p) => p.json()).then((p) => {
-                    f(p);
+                load: function(i, l) {
+                  const v = t.dataset.autocompletePath, g = v + (v.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(i);
+                  fetch(g).then((d) => d.json()).then((d) => {
+                    l(d);
                   }).catch(() => {
-                    f();
+                    l();
                   });
                 }
               };
               const h = t.dataset.autocompleteFirstCharacterBlacklist || !1;
-              h && (r.shouldLoad = function(s) {
-                return !(s.length > 0 && h.includes(s[0]));
-              }), c && (r = { ...r, maxItems: null, onItemAdd: function() {
-                const s = this;
-                s.setTextboxValue(""), s.refreshOptions();
+              h && (a.shouldLoad = function(i) {
+                return !(i.length > 0 && h.includes(i[0]));
+              }), c && (a = { ...a, maxItems: null, onItemAdd: function() {
+                const i = this;
+                i.setTextboxValue(""), i.refreshOptions();
               }, plugins: {
                 remove_button: {
                   title: "Remove this item"
                 }
-              } }), new TomSelect(t, { ...r, ...u });
+              } });
+              const m = { ...a, ...f };
+              m.render.option_create = function(i, l) {
+                return t.classList.contains("neo-autocreate") ? '<div class="create">Create <strong>' + l(i.input) + "</strong>&hellip;</div>" : '<div class="create">Use <strong>' + l(i.input) + "</strong></div>";
+              }, new TomSelect(t, m);
             }
           });
         });
-        e.observe(t);
+        o.observe(t);
       });
     }
   };
