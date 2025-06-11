@@ -122,7 +122,7 @@
               } });
               const m = { ...a, ...f };
               m.render.option_create = function(i, l) {
-                return t.classList.contains("neo-autocreate") ? '<div class="create">Create <strong>' + l(i.input) + "</strong>&hellip;</div>" : '<div class="create">Use <strong>' + l(i.input) + "</strong></div>";
+                return t.classList.contains("neo-autocreate") ? '<div class="create">Create <strong>' + l(i.input) + "</strong>&hellip;</div>" : null;
               }, new TomSelect(t, m);
             }
           });

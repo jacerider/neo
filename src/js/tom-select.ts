@@ -182,7 +182,7 @@
                 if (el.classList.contains('neo-autocreate')) {
                   return '<div class="create">Create <strong>' + escape(data.input) + '</strong>&hellip;</div>';
                 }
-                return '<div class="create">Use <strong>' + escape(data.input) + '</strong></div>';
+                return null;
               }
               new TomSelect(el, finalSettings);
             }
