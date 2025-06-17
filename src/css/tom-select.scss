@@ -41,14 +41,6 @@
     .ts-control {
       @apply flex-nowrap p-0 pr-5 #{!important};
     }
-
-    // &.input-active {
-    //   // @apply pr-0;
-
-    //   // .ts-control {
-    //   //   @apply pr-0 #{!important};
-    //   // }
-    // }
   }
 
   .multi .ts-control,
@@ -56,7 +48,11 @@
     @apply p-0 py-2 pr-5 #{!important};
 
     > div {
-      @apply m-0 min-h-5 rounded border px-1 py-0 text-sm;
+      @apply relative m-0 flex min-h-5 rounded border py-0.5 pl-0.5 pr-12 text-xs leading-none;
+    }
+
+    > .item {
+      @apply pr-6 #{!important};
     }
 
     > input {
@@ -64,7 +60,7 @@
     }
 
     .remove {
-      @apply bg-alert-500 text-alert-content-500 transition hover:bg-alert-600;
+      @apply absolute bottom-0 right-0 top-0 flex h-full items-center justify-center bg-alert-500 text-sm text-alert-content-500 transition hover:bg-alert-600;
     }
   }
 
@@ -98,7 +94,7 @@
 }
 
 .neo-tom-dropdown {
-  @apply whitespace-nowrap rounded border-2 border-solid border-base-300 text-sm shadow-md;
+  @apply rounded border-2 border-solid border-base-300 text-sm shadow-md;
   z-index: 100;
   max-width: none;
 
@@ -108,6 +104,10 @@
 
   [data-selectable].option:last-child {
     @apply rounded-b;
+  }
+
+  .option {
+    @apply py-2 leading-none;
   }
 
   .create:hover,
