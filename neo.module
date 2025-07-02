@@ -451,5 +451,5 @@ function neo_config_schema_info_alter(&$definitions) {
  * Implements hook_views_plugins_area_alter().
  */
 function neo_views_plugins_area_alter(array &$plugins) {
-    $plugins['result']['class'] = 'Drupal\neo\Plugin\views\area\NeoResult';
+  $plugins['result']['class'] = 'Drupal\neo\Plugin\views\area\NeoResult';
 }
