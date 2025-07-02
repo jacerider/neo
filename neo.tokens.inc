@@ -245,14 +245,12 @@ function neo_tokens_logo(array $params = [], ?ContentEntityInterface $entity = N
     $params = array_slice($params, 1);
   }
 
-  if ($url = neo_tokens_image_url($params, 'neo_token_logo', $entity, FALSE)) {
-    if (file_exists($url)) {
-      return match ($op) {
-        'width' => ((string) getimagesize($url)[0]) ?? NULL,
-        'height' => ((string) getimagesize($url)[1]) ?? NULL,
-        default => $url,
-      };
-    }
+  if ($data = neo_tokens_image_fetch($params, 'neo_token_logo', $entity, FALSE)) {
+    return match ($op) {
+      'width' => $data['uri'] && file_exists($data['uri']) ? (((string) getimagesize($data['uri'])[0]) ?? NULL) : NULL,
+      'height' => $data['uri'] && file_exists($data['uri']) ? (((string) getimagesize($data['uri'])[1]) ?? NULL) : NULL,
+      default => $data['url'],
+    };
   }
   return NULL;
 }
@@ -283,11 +281,11 @@ function neo_tokens_image(array $params = [], ?ContentEntityInterface $entity = 
     $params = array_slice($params, 1);
   }
 
-  if ($url = neo_tokens_image_url($params, 'neo_token_image', $entity, TRUE)) {
+  if ($data = neo_tokens_image_fetch($params, 'neo_token_image', $entity, TRUE)) {
     return match ($op) {
-      'width' => file_exists($url) ? (((string) getimagesize($url)[0]) ?? NULL) : NULL,
-      'height' => file_exists($url) ? (((string) getimagesize($url)[1]) ?? NULL) : NULL,
-      default => $url,
+      'width' => $data['uri'] && file_exists($data['uri']) ? (((string) getimagesize($data['uri'])[0]) ?? NULL) : NULL,
+      'height' => $data['uri'] && file_exists($data['uri']) ? (((string) getimagesize($data['uri'])[1]) ?? NULL) : NULL,
+      default => $data['url'],
     };
   }
   return NULL;
@@ -309,10 +307,10 @@ function neo_tokens_image(array $params = [], ?ContentEntityInterface $entity = 
  * @param bool $crawlEntity
  *   Whether to crawl the entity for media images. Defaults to TRUE.
  *
- * @return string|null
- *   A formatted image URL or NULL if no suitable image found.
+ * @return array
+ *   An array containing the uri and url.
  */
-function neo_tokens_image_url(array $params, string $hook, ?ContentEntityInterface $entity = NULL, bool $crawlEntity = TRUE): ?string {
+function neo_tokens_image_fetch(array $params, string $hook, ?ContentEntityInterface $entity = NULL, bool $crawlEntity = TRUE): array {
   $cache = &drupal_static(__FUNCTION__);
   $moduleHandler = \Drupal::moduleHandler();
   $key = implode(':', $entity ? [
@@ -323,9 +321,8 @@ function neo_tokens_image_url(array $params, string $hook, ?ContentEntityInterfa
     'no-entity',
     $hook,
   ]);
-  $uri = $cache[$key] ?? NULL;
+  $uri = $cache[$key] ?? [];
   if (!$uri) {
-
     if ($entity && $crawlEntity) {
       // Try to get a media image from the entity's fields.
       $uri = neo_tokens_entity_to_media_image_uri($entity);
@@ -337,7 +334,10 @@ function neo_tokens_image_url(array $params, string $hook, ?ContentEntityInterfa
     // Cache the URI if it was found.
     $cache[$key] = $uri;
   }
-  return $uri ? neo_tokens_image_uri_to_url($uri) : NULL;
+  return $uri ? neo_tokens_image_data($uri) : [
+    'uri' => NULL,
+    'url' => NULL,
+  ];
 }
 
 /**
@@ -346,10 +346,10 @@ function neo_tokens_image_url(array $params, string $hook, ?ContentEntityInterfa
  * @param string $uri
  *   The file URI to convert to a URL.
  *
- * @return string
- *   The absolute URL of the image.
+ * @return array
+ *   An array containing the uri and url.
  */
-function neo_tokens_image_uri_to_url(string $uri): string {
+function neo_tokens_image_data(string $uri): array {
   if (\Drupal::moduleHandler()->moduleExists('neo_image')) {
     // Provide default parameters if none are given. These defaults are ideal
     // for meta tags and social media sharing.
@@ -364,9 +364,15 @@ function neo_tokens_image_uri_to_url(string $uri): string {
       $optionType => $params,
     ];
     $neoImageStyle = new NeoImageStyle($options);
-    return $neoImageStyle->toUrlFromUri($uri);
+    return [
+      'uri' => $neoImageStyle->getImageStyle()->buildUri($uri),
+      'url' => $neoImageStyle->toUrlFromUri($uri, TRUE),
+    ];
   }
-  return \Drupal::service('file_url_generator')->generateAbsoluteString($uri);
+  return [
+    'uri' => $uri,
+    'url' => \Drupal::service('file_url_generator')->generateAbsoluteString($uri),
+  ];
 }
 
 /**
