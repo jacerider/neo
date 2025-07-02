@@ -246,11 +246,13 @@ function neo_tokens_logo(array $params = [], ?ContentEntityInterface $entity = N
   }
 
   if ($url = neo_tokens_image_url($params, 'neo_token_logo', $entity, FALSE)) {
-    return match ($op) {
-      'width' => ((string) getimagesize($url)[0]) ?? NULL,
-      'height' => ((string) getimagesize($url)[1]) ?? NULL,
-      default => $url,
-    };
+    if (file_exists($url)) {
+      return match ($op) {
+        'width' => ((string) getimagesize($url)[0]) ?? NULL,
+        'height' => ((string) getimagesize($url)[1]) ?? NULL,
+        default => $url,
+      };
+    }
   }
   return NULL;
 }
