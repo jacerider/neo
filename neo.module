@@ -439,11 +439,13 @@ function neo_preprocess_views_view_table(&$variables) {
  * Implements hook_config_schema_info_alter().
  */
 function neo_config_schema_info_alter(&$definitions) {
-  foreach (neo_table_props() as $key => $prop) {
-    $definitions['views.style.table']['mapping']['info']['sequence']['mapping'][$key] = [
-      'type' => 'string',
-      'label' => $prop['label'],
-    ];
+  if (isset($definitions['views.style.table'])) {
+    foreach (neo_table_props() as $key => $prop) {
+      $definitions['views.style.table']['mapping']['info']['sequence']['mapping'][$key] = [
+        'type' => 'string',
+        'label' => $prop['label'],
+      ];
+    }
   }
 }
 

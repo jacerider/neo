@@ -1,0 +1,52 @@
+views.style.table.neo:
+  type: views.style.table
+  label: 'Table with Neo options'
+  mapping:
+    info:
+      type: sequence
+      label: 'Columns info'
+      sequence:
+        type: mapping
+        label:  'Column info'
+        mapping:
+          neo_style:
+            type: string
+            label: Neo Style
+          neo_size:
+            type: string
+            label: Neo Size
+          neo_align:
+            type: string
+            label: Neo Align
+
+field.formatter.settings.neo_link:
+  type: mapping
+  label: 'Neo Link Formatter'
+  mapping:
+    trim_length:
+      type: integer
+      label: Trim Length
+    rel:
+      type: string
+      label: Rel
+    target:
+      type: string
+      label: Target
+    title:
+      type: string
+      label: Title
+    icon:
+      type: string
+      label: Icon
+    position:
+      type: string
+      label: Position
+    url_only:
+      type: boolean
+      label: URL Only
+    url_plain:
+      type: boolean
+      label: URL Plain
+    title_only:
+      type: boolean
+      label: Title Only
