@@ -135,7 +135,7 @@
               }
               let settings = {
                 valueField: 'value',
-                labelField: 'value',
+                labelField: 'label',
                 searchField: 'label',
                 create: true,
                 createOnBlur: true,
@@ -151,7 +151,7 @@
                     }).catch(()=>{
                       callback();
                     });
-                }
+                },
               } as any;
               const blacklist = el.dataset.autocompleteFirstCharacterBlacklist || false;
               if (blacklist) {
@@ -178,6 +178,26 @@
                 }};
               }
               const finalSettings = {...settings, ...baseSettings};
+              finalSettings.render.item = function(data:any, escape:Function) {
+                return '<div>' + escape(data[finalSettings.valueField]) + '</div>';
+              };
+              finalSettings.render.option = function(data:any, escape:Function) {
+                // Allow HTML in the option text.
+                let label = data[finalSettings.labelField] || '';
+                if (data.option) {
+                  label = data.option;
+                  // Remove all script tags and their content
+                  let sanitized = label.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+                  // Remove event handlers
+                  sanitized = sanitized.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, '');
+                  // Remove javascript: URLs
+                  sanitized = sanitized.replace(/javascript:/gi, '');
+                  // Remove data: URLs (can contain JS)
+                  sanitized = sanitized.replace(/data:/gi, '');
+                return '<div>' + sanitized + '</div>';
+                }
+                return '<div>' + escape(label) + '</div>';
+              };
               finalSettings.render.option_create = function(data:any, escape:any) {
                 if (el.classList.contains('neo-autocreate')) {
                   return '<div class="create">Create <strong>' + escape(data.input) + '</strong>&hellip;</div>';
