@@ -51,8 +51,6 @@ function neo_menu_link_menu_links_discovered_alter(&$links) {
  */
 function neo_menu_link_module_implements_alter(&$implementations, $hook) {
   if ($hook == 'form_node_form_alter') {
-    unset($implementations['menu_ui']);
-    // Move neo_menu_link_form_node_form_alter() to the end of the list.
     $group = $implementations['neo_menu_link'];
     unset($implementations['neo_menu_link']);
     $implementations['neo_menu_link'] = $group;
@@ -63,38 +61,36 @@ function neo_menu_link_module_implements_alter(&$implementations, $hook) {
  * Implements hook_form_BASE_FORM_ID_alter().
  */
 function neo_menu_link_form_node_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
-  if (function_exists('menu_ui_form_node_form_alter')) {
-    menu_ui_form_node_form_alter($form, $form_state);
-    if (isset($form['menu'])) {
-      /** @var \Drupal\Core\Entity\EntityFormInterface $form_object */
-      $form_object = $form_state->getFormObject();
-      $node = $form_object->getEntity();
-      $defaults = menu_ui_get_menu_link_defaults($node);
-      $options = [];
-      if ($defaults['entity_id']) {
-        $menu = MenuLinkContent::load($defaults['entity_id']);
-        /** @var \Drupal\Core\Field $item */
-        $item = $menu->get('link')->first();
-        $options = $item->get('options')->getValue();
-      }
-      /** @var \Drupal\neo_menu_link\Settings\MenuLinkSettings $settings */
-      $settings = \Drupal::service('neo_menu_link.settings')->getActive();
-      $form['menu']['link']['title']['#weight'] = -2;
-      $form['menu']['link']['options']['#tree'] = TRUE;
-      $form['menu']['link']['options']['#weight'] = -1;
-      $form['menu']['link']['options']['attributes']['#tree'] = TRUE;
-      $form['menu']['link']['options']['attributes']['data-icon'] = [
-        '#type' => 'neo_icon_select',
-        '#title' => t('Icon'),
-        '#default_value' => $options['attributes']['data-icon'] ?? NULL,
-        '#libraries' => $settings->getValue('icon_libraries'),
-        '#access' => \Drupal::currentUser()->hasPermission('use neo_menu_link'),
-      ];
-      foreach (array_keys($form['actions']) as $action) {
-        if ($action != 'preview' && isset($form['actions'][$action]['#type']) && $form['actions'][$action]['#type'] === 'submit') {
-          if (($key = array_search('menu_ui_form_node_form_submit', $form['actions'][$action]['#submit'])) !== FALSE) {
-            $form['actions'][$action]['#submit'][$key] = 'neo_menu_link_menu_ui_form_node_form_submit';
-          }
+  if (isset($form['menu'])) {
+    /** @var \Drupal\Core\Entity\EntityFormInterface $form_object */
+    $form_object = $form_state->getFormObject();
+    $node = $form_object->getEntity();
+    $defaults = menu_ui_get_menu_link_defaults($node);
+    $options = [];
+    if ($defaults['entity_id']) {
+      $menu = MenuLinkContent::load($defaults['entity_id']);
+      /** @var \Drupal\Core\Field $item */
+      $item = $menu->get('link')->first();
+      $options = $item->get('options')->getValue();
+    }
+    /** @var \Drupal\neo_menu_link\Settings\MenuLinkSettings $settings */
+    $settings = \Drupal::service('neo_menu_link.settings')->getActive();
+    $form['menu']['link']['title']['#weight'] = -2;
+    $form['menu']['link']['options']['#tree'] = TRUE;
+    $form['menu']['link']['options']['#weight'] = -1;
+    $form['menu']['link']['options']['attributes']['#tree'] = TRUE;
+    $libraries = $settings->getValue('icon_libraries');
+    $form['menu']['link']['options']['attributes']['data-icon'] = [
+      '#type' => 'neo_icon_select',
+      '#title' => t('Icon'),
+      '#default_value' => $options['attributes']['data-icon'] ?? NULL,
+      '#libraries' => $libraries,
+      '#access' => \Drupal::currentUser()->hasPermission('use neo_menu_link'),
+    ];
+    foreach (array_keys($form['actions']) as $action) {
+      if ($action != 'preview' && isset($form['actions'][$action]['#type']) && $form['actions'][$action]['#type'] === 'submit') {
+        if (($key = array_search('menu_ui_form_node_form_submit', $form['actions'][$action]['#submit'])) !== FALSE) {
+          $form['actions'][$action]['#submit'][$key] = 'neo_menu_link_menu_ui_form_node_form_submit';
         }
       }
     }
@@ -175,7 +171,8 @@ function neo_menu_link_menu_ui_node_save(NodeInterface $node, array $values) {
   // Save link attributes as necessary.
   $link = $entity->link->first()->getValue();
   $link['options'] += ['attributes' => []];
-  $link['options']['attributes'] = array_filter($values['options']['attributes']) + $link['options']['attributes'];
+  $link['options']['attributes'] = array_filter($values['options']['attributes'] + $link['options']['attributes']);
+  $link['options'] = array_filter($link['options']);
   $entity->link->first()->setValue($link);
 
   $entity->menu_name->value = $values['menu_name'];
