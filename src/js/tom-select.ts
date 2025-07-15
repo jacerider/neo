@@ -111,7 +111,16 @@
                     }
                   }};
                 }
-                const control = new TomSelect(el, {...settings, ...baseSettings});
+                console.log(settings);
+                const finalSettings = {...settings, ...baseSettings};
+                finalSettings.render.item = function(data:any, escape:Function) {
+                  return '<div>' + escape(data.text) + '</div>';
+                };
+                finalSettings.render.option = function(data:any, escape:Function) {
+                  console.log(data);
+                  return '<div>' + escape(data.text) + '</div>';
+                };
+                const control = new TomSelect(el, finalSettings);
                 if (el.multiple) {
                   control.removeOption('_none');
                 }
