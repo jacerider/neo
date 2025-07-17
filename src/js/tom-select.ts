@@ -111,7 +111,6 @@
                     }
                   }};
                 }
-                console.log(settings);
                 const finalSettings = {...settings, ...baseSettings};
                 finalSettings.render.item = function(data:any, escape:Function) {
                   return '<div>' + escape(data.text) + '</div>';
