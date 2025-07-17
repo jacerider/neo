@@ -6,6 +6,8 @@ use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\link\Plugin\Field\FieldWidget\LinkWidget;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Field\FieldFilteredMarkup;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
 use Drupal\neo\NeoLinkitTrait;
 
@@ -48,6 +50,9 @@ class NeoLinkWidget extends LinkWidget {
    */
   public function settingsSummary() {
     $summary = parent::settingsSummary();
+    if ($this->getSetting('link_text_label')) {
+      $summary[] = $this->t('Link text label: %label', ['%label' => $this->getSetting('link_text_label')]);
+    }
     if ($this->supportsInternalLinks() && $this->linkitModuleExists()) {
       $profile = $this->getLinkitProfile($this->getSetting('linkit_profile'));
       if ($profile) {
@@ -86,6 +91,13 @@ class NeoLinkWidget extends LinkWidget {
   public function settingsForm(array $form, FormStateInterface $form_state) {
     $element = parent::settingsForm($form, $form_state);
 
+    $element['link_text_label'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Link Field Title'),
+      '#default_value' => $this->getSetting('link_text_label'),
+      '#description' => $this->t('The text that will be used as the label for the link text field. If left empty, the default label will be used.'),
+    ];
+
     if ($this->supportsInternalLinks() && $this->linkitModuleExists()) {
       $element['linkit_profile'] = [
         '#type' => 'select',
@@ -122,7 +134,7 @@ class NeoLinkWidget extends LinkWidget {
       '#description' => $this->t('The icon libraries that should be made available in this field. If no libraries are selected, all will be made available.'),
       '#options' => $this->getIconLibrariesAsOptions(),
       '#element_validate' => [
-        [get_class(), 'validateIconLibraries'],
+        [static::class, 'validateIconLibraries'],
       ],
       '#states' => [
         'visible' => [
@@ -145,6 +157,18 @@ class NeoLinkWidget extends LinkWidget {
       '#default_value' => $this->getSetting('class'),
     ];
 
+    $element['class_list'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('List of allowed CSS classes'),
+      '#description' => Markup::create($this->allowedValuesDescription()),
+      '#default_value' => $this->getSetting('class_list'),
+      '#states' => [
+        'visible' => [
+          ':input[name="fields[' . $this->fieldDefinition->getName() . '][settings_edit_form][settings][class]"]' => ['checked' => TRUE],
+        ],
+      ],
+    ];
+
     $element['wrapper_type'] = [
       '#type' => 'radios',
       '#title' => $this->t('Wrapper type'),
@@ -153,6 +177,18 @@ class NeoLinkWidget extends LinkWidget {
     ];
 
     return $element;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function allowedValuesDescription() {
+    $description = '<p>' . $this->t('The possible values this field can contain. Enter one value per line, in the format key|label.');
+    $description .= '<br/>' . $this->t('The key is the stored value. The label will be used in displayed values and edit forms.');
+    $description .= '<br/>' . $this->t('The label is optional: if a line contains a single string, it will be used as key and label.');
+    $description .= '</p>';
+    $description .= '<p>' . $this->t('Allowed HTML tags in labels: @tags', ['@tags' => FieldFilteredMarkup::displayAllowedTags()]) . '</p>';
+    return $description;
   }
 
   /**
@@ -253,7 +289,11 @@ class NeoLinkWidget extends LinkWidget {
         $element['options']['attributes']['class']['#type'] = 'select';
         $element['options']['attributes']['class']['#description'] = $this->t('A style may apply special styling the the link and/or its children.');
         $element['options']['attributes']['class']['#title'] = $this->t('Style');
-        $element['options']['attributes']['class']['#options'] = ['' => $this->t('- Select -')] + $this->getSetting('class_list');
+        $list = $this->getSetting('class_list');
+        if (is_string($list)) {
+          $list = $this->getClassList();
+        }
+        $element['options']['attributes']['class']['#options'] = ['' => $this->t('- Select -')] + $list;
       }
     }
 
@@ -489,6 +529,64 @@ class NeoLinkWidget extends LinkWidget {
     }
 
     return $displayable_string;
+  }
+
+  /**
+   * Extracts the allowed values array from the allowed_values element.
+   *
+   * @return array|null
+   *   The array of extracted key/value pairs, or NULL if the string is invalid.
+   *
+   * @see \Drupal\options\Plugin\Field\FieldType\ListItemBase::allowedValuesString()
+   */
+  public function getClassList() {
+    $string = $this->getSetting('class_list');
+    if (empty($string)) {
+      return [];
+    }
+    $values = [];
+
+    $list = explode("\n", $string);
+    $list = array_map('trim', $list);
+    $list = array_filter($list, 'strlen');
+
+    $generated_keys = $explicit_keys = FALSE;
+    foreach ($list as $position => $text) {
+      // Check for an explicit key.
+      $matches = [];
+      if (preg_match('/(.*)\|(.*)/', $text, $matches)) {
+        // Trim key and value to avoid unwanted spaces issues.
+        $key = trim($matches[1]);
+        $value = trim($matches[2]);
+        $explicit_keys = TRUE;
+      }
+      // Otherwise see if we can use the value as the key.
+      elseif (!$this->validateClassListValue($text)) {
+        $key = $value = $text;
+        $explicit_keys = TRUE;
+      }
+      else {
+        return;
+      }
+
+      $values[$key] = $value;
+    }
+
+    // We generate keys only if the list contains no explicit key at all.
+    if ($explicit_keys && $generated_keys) {
+      return;
+    }
+
+    return $values;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function validateClassListValue($option) {
+    if (mb_strlen($option) > 255) {
+      return new TranslatableMarkup('Allowed values list: each key must be a string at most 255 characters long.');
+    }
   }
 
 }
