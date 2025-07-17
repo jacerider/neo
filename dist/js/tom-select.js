@@ -3,11 +3,11 @@
     dropdownParent: document.body,
     maxOptions: null,
     onInitialize: function() {
-      const t = this, i = t.input, s = t.control;
+      const t = this, i = t.input, r = t.control;
       if (i.classList.contains("use-neo-tooltip") && l.behaviors.neoTooltip) {
-        s.classList.add("use-neo-tooltip");
+        r.classList.add("use-neo-tooltip");
         for (const n in i.dataset)
-          n.startsWith("tippy") && (s.dataset[n] = i.dataset[n]);
+          n.startsWith("tippy") && (r.dataset[n] = i.dataset[n]);
         l.behaviors.neoTooltip.attach(t.wrapper);
       }
       t.dropdownWatch = null, t.dropdownWatchCb = () => {
@@ -48,8 +48,8 @@
   };
   function g(t) {
     const i = t.options;
-    for (let s = 0; s < i.length; s++) {
-      const n = i[s];
+    for (let r = 0; r < i.length; r++) {
+      const n = i[r];
       if (n.value === "")
         return n;
     }
@@ -59,13 +59,13 @@
     attach: () => {
       v("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
-          var i = new IntersectionObserver((s, n) => {
-            s.forEach((h) => {
+          var i = new IntersectionObserver((r, n) => {
+            r.forEach((h) => {
               if (h.intersectionRatio > 0) {
                 n.disconnect();
                 const p = t.closest(".form--item");
                 p && (p.classList.add("neo-tom-wrapper"), p.classList.add("neo-tom-select-wrapper"));
-                let d = {
+                let u = {
                   allowEmptyOption: g(t) !== null,
                   selectOnTab: !0,
                   plugins: {
@@ -73,12 +73,12 @@
                   },
                   placeholder: "Search..."
                 };
-                t.multiple && (d = { ...d, maxOptions: null, plugins: {
+                t.multiple && (u = { ...u, maxOptions: null, plugins: {
                   remove_button: {
                     title: "Remove this item"
                   }
-                } }), console.log(d);
-                const c = { ...d, ...b };
+                } });
+                const c = { ...u, ...b };
                 c.render.item = function(o, e) {
                   return "<div>" + e(o.text) + "</div>";
                 }, c.render.option = function(o, e) {
@@ -92,11 +92,11 @@
           i.observe(t);
         }
       }), v("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
-        var i = new IntersectionObserver((s, n) => {
-          s.forEach((h) => {
+        var i = new IntersectionObserver((r, n) => {
+          r.forEach((h) => {
             if (h.intersectionRatio > 0) {
               n.disconnect();
-              const p = t.parentElement, d = t.classList.contains("neo-multi-select");
+              const p = t.parentElement, u = t.classList.contains("neo-multi-select");
               p && p.classList.add("neo-tom-wrapper");
               let c = {
                 valueField: "value",
@@ -107,8 +107,8 @@
                 dropdownParent: document.body,
                 maxItems: 1,
                 load: function(e, a) {
-                  const u = t.dataset.autocompletePath, r = u + (u.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(e);
-                  fetch(r).then((m) => m.json()).then((m) => {
+                  const d = t.dataset.autocompletePath, s = d + (d.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(e);
+                  fetch(s).then((m) => m.json()).then((m) => {
                     a(m);
                   }).catch(() => {
                     a();
@@ -118,7 +118,7 @@
               const f = t.dataset.autocompleteFirstCharacterBlacklist || !1;
               f && (c.shouldLoad = function(e) {
                 return !(e.length > 0 && f.includes(e[0]));
-              }), d && (c = { ...c, maxItems: null, onItemAdd: function() {
+              }), u && (c = { ...c, maxItems: null, onItemAdd: function() {
                 const e = this;
                 e.setTextboxValue(""), e.refreshOptions();
               }, plugins: {
@@ -130,13 +130,13 @@
               o.render.item = function(e, a) {
                 return "<div>" + a(e[o.valueField]) + "</div>";
               }, o.render.option = function(e, a) {
-                let u = e[o.labelField] || "";
+                let d = e[o.labelField] || "";
                 if (e.option) {
-                  u = e.option;
-                  let r = u.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-                  return r = r.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, ""), r = r.replace(/javascript:/gi, ""), r = r.replace(/data:/gi, ""), "<div>" + r + "</div>";
+                  d = e.option;
+                  let s = d.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+                  return s = s.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, ""), s = s.replace(/javascript:/gi, ""), s = s.replace(/data:/gi, ""), "<div>" + s + "</div>";
                 }
-                return "<div>" + a(u) + "</div>";
+                return "<div>" + a(d) + "</div>";
               }, o.render.option_create = function(e, a) {
                 return t.classList.contains("neo-autocreate") ? '<div class="create">Create <strong>' + a(e.input) + "</strong>&hellip;</div>" : null;
               }, new TomSelect(t, o);
