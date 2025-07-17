@@ -19,6 +19,47 @@ views.style.table.neo:
             type: string
             label: Neo Align
 
+field.widget.settings.neo_link:
+  type: mapping
+  label: 'Neo Link Widget'
+  mapping:
+    placeholder_url:
+      type: string
+      label: Placeholder for URL
+    placeholder_title:
+      type: string
+      label: Placeholder for link title
+    link_text_label:
+      type: string
+      label: Link text label
+    linkit_profile:
+      type: string
+      label: Linkit Profile
+    wrapper_type:
+      type: string
+      label: Wrapper Type
+    icon:
+      type: boolean
+      label: Allow icon selection
+    icon_required:
+      type: boolean
+      label: Require icon
+    icon_libraries:
+      type: sequence
+      label: Icon Libraries
+      sequence:
+        type: string
+    target:
+      type: boolean
+      label: Allow target selection
+    class:
+      type: boolean
+      label: Allow class selection
+    class_list:
+      type: string
+      label: List of allowed CSS classes
+
+
 field.formatter.settings.neo_link:
   type: mapping
   label: 'Neo Link Formatter'
