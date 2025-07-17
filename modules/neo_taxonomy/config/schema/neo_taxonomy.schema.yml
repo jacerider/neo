@@ -1,0 +1,13 @@
+taxonomy.vocabulary.*.third_party.neo_taxonomy:
+  type: mapping
+  label: Neo taxonomy
+  mapping:
+    link:
+      type: boolean
+      label: Link taxonomy
+    order:
+      type: boolean
+      label: Order taxonomy
+    nest:
+      type: boolean
+      label: Nest taxonomy
