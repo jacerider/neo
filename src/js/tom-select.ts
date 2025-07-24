@@ -42,6 +42,10 @@
     },
     onDropdownOpen: function() {
       const instance = this as any;
+      const scheme = closestSchemeClass(instance.wrapper);
+      if (scheme) {
+        instance.dropdown.classList.add(scheme.schemeClass);
+      }
       instance.dropdownWatchCb();
       instance.dropdownWatch = setInterval(instance.dropdownWatchCb, 250);
     },
@@ -60,11 +64,24 @@
       }
     },
     render: {
-      dropdown: function(){
-        return '<div class="neo-tom-dropdown"></div>';
+      dropdown: function() {
+        return '<div class="neo-tom-dropdown neo-form"></div>';
       },
     },
   };
+
+  function closestSchemeClass(el: Element | null): { element: Element, schemeClass: string } | null {
+    while (el) {
+      const classList = Array.from(el.classList); // <-- fixes TS warning
+      for (const cls of classList) {
+        if (cls.startsWith('scheme-')) {
+          return { element: el, schemeClass: cls };
+        }
+      }
+      el = el.parentElement;
+    }
+    return null;
+  }
 
   function findEmptyOption(selectElement: HTMLSelectElement): HTMLOptionElement | null {
     const options = selectElement.options;
@@ -116,7 +133,6 @@
                   return '<div>' + escape(data.text) + '</div>';
                 };
                 finalSettings.render.option = function(data:any, escape:Function) {
-                  console.log(data);
                   return '<div>' + escape(data.text) + '</div>';
                 };
                 const control = new TomSelect(el, finalSettings);
