@@ -17,6 +17,7 @@ use Drupal\neo\Helpers\Str;
 use Drupal\neo\NeoPreRender;
 use Drupal\neo\NeoProcess;
 use Drupal\views\Plugin\views\style\Table;
+use Kint\Kint;
 
 /**
  * Implements hook_theme().
@@ -454,4 +455,39 @@ function neo_config_schema_info_alter(&$definitions) {
  */
 function neo_views_plugins_area_alter(array &$plugins) {
   $plugins['result']['class'] = 'Drupal\neo\Plugin\views\area\NeoResult';
+}
+
+if (!function_exists('ksm')) {
+
+  /**
+   * Prints passed argument(s) to the 'message' area of the page.
+   *
+   * Wrapper for DevelDumperManager::message().
+   *
+   * @see \Drupal\devel\DevelDumperManager::message()
+   */
+  function ksm(): void {
+    $args = func_get_args();
+    if (count($args) == 1) {
+      // Pass a single argument directly, which works for any plug-in.
+      $args = $args[0];
+      $name = NULL;
+    }
+    else {
+      // Pass an array marked with a special name. The kint plug-in expands the
+      // arguments and prints each separately.
+      $name = '__ARGS__';
+      if (is_string($args[0])) {
+        $name = $args[0];
+        array_shift($args);
+        if (count($args) == 1) {
+          $args = $args[0];
+        }
+      }
+    }
+    dpm($args, $name);
+  }
+
+  Kint::$aliases[] = 'ksm';
+
 }
