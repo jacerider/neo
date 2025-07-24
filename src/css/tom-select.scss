@@ -2,23 +2,47 @@
 
 .neo-tom-wrapper {
   .ts-wrapper {
-    @apply flex min-h-10 items-center bg-base-0 px-2 py-0;
+    @apply form-item-bg form-item-focus flex min-h-10 items-center px-2 py-0;
 
-    &.focus {
-      @apply border-base-300 ring ring-primary-600 ring-offset-2;
+    &.input-active .ts-control {
+      @apply form-item-bg;
     }
   }
 
   &[data-neo-size='xs'] .ts-wrapper {
     @apply min-h-6;
+
+    .item {
+      @apply text-xs;
+    }
   }
 
   &[data-neo-size='sm'] .ts-wrapper {
     @apply min-h-8;
+
+    .item {
+      @apply text-sm;
+    }
+  }
+
+  &[data-neo-size='lg'] .ts-wrapper {
+    @apply min-h-12;
+
+    .item {
+      @apply text-lg;
+    }
+  }
+
+  &[data-neo-size='xl'] .ts-wrapper {
+    @apply min-h-16;
+
+    .item {
+      @apply text-xl;
+    }
   }
 
   .ts-control {
-    @apply flex gap-2 border-none;
+    @apply form-item-bg flex gap-2 border-none;
 
     .item {
       @apply text-base;
@@ -94,29 +118,20 @@
 }
 
 .neo-tom-dropdown {
-  @apply rounded border-2 border-solid border-base-300 text-sm shadow-md;
+  @apply form-item-border-radius bg-form-item-base text-default form-item-border overflow-hidden text-sm shadow-2xl;
   z-index: 100;
   max-width: none;
-
-  [data-selectable].option:first-child {
-    @apply rounded-t;
-  }
-
-  [data-selectable].option:last-child {
-    @apply rounded-b;
-  }
+  border-top-width: var(--form-item-border-width);
+  border-top-style: solid;
 
   .option {
     @apply py-2 leading-none;
   }
 
   .create:hover,
-  .option:hover {
-    @apply bg-base-200 text-base-content-200;
-  }
-
+  .option:hover,
   .active {
-    @apply bg-base-100 text-base-content-100;
+    @apply bg-primary-500 text-primary-content-500;
   }
 
   .optgroup .option {
@@ -129,11 +144,15 @@
 
   &.plugin-dropdown_input {
     .dropdown-input-wrap {
-      @apply border-b bg-base-100 p-2;
+      @apply border-b bg-base-950/5 p-2;
     }
 
     .dropdown-input {
-      @apply rounded border bg-base-0 p-2 text-sm focus:outline-none;
+      @apply form-item-border-radius form-item-bg form-item-border p-2 text-sm focus:outline-none;
+
+      &:focus {
+        box-shadow: none;
+      }
     }
   }
 }
