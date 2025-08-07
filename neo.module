@@ -13,6 +13,7 @@ use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
+use Drupal\devel\Render\FilteredMarkup;
 use Drupal\neo\Helpers\Str;
 use Drupal\neo\NeoPreRender;
 use Drupal\neo\NeoProcess;
@@ -457,7 +458,7 @@ function neo_views_plugins_area_alter(array &$plugins) {
   $plugins['result']['class'] = 'Drupal\neo\Plugin\views\area\NeoResult';
 }
 
-if (!function_exists('ksm')) {
+if (!function_exists('ksm') && class_exists('Kint')) {
 
   /**
    * Prints passed argument(s) to the 'message' area of the page.
@@ -466,26 +467,11 @@ if (!function_exists('ksm')) {
    *
    * @see \Drupal\devel\DevelDumperManager::message()
    */
-  function ksm(): void {
-    $args = func_get_args();
-    if (count($args) == 1) {
-      // Pass a single argument directly, which works for any plug-in.
-      $args = $args[0];
-      $name = NULL;
-    }
-    else {
-      // Pass an array marked with a special name. The kint plug-in expands the
-      // arguments and prints each separately.
-      $name = '__ARGS__';
-      if (is_string($args[0])) {
-        $name = $args[0];
-        array_shift($args);
-        if (count($args) == 1) {
-          $args = $args[0];
-        }
-      }
-    }
-    dpm($args, $name);
+  function ksm(mixed ...$args): void {
+    ob_start();
+    call_user_func_array(['Kint', 'dump'], $args);
+    $dump = ob_get_clean();
+    \Drupal::messenger()->addMessage(FilteredMarkup::create($dump), 'status', TRUE);
   }
 
   Kint::$aliases[] = 'ksm';
