@@ -65,7 +65,7 @@
     },
     render: {
       dropdown: function() {
-        return '<div class="neo-tom-dropdown neo-form"></div>';
+        return '<div class="neo-tom-dropdown form--neo"></div>';
       },
     },
   };
@@ -122,6 +122,7 @@
                   settings = {...settings, ...{
                     maxOptions: null,
                     plugins: {
+                      drag_drop: {},
                       remove_button: {
                         title:'Remove this item',
                       }
@@ -195,6 +196,7 @@
                     select.refreshOptions();
                   },
                   plugins: {
+                    drag_drop: {},
                     remove_button: {
                       title:'Remove this item',
                     }
@@ -228,7 +230,22 @@
                 }
                 return null;
               }
-              new TomSelect(el, finalSettings);
+              const control = new TomSelect(el, finalSettings);
+              if (multiple) {
+                control.on('change', function (_value:any) {
+                  // Trigger an input event on the form to notify that the value
+                  // has changed.
+                  const form = control.input.closest('form');
+                  if (form) {
+                    const inputEvent = new InputEvent('input', {
+                      bubbles: true,
+                      cancelable: true,
+                    });
+                    form.dispatchEvent(inputEvent);
+                  }
+                });
+              }
+
             }
           });
         });

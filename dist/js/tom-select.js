@@ -1,14 +1,14 @@
-(function(l, v, b) {
+(function(p, b, g) {
   const w = {
     dropdownParent: document.body,
     maxOptions: null,
     onInitialize: function() {
       const t = this, n = t.input, o = t.control;
-      if (n.classList.contains("use-neo-tooltip") && l.behaviors.neoTooltip) {
+      if (n.classList.contains("use-neo-tooltip") && p.behaviors.neoTooltip) {
         o.classList.add("use-neo-tooltip");
         for (const i in n.dataset)
           i.startsWith("tippy") && (o.dataset[i] = n.dataset[i]);
-        l.behaviors.neoTooltip.attach(t.wrapper);
+        p.behaviors.neoTooltip.attach(t.wrapper);
       }
       t.dropdownWatch = null, t.dropdownWatchCb = () => {
         if (t.isOpen) {
@@ -16,7 +16,7 @@
           const i = t.wrapper.getBoundingClientRect();
           t.dropdown.style.width = Math.max(i.width, 140) + "px";
         }
-      }, t.popper = b.createPopper(t.wrapper, t.dropdown, {
+      }, t.popper = g.createPopper(t.wrapper, t.dropdown, {
         modifiers: [
           {
             name: "preventOverflow",
@@ -28,25 +28,25 @@
       });
     },
     onDropdownOpen: function() {
-      const t = this, n = g(t.wrapper);
+      const t = this, n = O(t.wrapper);
       n && t.dropdown.classList.add(n.schemeClass), t.dropdownWatchCb(), t.dropdownWatch = setInterval(t.dropdownWatchCb, 250);
     },
     onDropdownClose: function() {
       clearInterval(this.dropdownWatch);
     },
     onFocus: function() {
-      l.behaviors.neoTooltip && l.behaviors.neoTooltip.disableAll();
+      p.behaviors.neoTooltip && p.behaviors.neoTooltip.disableAll();
     },
     onBlur: function() {
-      l.behaviors.neoTooltip && l.behaviors.neoTooltip.enableAll();
+      p.behaviors.neoTooltip && p.behaviors.neoTooltip.enableAll();
     },
     render: {
       dropdown: function() {
-        return '<div class="neo-tom-dropdown neo-form"></div>';
+        return '<div class="neo-tom-dropdown form--neo"></div>';
       }
     }
   };
-  function g(t) {
+  function O(t) {
     for (; t; ) {
       const n = Array.from(t.classList);
       for (const o of n)
@@ -56,7 +56,7 @@
     }
     return null;
   }
-  function O(t) {
+  function E(t) {
     const n = t.options;
     for (let o = 0; o < n.length; o++) {
       const i = n[o];
@@ -65,18 +65,18 @@
     }
     return null;
   }
-  l.behaviors.neoTomSelect = {
+  p.behaviors.neoTomSelect = {
     attach: () => {
-      v("neo.tom", "select.neo-select").forEach((t) => {
+      b("neo.tom", "select.neo-select").forEach((t) => {
         if (t instanceof HTMLSelectElement) {
           var n = new IntersectionObserver((o, i) => {
-            o.forEach((m) => {
-              if (m.intersectionRatio > 0) {
+            o.forEach((h) => {
+              if (h.intersectionRatio > 0) {
                 i.disconnect();
-                const p = t.closest(".form--item");
-                p && (p.classList.add("neo-tom-wrapper"), p.classList.add("neo-tom-select-wrapper"));
+                const d = t.closest(".form--item");
+                d && (d.classList.add("neo-tom-wrapper"), d.classList.add("neo-tom-select-wrapper"));
                 let u = {
-                  allowEmptyOption: O(t) !== null,
+                  allowEmptyOption: E(t) !== null,
                   selectOnTab: !0,
                   plugins: {
                     dropdown_input: {}
@@ -84,31 +84,32 @@
                   placeholder: "Search..."
                 };
                 t.multiple && (u = { ...u, maxOptions: null, plugins: {
+                  drag_drop: {},
                   remove_button: {
                     title: "Remove this item"
                   }
                 } });
-                const c = { ...u, ...w };
-                c.render.item = function(s, e) {
-                  return "<div>" + e(s.text) + "</div>";
-                }, c.render.option = function(s, e) {
-                  return "<div>" + e(s.text) + "</div>";
+                const a = { ...u, ...w };
+                a.render.item = function(r, f) {
+                  return "<div>" + f(r.text) + "</div>";
+                }, a.render.option = function(r, f) {
+                  return "<div>" + f(r.text) + "</div>";
                 };
-                const f = new TomSelect(t, c);
-                t.multiple && f.removeOption("_none");
+                const m = new TomSelect(t, a);
+                t.multiple && m.removeOption("_none");
               }
             });
           });
           n.observe(t);
         }
-      }), v("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
+      }), b("neo.tom", "input.neo-entity-autocomplete").forEach((t) => {
         var n = new IntersectionObserver((o, i) => {
-          o.forEach((m) => {
-            if (m.intersectionRatio > 0) {
+          o.forEach((h) => {
+            if (h.intersectionRatio > 0) {
               i.disconnect();
-              const p = t.parentElement, u = t.classList.contains("neo-multi-select");
-              p && p.classList.add("neo-tom-wrapper");
-              let c = {
+              const d = t.parentElement, u = t.classList.contains("neo-multi-select");
+              d && d.classList.add("neo-tom-wrapper");
+              let a = {
                 valueField: "value",
                 labelField: "label",
                 searchField: "label",
@@ -116,40 +117,52 @@
                 createOnBlur: !0,
                 dropdownParent: document.body,
                 maxItems: 1,
-                load: function(e, a) {
-                  const d = t.dataset.autocompletePath, r = d + (d.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(e);
-                  fetch(r).then((h) => h.json()).then((h) => {
-                    a(h);
+                load: function(e, s) {
+                  const l = t.dataset.autocompletePath, c = l + (l.includes("?") ? "&" : "?") + "q=" + encodeURIComponent(e);
+                  fetch(c).then((v) => v.json()).then((v) => {
+                    s(v);
                   }).catch(() => {
-                    a();
+                    s();
                   });
                 }
               };
-              const f = t.dataset.autocompleteFirstCharacterBlacklist || !1;
-              f && (c.shouldLoad = function(e) {
-                return !(e.length > 0 && f.includes(e[0]));
-              }), u && (c = { ...c, maxItems: null, onItemAdd: function() {
+              const m = t.dataset.autocompleteFirstCharacterBlacklist || !1;
+              m && (a.shouldLoad = function(e) {
+                return !(e.length > 0 && m.includes(e[0]));
+              }), u && (a = { ...a, maxItems: null, onItemAdd: function() {
                 const e = this;
                 e.setTextboxValue(""), e.refreshOptions();
               }, plugins: {
+                drag_drop: {},
                 remove_button: {
                   title: "Remove this item"
                 }
               } });
-              const s = { ...c, ...w };
-              s.render.item = function(e, a) {
-                return "<div>" + a(e[s.valueField]) + "</div>";
-              }, s.render.option = function(e, a) {
-                let d = e[s.labelField] || "";
+              const r = { ...a, ...w };
+              r.render.item = function(e, s) {
+                return "<div>" + s(e[r.valueField]) + "</div>";
+              }, r.render.option = function(e, s) {
+                let l = e[r.labelField] || "";
                 if (e.option) {
-                  d = e.option;
-                  let r = d.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
-                  return r = r.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, ""), r = r.replace(/javascript:/gi, ""), r = r.replace(/data:/gi, ""), "<div>" + r + "</div>";
+                  l = e.option;
+                  let c = l.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "");
+                  return c = c.replace(/\s*on\w+\s*=\s*["'][^"']*["']/gi, ""), c = c.replace(/javascript:/gi, ""), c = c.replace(/data:/gi, ""), "<div>" + c + "</div>";
                 }
-                return "<div>" + a(d) + "</div>";
-              }, s.render.option_create = function(e, a) {
-                return t.classList.contains("neo-autocreate") ? '<div class="create">Create <strong>' + a(e.input) + "</strong>&hellip;</div>" : null;
-              }, new TomSelect(t, s);
+                return "<div>" + s(l) + "</div>";
+              }, r.render.option_create = function(e, s) {
+                return t.classList.contains("neo-autocreate") ? '<div class="create">Create <strong>' + s(e.input) + "</strong>&hellip;</div>" : null;
+              };
+              const f = new TomSelect(t, r);
+              u && f.on("change", function(e) {
+                const s = f.input.closest("form");
+                if (s) {
+                  const l = new InputEvent("input", {
+                    bubbles: !0,
+                    cancelable: !0
+                  });
+                  s.dispatchEvent(l);
+                }
+              });
             }
           });
         });
