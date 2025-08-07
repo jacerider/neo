@@ -10,8 +10,10 @@ declare(strict_types=1);
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
+use Drupal\media\MediaInterface;
 use Drupal\menu_ui\Form\MenuLinkEditForm;
 use Drupal\menu_ui\MenuForm;
+use Drupal\neo_image\NeoImageStyle;
 use Drupal\taxonomy\TermForm;
 use Drupal\taxonomy\TermInterface;
 use Drupal\taxonomy_manager\Form\TaxonomyManagerForm;
@@ -149,9 +151,35 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
   }
   foreach (Element::children($form['terms']) as $key) {
     $form['terms'][$key]['status']['#markup'] = neo_icon_admin($form['terms'][$key]['status']['#markup'])->iconOnly();
+    $term = $form['terms'][$key]['#term'] ?? NULL;
+
+    $form['terms'][$key]['term'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => [
+        'class' => ['flex items-center gap-2'],
+      ],
+      'title' => $form['terms'][$key]['term'],
+    ];
+    if ($term instanceof TermInterface) {
+      $media = NULL;
+      if ($term->hasField('field_image') && !$term->get('field_image')->isEmpty()) {
+        $media = $term->get('field_image')->entity;
+      }
+      elseif ($term->hasField('field_media') && !$term->get('field_media')->isEmpty()) {
+        $media = $term->get('field_media')->entity;
+      }
+      if ($media instanceof MediaInterface && $media->bundle() === 'image') {
+        $neoImageStyle = new NeoImageStyle();
+        $neoImageStyle->scaleCrop(30, 30);
+        $form['terms'][$key]['term']['image'] = $neoImageStyle->toRenderableFromEntity($media, 'Alt Text', 'Title Text');
+        $form['terms'][$key]['term']['image']['#attributes']['class'][] = 'rounded';
+        $form['terms'][$key]['term']['image']['#weight'] = -10;
+      }
+    }
     if (isset($controls['link']) && empty($controls['link'])) {
-      $form['terms'][$key]['term']['#type'] = 'markup';
-      $form['terms'][$key]['term']['#markup'] = $form['terms'][$key]['term']['#title'];
+      $form['terms'][$key]['term']['title']['#type'] = 'markup';
+      $form['terms'][$key]['term']['title']['#markup'] = '<div>' . $form['terms'][$key]['term']['title']['#title'] . '</div>';
     }
   }
 }
