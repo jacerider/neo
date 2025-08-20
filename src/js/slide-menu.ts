@@ -17,18 +17,22 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
 
   type MenuPosition = 'left' | 'right';
 
-  enum Direction {
-    Backward = -1,
-    Forward = 1,
-  }
+  const Direction = {
+    Backward: -1,
+    Forward: 1,
+  } as const;
 
-  enum Action {
-    Back = 'back',
-    Close = 'close',
-    Forward = 'forward',
-    Navigate = 'navigate',
-    Open = 'open',
-  }
+  type Direction = typeof Direction[keyof typeof Direction];
+
+  const Action = {
+    Back: 'back',
+    Close: 'close',
+    Forward: 'forward',
+    Navigate: 'navigate',
+    Open: 'open',
+  } as const;
+
+  type Action = typeof Action[keyof typeof Action];
 
   const DEFAULT_OPTIONS = {
     backLinkAfter: '',
@@ -555,5 +559,3 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
   };
 
 })(Drupal, once);
-
-export {};

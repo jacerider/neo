@@ -103,7 +103,11 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
   if (!$entities) {
     $entities[] = NULL;
   }
-  $cache = &drupal_static(__FUNCTION__);
+
+  // Use both static and database caching.
+  $cache = \Drupal::cache();
+  $staticCache = &drupal_static(__FUNCTION__);
+
   $definitions = neo_tokens_definitions();
   foreach ($tokens as $name => $original) {
     $params = explode(':', $name);
@@ -113,17 +117,29 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
     }
     foreach ($entities as $entity) {
       $key = implode(':', array_merge($entity ? [
+        'neo_tokens',
         $entity->getEntityTypeId(),
         $entity->id(),
         $name,
       ] : [
+        'neo_tokens',
         'no-entity',
         $name,
       ], $params));
-      if (isset($cache[$key])) {
-        $replacements[$original] = $cache[$key];
+
+      // Check static cache.
+      if (isset($staticCache[$key])) {
+        $replacements[$original] = $staticCache[$key];
         continue 2;
       }
+
+      // Check database cache.
+      if ($cacheData = $cache->get($key)) {
+        $replacements[$original] = $cacheData->data;
+        continue 2;
+      }
+
+      // Fetch values if not found in cache.
       $value = match ($name) {
         'title' => neo_tokens_title($params, $entity),
         'description' => neo_tokens_description($params, $entity),
@@ -131,7 +147,11 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
         'image' => neo_tokens_image($params, $entity),
         default => NULL,
       };
-      $cache[$key] = $value;
+
+      // Store in cache.
+      $staticCache[$key] = $value;
+      $cache->set($key, $value);
+
       if ($value) {
         $replacements[$original] = $value;
         continue 2;
@@ -311,7 +331,7 @@ function neo_tokens_image(array $params = [], ?ContentEntityInterface $entity = 
  *   An array containing the uri and url.
  */
 function neo_tokens_image_fetch(array $params, string $hook, ?ContentEntityInterface $entity = NULL, bool $crawlEntity = TRUE): array {
-  $cache = &drupal_static(__FUNCTION__);
+  $staticCache = &drupal_static(__FUNCTION__);
   $moduleHandler = \Drupal::moduleHandler();
   $key = implode(':', $entity ? [
     $entity->getEntityTypeId(),
@@ -321,7 +341,7 @@ function neo_tokens_image_fetch(array $params, string $hook, ?ContentEntityInter
     'no-entity',
     $hook,
   ]);
-  $uri = $cache[$key] ?? [];
+  $uri = $staticCache[$key] ?? [];
   if (!$uri) {
     if ($entity && $crawlEntity) {
       // Try to get a media image from the entity's fields.
@@ -332,7 +352,7 @@ function neo_tokens_image_fetch(array $params, string $hook, ?ContentEntityInter
     $moduleHandler->alter($hook, $uri, $params, $entity);
 
     // Cache the URI if it was found.
-    $cache[$key] = $uri;
+    $staticCache[$key] = $uri;
   }
   return $uri ? neo_tokens_image_data($uri) : [
     'uri' => NULL,

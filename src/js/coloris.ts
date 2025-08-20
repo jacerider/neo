@@ -72,5 +72,3 @@
   };
 
 })(Drupal, once);
-
-export {};

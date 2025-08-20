@@ -14,5 +14,3 @@
   }
 
 })(Drupal);
-
-export {};

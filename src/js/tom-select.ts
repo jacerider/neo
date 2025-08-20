@@ -3,6 +3,11 @@
   const baseSettings = {
     dropdownParent: document.body,
     maxOptions: null,
+    wrapperClass: 'ts-wrapper p-0!',
+    controlClass: 'ts-control form-item-bg flex items-center gap-2 border-none focus:border-none leading-tight p-2',
+    itemClass: 'item block form-item-content',
+    dropdownClass: 'ts-dropdown form-neo form-item-border form-item-border-radius bg-form-item-base z-100',
+	  optionClass: 'option py-2 leading-none is-active:bg-primary-500 is-active:text-primary-500-content',
     onInitialize: function() {
       const instance = this as any;
       const el = instance.input;
@@ -63,11 +68,7 @@
         Drupal.behaviors.neoTooltip.enableAll();
       }
     },
-    render: {
-      dropdown: function() {
-        return '<div class="neo-tom-dropdown form--neo"></div>';
-      },
-    },
+    render: {},
   };
 
   function closestSchemeClass(el: Element | null): { element: Element, schemeClass: string } | null {
@@ -148,6 +149,7 @@
       });
 
       once('neo.tom', 'input.neo-entity-autocomplete').forEach(el => {
+        console.log(el);
 
         var observer = new IntersectionObserver((entries, observer) => {
           entries.forEach(entry => {
@@ -255,5 +257,3 @@
   };
 
 })(Drupal, once, Popper);
-
-export {};

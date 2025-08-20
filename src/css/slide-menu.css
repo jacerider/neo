@@ -1,6 +1,7 @@
-$sm-menu-width: 320px !default;
-$sm-transition-dur: 300ms !default;
-$sm-transition-easing: ease-in-out !default;
+:root {
+  --sm-transition-dur: 300ms;
+  --sm-transition-easing: ease-in-out;
+}
 
 .neo-slide-menu {
   max-width: 100%;
@@ -9,7 +10,7 @@ $sm-transition-easing: ease-in-out !default;
 
   .neo-slide-menu--slider {
     width: 100%;
-    transition: transform $sm-transition-dur $sm-transition-easing, height $sm-transition-dur $sm-transition-easing;
+    transition: transform var(--sm-transition-dur) var(--sm-transition-easing), height var(--sm-transition-dur) var(--sm-transition-easing);
     transform: translateX(0);
     will-change: transform;
   }
@@ -45,7 +46,7 @@ $sm-transition-easing: ease-in-out !default;
 
     > li > .neo-slide-menu--item {
       animation-name: slideIn;
-      animation-duration: $sm-transition-dur;
+      animation-duration: var(--);
       animation-fill-mode: forwards;
     }
   }

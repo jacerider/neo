@@ -1,6 +1,6 @@
 ajax:
   version: VERSION
-  neo: { group: contrib }
+  neo: true
   js:
     src/js/ajax.ts: {}
   dependencies:
@@ -9,7 +9,7 @@ ajax:
 
 disable:
   version: VERSION
-  neo: { group: contrib }
+  neo: true
   js:
     src/js/disable.ts: {}
   dependencies:
@@ -18,7 +18,7 @@ disable:
 
 coloris:
   version: VERSION
-  neo: { group: contrib }
+  neo: true
   js:
     src/js/coloris.ts: {}
   dependencies:
@@ -28,10 +28,10 @@ coloris:
 
 slide-menu:
   version: VERSION
-  neo: { group: contrib }
+  neo: true
   css:
     component:
-      src/css/slide-menu.scss: {}
+      src/css/slide-menu.css: {}
   js:
     src/js/slide-menu.ts: {}
   dependencies:
@@ -40,10 +40,10 @@ slide-menu:
 
 tom-select:
   version: VERSION
-  neo: { group: contrib }
+  neo: true
   css:
     component:
-      src/css/tom-select.scss: {}
+      src/css/tom-select.css: {}
   js:
     src/js/tom-select.ts: {}
   dependencies:
@@ -54,14 +54,14 @@ tom-select:
 
 animate:
   version: VERSION
-  neo: { group: contrib }
+  neo: true
   css:
     component:
-      src/css/animate.scss: {}
+      src/css/animate.css: {}
 
 visibility:
   version: VERSION
-  neo: { group: contrib }
+  neo: true
   js:
     src/js/visibility.ts: {}
   dependencies:
@@ -78,7 +78,7 @@ library.alpine:
     gpl-compatible: true
   header: true
   js:
-    dist/js/library.alpinejs.min.js: { minified: true, attributes: { defer: true } }
+    lib/js/alpinejs.min.js: { minified: true, attributes: { defer: true } }
 
 library.alpine.collapse:
   version: 3.13.8
@@ -88,34 +88,34 @@ library.alpine.collapse:
     gpl-compatible: true
   header: true
   js:
-    dist/js/library.alpinejs.collapse.min.js: { weight: -10, minified: true, attributes: { defer: true } }
+    lib/js/alpinejs.collapse.min.js: { weight: -10, minified: true, attributes: { defer: true } }
   dependencies:
     - neo/library.alpine
 
 library.tom-select:
   version: 2.3.1
   js:
-    dist/js/tom-select.complete.min.js: {minified: true}
+    lib/js/tom-select.complete.min.js: {minified: true}
 
 library.coloris:
   version: 0.24.0
   css:
     theme:
-      dist/css/library.coloris.min.css: {minified: true}
+      lib/css/coloris.min.css: {minified: true}
   js:
-    dist/js/library.coloris.min.js: {minified: true}
+    lib/js/coloris.min.js: {minified: true}
 
 library.chroma:
   version: 2.4.2
   js:
-    dist/js/library.chroma.min.js: {minified: true}
+    lib/js/chroma.min.js: {minified: true}
 
 library.popper:
   version: 2.11.8
   js:
-    dist/js/library.popper.min.js: {minified: true}
+    lib/js/popper.min.js: {minified: true}
 
 library.body-scroll-lock:
   version: 1.5.0
   js:
-    dist/js/tua-bsl.umd.min.js: {minified: true}
+    lib/js/tua-bsl.umd.min.js: {minified: true}
