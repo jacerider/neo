@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\neo\Plugin\Field\FieldWidget;
 
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsButtonsWidget;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\migrate_drupal\Plugin\migrate\source\d7\FieldableEntity;
+use Drupal\neo_icon\IconTrait;
 
 /**
  * Plugin implementation of the 'options_buttons' widget.
@@ -25,6 +28,7 @@ use Drupal\Core\Form\FormStateInterface;
  * )
  */
 class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
+  use IconTrait;
 
   /**
    * {@inheritdoc}
@@ -72,6 +76,35 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
     }
 
     return $element;
+  }
+
+  /**
+   * Returns the array of options for the widget.
+   *
+   * @param \Drupal\Core\Entity\FieldableEntityInterface $entity
+   *   The entity for which to return options.
+   *
+   * @return array
+   *   The array of options for the widget.
+   */
+  protected function getOptions(FieldableEntityInterface $entity) {
+    $options = parent::getOptions($entity);
+
+    if ($options) {
+      $storage = \Drupal::entityTypeManager()->getStorage($this->fieldDefinition->getSetting('target_type'));
+      $entities = $storage->loadMultiple(array_keys($options));
+      foreach ($options as $entityId => &$label) {
+        $optionEntity = $entities[$entityId] ?? NULL;
+        if ($optionEntity instanceof FieldableEntityInterface) {
+          // If entity has icon field, use it.
+          if ($optionEntity->hasField('field_icon') && !$optionEntity->get('field_icon')->isEmpty()) {
+            $label = $this->icon($label, $optionEntity->get('field_icon')->value);
+          }
+        }
+      }
+    }
+
+    return $options;
   }
 
   /**
