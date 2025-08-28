@@ -160,12 +160,6 @@ function neo_preprocess_input__textfield(&$variables) {
     if (!empty($variables['element']['#tags'])) {
       $variables['attributes']['class'][] = 'neo-multi-select';
     }
-    $variables['element']['#process'] = array_filter($variables['element']['#process'], function ($process) {
-      if (is_array($process) && in_array($process[1], ['processEntityAutocomplete', 'processAutocomplete'])) {
-        return FALSE;
-      }
-      return TRUE;
-    });
   }
 }
 
@@ -304,6 +298,7 @@ function neo_element_info_alter(&$info) {
   if (isset($info['view'])) {
     $info['view']['#pre_render'][] = [NeoPreRender::class, 'view'];
   }
+  $info['entity_autocomplete']['#process'] = array_merge([[NeoProcess::class, 'entityAutocomplete']], $info['entity_autocomplete']['#process']);
   foreach ([
     'link',
     'button',

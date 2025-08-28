@@ -7,6 +7,7 @@
 }
 
 .neo-tom-wrapper {
+  --tw-ring-color: var(--form-item-primary);
 
   .ts-control {
     font-size: var(--text-md);
@@ -30,38 +31,6 @@
     padding-block: calc(var(--spacing) * 4);
     font-size: var(--text-xl);
   }
-
-  /* &[data-neo-size='xs'] .ts-control {
-    min-height: calc(var(--spacing) * 6);
-
-    .item {
-      font-size: var(--text-xs);
-    }
-  }
-
-  &[data-neo-size='sm'] .ts-control {
-    min-height: calc(var(--spacing) * 8);
-
-    .item {
-      font-size: var(--text-sm);
-    }
-  }
-
-  &[data-neo-size='lg'] .ts-control {
-    min-height: calc(var(--spacing) * 12);
-
-    .item {
-      font-size: var(--text-lg);
-    }
-  }
-
-  &[data-neo-size='xl'] .ts-control {
-    min-height: calc(var(--spacing) * 16);
-
-    .item {
-      font-size: var(--text-xl);
-    }
-  } */
 }
 
 .ts-dropdown {
@@ -70,10 +39,20 @@
 
   .dropdown-input {
     color: rgb(var(--form-item-content));
+    border: 0;
+    --tw-ring-color: var(--form-item-primary);
 
     &::placeholder {
       color: rgb(var(--form-item-placeholder));
     }
+  }
+
+  .optgroup-header {
+    font-weight: 700;
+  }
+
+  .optgroup .option {
+    padding-left: calc(var(--spacing) * 5);
   }
 }
 

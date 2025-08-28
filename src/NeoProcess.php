@@ -26,4 +26,20 @@ class NeoProcess {
     return $element;
   }
 
+  /**
+   * Process callback for entity_autocomplete elements.
+   */
+  public static function entityAutocomplete(array $element, FormStateInterface $form_state, &$complete_form) {
+    if (!empty($element['#ajax']) && empty($element['#ajax']['event'])) {
+      $element['#ajax']['event'] = 'autocompleteclose';
+    }
+    $element['#process'] = array_filter($element['#process'], function ($process) {
+      if (is_array($process) && in_array($process[1], ['processEntityAutocomplete', 'processAutocomplete'])) {
+        return FALSE;
+      }
+      return TRUE;
+    });
+    return $element;
+  }
+
 }

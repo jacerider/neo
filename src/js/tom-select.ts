@@ -4,7 +4,7 @@
     dropdownParent: document.body,
     maxOptions: null,
     wrapperClass: 'ts-wrapper p-0!',
-    controlClass: 'ts-control form-item-bg flex items-center gap-2 border-none focus:border-none leading-tight p-2',
+    controlClass: 'ts-control form-item-bg flex items-center gap-2 border-none focus:border-none focus:outline-none leading-tight p-2',
     itemClass: 'item block form-item-content',
     dropdownClass: 'ts-dropdown form-neo form-item-border form-item-border-radius bg-form-item-base z-100',
 	  optionClass: 'option py-2 leading-none is-active:bg-primary-500 is-active:text-primary-500-content',
@@ -233,20 +233,28 @@
                 return null;
               }
               const control = new TomSelect(el, finalSettings);
-              if (multiple) {
-                control.on('change', function (_value:any) {
-                  // Trigger an input event on the form to notify that the value
-                  // has changed.
-                  const form = control.input.closest('form');
-                  if (form) {
-                    const inputEvent = new InputEvent('input', {
-                      bubbles: true,
-                      cancelable: true,
-                    });
-                    form.dispatchEvent(inputEvent);
-                  }
+              control.on('change', function (_value:any) {
+                // Trigger autocomplete close event.
+                const autocompleteCloseEvent = new CustomEvent('autocompleteclose', {
+                  bubbles: true,
+                  cancelable: true,
+                  detail: {} // You can add custom data here if needed
                 });
-              }
+                // Dispatch the event
+                control.input.dispatchEvent(autocompleteCloseEvent);
+
+                // Trigger an input event on the form to notify that the value
+                // has changed.
+                const form = control.input.closest('form');
+                if (form) {
+                  console.log('Form changed');
+                  const inputEvent = new InputEvent('input', {
+                    bubbles: true,
+                    cancelable: true,
+                  });
+                  form.dispatchEvent(inputEvent);
+                }
+              });
 
             }
           });
