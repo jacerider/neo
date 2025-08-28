@@ -157,7 +157,7 @@ trait NeoNestedEntityFormTrait {
           &$inner_form_state,
           &$complete_form,
         ]);
-        $this->processRecursiveInnerForms($element[$key]['form'], $key);
+        $this->processRecursiveInnerForms($element[$key]['form'], [$key]);
       }
     }
     return $element;
@@ -174,7 +174,7 @@ trait NeoNestedEntityFormTrait {
   /**
    * Find any nested submit buttons.
    */
-  public function processRecursiveInnerForms(&$element, $inner_form_parents) {
+  public function processRecursiveInnerForms(&$element, array $inner_form_parents) {
     if (is_array($element)) {
       if (isset($element['#ajax']) && !isset($element['#inner_form_parents'])) {
         $element['#inner_form_parents'] = $inner_form_parents;
@@ -182,7 +182,7 @@ trait NeoNestedEntityFormTrait {
         $element['#submit'] = ['::inlineButtonSubmit'];
         if (!empty($element['#validate'])) {
           $element['#inner_form_validate'] = $element['#validate'];
-          $element['#validate'] = '::inlineButtonValidate';
+          $element['#validate'][] = '::inlineButtonValidate';
         }
       }
       if (!empty($element['#process'])) {
