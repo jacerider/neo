@@ -176,6 +176,15 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
         $form['terms'][$key]['term']['image']['#attributes']['class'][] = 'rounded';
         $form['terms'][$key]['term']['image']['#weight'] = -10;
       }
+      else {
+        if ($term->hasField('field_icon') && !$term->get('field_icon')->isEmpty()) {
+          $form['terms'][$key]['term']['icon'] = [
+            '#type' => 'neo_icon',
+            '#icon' => $term->get('field_icon')->value,
+            '#weight' => -10,
+          ];
+        }
+      }
     }
     if (isset($controls['link']) && empty($controls['link'])) {
       $form['terms'][$key]['term']['title']['#type'] = 'markup';
