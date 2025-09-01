@@ -19,6 +19,14 @@ views.style.table.neo:
             type: string
             label: Neo Align
 
+field.widget.settings.neo_options_buttons:
+  type: mapping
+  label: 'Neo Check boxes/radio buttons'
+  mapping:
+    style:
+      type: string
+      label: Style
+
 field.widget.settings.neo_link:
   type: mapping
   label: 'Neo Link Widget'
