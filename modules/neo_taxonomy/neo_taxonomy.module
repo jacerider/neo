@@ -159,6 +159,9 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
       '#attributes' => [
         'class' => ['flex items-center gap-2'],
       ],
+      'tid' => $form['terms'][$key]['term']['tid'],
+      'parent' => $form['terms'][$key]['term']['parent'],
+      'depth' => $form['terms'][$key]['term']['depth'],
       'title' => $form['terms'][$key]['term'],
     ];
     if ($term instanceof TermInterface) {
