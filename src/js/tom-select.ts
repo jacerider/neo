@@ -247,7 +247,6 @@
                 // has changed.
                 const form = control.input.closest('form');
                 if (form) {
-                  console.log('Form changed');
                   const inputEvent = new InputEvent('input', {
                     bubbles: true,
                     cancelable: true,
