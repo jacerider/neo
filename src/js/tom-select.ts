@@ -3,10 +3,10 @@
   const baseSettings = {
     dropdownParent: document.body,
     maxOptions: null,
-    wrapperClass: 'ts-wrapper p-0!',
+    wrapperClass: 'ts-wrapper overflow-hidden p-0!',
     controlClass: 'ts-control form-item-bg flex items-center gap-2 border-none focus:border-none focus:outline-none leading-tight p-2',
     itemClass: 'item block form-item-content',
-    dropdownClass: 'ts-dropdown form-neo form-item-border form-item-border-radius bg-form-item-base z-100',
+    dropdownClass: 'ts-dropdown form--neo form-item-border bg-form-item-base overflow-hidden z-100 shadow-xl',
 	  optionClass: 'option py-2 leading-none is-active:bg-primary-500 is-active:text-primary-500-content',
     onInitialize: function() {
       const instance = this as any;

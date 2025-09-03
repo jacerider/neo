@@ -36,14 +36,20 @@
 .ts-dropdown {
   border-top-width: var(--form-item-border-width);
   border-top-style: solid;
+  border-radius: 4px;
+  /* border-bottom-width: var(--form-item-border-width);
+  border-bottom-style: solid; */
 
   .dropdown-input {
     color: rgb(var(--form-item-content));
+    background-color: var(--form-item-base);
     border: 0;
+    border-bottom: var(--form-item-border-width) solid var(--form-item-border);
+    font-size: var(--text-xm);
     --tw-ring-color: var(--form-item-primary);
 
     &::placeholder {
-      color: rgb(var(--form-item-placeholder));
+      color: var(--form-item-placeholder);
     }
   }
 
