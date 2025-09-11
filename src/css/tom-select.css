@@ -11,7 +11,7 @@
 
   .ts-control {
     font-size: var(--text-md);
-    min-height: calc(var(--spacing) * 10);
+    /* min-height: calc(var(--spacing) * 9); */
   }
 
   &[data-neo-size='xs'] .ts-control {
@@ -61,6 +61,15 @@
   }
 }
 
+.ts-control, .ts-control input, .ts-dropdown {
+  line-height: inherit;
+}
+
+.ts-open {
+  filter: brightness(0.5);
+  transition: filter 0.3s ease;
+}
+
 .ts-dropdown {
   border-top-width: var(--form-item-border-width);
   border-top-style: solid;
@@ -70,7 +79,7 @@
 
   .dropdown-input {
     color: rgb(var(--form-item-content));
-    background-color: var(--form-item-base);
+    background-color: var(--color-base-0);
     border: 0;
     border-bottom: var(--form-item-border-width) solid var(--form-item-border);
     font-size: var(--text-xm);
