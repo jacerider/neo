@@ -17,7 +17,6 @@ use Drupal\devel\Render\FilteredMarkup;
 use Drupal\neo\Helpers\Str;
 use Drupal\neo\NeoPreRender;
 use Drupal\neo\NeoProcess;
-use Drupal\views\Plugin\views\style\Table;
 use Kint\Kint;
 
 /**
@@ -41,6 +40,9 @@ function neo_theme() {
     ],
     'slide_list' => [
       'variables' => ['items' => [], 'attributes' => []],
+    ],
+    'input__number_plus_minus' => [
+      'render element' => 'element',
     ],
     'views_neo_clean' => [
       'variables' => [
@@ -161,6 +163,19 @@ function neo_preprocess_input__textfield(&$variables) {
       $variables['attributes']['class'][] = 'neo-multi-select';
     }
   }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for number plus minus input elements.
+ *
+ * @param array $variables
+ *   An associative array containing:
+ *   - element: An associative array containing the properties of the input
+ *     element.
+ */
+function template_preprocess_input__number_plus_minus(&$variables) {
+  $variables['minus_attributes'] = new Attribute($variables['element']['#minus_attributes'] ?? []);
+  $variables['plus_attributes'] = new Attribute($variables['element']['#plus_attributes'] ?? []);
 }
 
 /**
@@ -340,40 +355,6 @@ function neo_table_props(): array {
       'options' => [],
     ],
   ];
-}
-
-/**
- * Alter the views UI for the table style plugin.
- */
-function neo_form_views_ui_edit_display_form_alter(&$form, &$form_state, $form_id) {
-  $view = $form_state->get('view');
-  /** @var \Drupal\views\ViewExecutable $executable */
-  $executable = $view->getExecutable();
-  $style = $executable->style_plugin;
-  if (!$style instanceof Table) {
-    return;
-  }
-  if (!empty($form['options']['style_options']['info'])) {
-    $props = array_filter(neo_table_props(), fn ($prop) => !empty($prop['options']));
-    foreach ($props as $key => $prop) {
-      $form['options']['style_options']['#neo_header'][$key] = $prop['label'];
-    }
-    foreach ($form['options']['style_options']['info'] as $rowId => $row) {
-      foreach ($props as $key => $prop) {
-        $form['options']['style_options']['neo'][$rowId][$key] = [
-          '#type' => 'select',
-          '#options' => ['' => t('- Auto -')] + $prop['options'],
-          '#parents' => [
-            'style_options',
-            'info',
-            $rowId,
-            $key,
-          ],
-          '#default_value' => $style->options['info'][$rowId][$key] ?? '',
-        ];
-      }
-    }
-  }
 }
 
 /**
