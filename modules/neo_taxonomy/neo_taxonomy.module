@@ -149,21 +149,26 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
       unset($form['terms'][$key]['weight']);
     }
   }
+
   foreach (Element::children($form['terms']) as $key) {
     $form['terms'][$key]['status']['#markup'] = neo_icon_admin($form['terms'][$key]['status']['#markup'])->iconOnly();
     $term = $form['terms'][$key]['#term'] ?? NULL;
 
+    $default = $form['terms'][$key]['term'];
     $form['terms'][$key]['term'] = [
       '#type' => 'html_tag',
       '#tag' => 'div',
       '#attributes' => [
         'class' => ['flex items-center gap-2'],
       ],
-      'tid' => $form['terms'][$key]['term']['tid'],
-      'parent' => $form['terms'][$key]['term']['parent'],
-      'depth' => $form['terms'][$key]['term']['depth'],
-      'title' => $form['terms'][$key]['term'],
+      'tid' => $default['tid'],
+      'parent' => $default['parent'],
+      'depth' => $default['depth'],
+      '#prefix' => $default['#prefix'] ?? '',
     ];
+    unset($default['tid'], $default['parent'], $default['depth'], $default['#prefix']);
+    $default['#field_prefix'] = 'asdf';
+    $form['terms'][$key]['term']['title'] = $default;
     if ($term instanceof TermInterface) {
       $media = NULL;
       if ($term->hasField('field_image') && !$term->get('field_image')->isEmpty()) {
