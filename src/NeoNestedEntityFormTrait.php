@@ -217,6 +217,12 @@ trait NeoNestedEntityFormTrait {
       $form_state->setRebuild($inner_form_state->isRebuilding());
       $inner_form_state->setSubmitHandlers([]);
 
+      // Merge in field storage changes.
+      $storage = $form_state->getStorage();
+      $inner_storage = $inner_form_state->getStorage();
+      $storage['field_storage'] = NestedArray::mergeDeep($storage['field_storage'] ?? [], $inner_storage['field_storage'] ?? []);
+      $form_state->setStorage($storage);
+
       // Merge in user input changes as submit handler may have altered them.
       $user_input = $form_state->getUserInput();
       NestedArray::setValue($user_input, $trigger['#inner_form_parents'], NestedArray::getValue($inner_form_state->getUserInput(), $trigger['#inner_form_parents']) ?? []);
@@ -277,6 +283,9 @@ trait NeoNestedEntityFormTrait {
       // doSubmitForm method.
       $inner_form_state->setSubmitted();
       $form_submitter->doSubmitForm($form, $inner_form_state);
+      if (!$form_state->getErrors()) {
+        \Drupal::messenger()->deleteByType('status');
+      }
       return $entity_form->getEntity();
     }
     return NULL;
