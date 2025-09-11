@@ -1,0 +1,65 @@
+<?php
+
+namespace Drupal\neo\Hook;
+
+use Drupal\commerce_cart\Form\AddToCartFormInterface;
+use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Render\Element;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\views\Plugin\views\style\Table;
+
+/**
+ * Defines class-based hook implementations for MyModule.
+ */
+class FormAlterHook {
+
+  use StringTranslationTrait;
+
+  /**
+   * Implements hook_form_alter().
+   */
+  #[Hook('form_alter')]
+  public function formAlter(array &$form, FormStateInterface $form_state, $form_id) {
+    switch ($form_id) {
+      case 'views_ui_edit_display_form':
+        $this->formAlterViewsUiEditDisplayForm($form, $form_state, $form_id);
+        break;
+    }
+  }
+
+  /**
+   * Custom alterations for the Views UI edit display form.
+   */
+  protected function formAlterViewsUiEditDisplayForm(array &$form, FormStateInterface $form_state, $form_id) {
+    $view = $form_state->get('view');
+    /** @var \Drupal\views\ViewExecutable $executable */
+    $executable = $view->getExecutable();
+    $style = $executable->style_plugin;
+    if (!$style instanceof Table) {
+      return;
+    }
+    if (!empty($form['options']['style_options']['info'])) {
+      $props = array_filter(neo_table_props(), fn ($prop) => !empty($prop['options']));
+      foreach ($props as $key => $prop) {
+        $form['options']['style_options']['#neo_header'][$key] = $prop['label'];
+      }
+      foreach ($form['options']['style_options']['info'] as $rowId => $row) {
+        foreach ($props as $key => $prop) {
+          $form['options']['style_options']['neo'][$rowId][$key] = [
+            '#type' => 'select',
+            '#options' => ['' => t('- Auto -')] + $prop['options'],
+            '#parents' => [
+              'style_options',
+              'info',
+              $rowId,
+              $key,
+            ],
+            '#default_value' => $style->options['info'][$rowId][$key] ?? '',
+          ];
+        }
+      }
+    }
+  }
+
+}
