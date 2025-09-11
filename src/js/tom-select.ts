@@ -4,8 +4,8 @@
     dropdownParent: document.body,
     maxOptions: null,
     wrapperClass: 'ts-wrapper overflow-hidden p-0!',
-    controlClass: 'ts-control form-item-bg flex items-center gap-2 border-none focus:border-none focus:outline-none leading-tight p-2',
-    itemClass: 'item block form-item-content',
+    controlClass: 'ts-control form-item-bg flex items-center gap-2 border-none focus:border-none focus:outline-none py-2 px-3',
+    itemClass: 'item block form-item-content whitespace-nowrap',
     dropdownClass: 'ts-dropdown form--neo form-item-border bg-form-item-base overflow-hidden z-100 shadow-xl',
 	  optionClass: 'option py-2 leading-none is-active:bg-primary-500 is-active:text-primary-500-content',
     onInitialize: function() {
@@ -47,6 +47,10 @@
     },
     onDropdownOpen: function() {
       const instance = this as any;
+      const pageWrapper = document.querySelector('.page-wrapper');
+      if (pageWrapper) {
+        pageWrapper.classList.add('ts-open');
+      }
       const scheme = closestSchemeClass(instance.wrapper);
       if (scheme) {
         instance.dropdown.classList.add(scheme.schemeClass);
@@ -56,6 +60,10 @@
     },
     onDropdownClose: function() {
       const instance = this as any;
+      const pageWrapper = document.querySelector('.page-wrapper');
+      if (pageWrapper) {
+        pageWrapper.classList.remove('ts-open');
+      }
       clearInterval(instance.dropdownWatch);
     },
     onFocus: function() {
