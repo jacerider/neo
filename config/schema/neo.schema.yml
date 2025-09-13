@@ -99,3 +99,24 @@ field.formatter.settings.neo_link:
     title_only:
       type: boolean
       label: Title Only
+
+
+field.formatter.settings.neo_string:
+  type: mapping
+  label: 'Neo String Formatter'
+  mapping:
+    link_to_entity:
+      type: boolean
+      label: Link to entity
+    style:
+      type: string
+      label: Style
+    delimiter:
+      type: string
+      label: Delimiter
+    prefix:
+      type: string
+      label: Prefix
+    suffix:
+      type: string
+      label: Suffix
