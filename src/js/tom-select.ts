@@ -157,8 +157,6 @@
       });
 
       once('neo.tom', 'input.neo-entity-autocomplete').forEach(el => {
-        console.log(el);
-
         var observer = new IntersectionObserver((entries, observer) => {
           entries.forEach(entry => {
             if (entry.intersectionRatio > 0) {
