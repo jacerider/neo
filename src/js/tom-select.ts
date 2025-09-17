@@ -157,6 +157,9 @@
       });
 
       once('neo.tom', 'input.neo-entity-autocomplete').forEach(el => {
+        if (!(el instanceof HTMLInputElement)) {
+          return;
+        }
         var observer = new IntersectionObserver((entries, observer) => {
           entries.forEach(entry => {
             if (entry.intersectionRatio > 0) {
@@ -185,6 +188,7 @@
                       callback();
                     });
                 },
+                plugins: {},
               } as any;
               const blacklist = el.dataset.autocompleteFirstCharacterBlacklist || false;
               if (blacklist) {
@@ -210,6 +214,9 @@
                     }
                   }
                 }};
+              }
+              else {
+                settings.plugins.clear_button = {};
               }
               const finalSettings = {...settings, ...baseSettings};
               finalSettings.render.item = function(data:any, escape:Function) {
