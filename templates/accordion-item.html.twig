@@ -30,7 +30,15 @@
   %}
   {%- if title -%}
     <button{{ summary_attributes.addClass(summary_classes) }} type="button" @click="{{ alpine_id }} = !{{ alpine_id }}" :aria-expanded="{{ alpine_id }}">
-      <span>{{ title }}</span>
+      <span>
+        <span>
+          {{ title }}
+        </span>
+        {% if required %}
+          <abbr class="font-normal form-required text-alert" aria-hidden="true">*</abbr>
+          <span class="visually-hidden">{{ 'required'|t }}</span>
+        {% endif %}
+      </span>
       <svg class="shrink-0 ml-8" width="16" height="16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" :class="{{ alpine_id }} ? 'fill-primary' : 'fill-base'">
         <rect y="7" width="16" height="2" rx="1" class="transform origin-center transition duration-200 ease-out" :class="{'!rotate-180': {{ alpine_id }}}" />
         <rect y="7" width="16" height="2" rx="1" class="transform origin-center rotate-90 transition duration-200 ease-out" :class="{'!rotate-180': {{ alpine_id }}}" />
