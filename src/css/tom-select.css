@@ -9,6 +9,10 @@
 .neo-tom-wrapper {
   --tw-ring-color: var(--form-item-primary);
 
+  .ts-control input {
+    font-size: inherit;
+  }
+
   .ts-control {
     font-size: var(--text-md);
     /* min-height: calc(var(--spacing) * 9); */
@@ -59,11 +63,56 @@
       }
     }
   }
+
+  .plugin-clear_button {
+
+    .clear-button {
+      display: flex;
+      right: 5px;
+      top: 0;
+      bottom: 0;
+      align-items: center;
+      justify-content: center;
+      background: rgb(var(--color-alert-500)) !important;
+      color: rgb(var(--color-alert-500-content));
+      overflow: hidden;
+      width: 1.5rem;
+      height: auto;
+      transform: none;
+      font-size: 0px;
+      padding: 5px 0;
+
+      &:before {
+        --icon-display: flex;
+        @apply icon-times rounded;
+        align-items: center;
+        justify-content: center;
+        background: rgb(var(--color-alert-500)) !important;
+        color: rgb(var(--color-alert-500-content));
+        width: 1.5rem;
+        height: 100%;
+        max-height: 1.5rem;
+        font-size: var(--text-md);
+      }
+    }
+
+    &.has-items {
+
+      .clear-button {
+        opacity: 1;
+      }
+    }
+  }
 }
 
 .ts-control, .ts-control input, .ts-dropdown {
   line-height: inherit;
+  box-sizing: border-box;
 }
+
+/* .ts-control {
+  line-height: 1.4;
+} */
 
 .ts-open {
   filter: brightness(0.5);
@@ -102,7 +151,7 @@
 .neo-entity-autocomplete {
   .ts-control {
     background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%236b7280" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.44,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.44C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z"></path></svg>');
-    background-position: right 0 center;
+    background-position: right 2px center;
     background-repeat: no-repeat;
     background-size: 1.5em 1.5em;
   }
@@ -112,7 +161,7 @@
   .ts-wrapper.single.input-active .ts-control,
   .ts-control {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-    background-position: right 0 center;
+    background-position: right 2px center;
     background-repeat: no-repeat;
     background-size: 1.5em 1.5em;
   }
