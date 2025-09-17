@@ -387,7 +387,6 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
         const href = anchor.href;
         if (href) {
           const url = new URL(href);
-          // console.log(url.pathname, window.location.pathname);
           if (url.pathname === window.location.pathname && anchor.parentElement) {
             activeLi = anchor.parentElement as HTMLElement;
           }
@@ -430,7 +429,6 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
       // check if activeLi is not null
 
       if (activeLi instanceof HTMLElement) {
-        // console.log('activeLi', activeLi);
         activeLi.classList.add(CLASS_NAMES.activeLi);
         this.runWithoutAnimation(() => {
           this.navigateTo(activeLi);
