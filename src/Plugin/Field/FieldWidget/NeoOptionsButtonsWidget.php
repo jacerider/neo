@@ -8,7 +8,6 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Field\Plugin\Field\FieldWidget\OptionsButtonsWidget;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\migrate_drupal\Plugin\migrate\source\d7\FieldableEntity;
 use Drupal\neo_icon\IconTrait;
 
 /**
@@ -36,6 +35,7 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
   public static function defaultSettings() {
     return [
       'style' => 'inline_buttons',
+      'size' => 'md',
     ] + parent::defaultSettings();
   }
 
@@ -51,6 +51,14 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
       '#required' => TRUE,
       '#options' => $this->getStyles(),
     ];
+    $element['size'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Size'),
+      '#default_value' => $this->getSetting('size'),
+      '#description' => $this->t('The size of the buttons.'),
+      '#required' => TRUE,
+      '#options' => $this->getSizes(),
+    ];
     return $element;
   }
 
@@ -62,6 +70,7 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
     if ($style = $this->getSetting('style')) {
       $summary[] = $this->t('Style: @placeholder', ['@placeholder' => $this->getStyles()[$style]]);
     }
+    $summary[] = $this->t('Size: @placeholder', ['@placeholder' => $this->getSizes()[$this->getSetting('size')]]);
     return $summary;
   }
 
@@ -73,6 +82,10 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
 
     if ($style = $this->getSetting('style')) {
       $element['#neo_style'] = $style;
+      $size = $this->getSetting('size');
+      if ($size !== 'md') {
+        $element['#neo_size'] = $size;
+      }
     }
 
     return $element;
@@ -91,15 +104,22 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
     $options = parent::getOptions($entity);
 
     if ($options) {
-      $storage = \Drupal::entityTypeManager()->getStorage($this->fieldDefinition->getSetting('target_type'));
-      $entities = $storage->loadMultiple(array_keys($options));
-      foreach ($options as $entityId => &$label) {
-        $optionEntity = $entities[$entityId] ?? NULL;
-        if ($optionEntity instanceof FieldableEntityInterface) {
-          // If entity has icon field, use it.
-          if ($optionEntity->hasField('field_icon') && !$optionEntity->get('field_icon')->isEmpty()) {
-            $label = $this->icon($label, $optionEntity->get('field_icon')->value);
+      if ($entityTypeId = $this->fieldDefinition->getSetting('target_type')) {
+        $storage = \Drupal::entityTypeManager()->getStorage($entityTypeId);
+        $entities = $storage->loadMultiple(array_keys($options));
+        foreach ($options as $entityId => &$label) {
+          $optionEntity = $entities[$entityId] ?? NULL;
+          if ($optionEntity instanceof FieldableEntityInterface) {
+            // If entity has icon field, use it.
+            if ($optionEntity->hasField('field_icon') && !$optionEntity->get('field_icon')->isEmpty()) {
+              $label = $this->icon($label, $optionEntity->get('field_icon')->value);
+            }
           }
+        }
+      }
+      else {
+        foreach ($options as &$label) {
+          $label = $this->icon($label);
         }
       }
     }
@@ -117,6 +137,23 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
     return [
       'inline' => $this->t('Inline'),
       'inline_buttons' => $this->t('Inline buttons'),
+      'inline_buttons_outline' => $this->t('Inline outline buttons'),
+    ];
+  }
+
+  /**
+   * Get the sizes.
+   *
+   * @return array
+   *   The sizes.
+   */
+  protected function getSizes() {
+    return [
+      'xs' => $this->t('Extra small'),
+      'sm' => $this->t('Small'),
+      'md' => $this->t('Medium (default)'),
+      'lg' => $this->t('Large'),
+      'xl' => $this->t('Extra large'),
     ];
   }
 
