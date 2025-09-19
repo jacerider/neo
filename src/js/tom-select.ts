@@ -146,6 +146,9 @@
                   return '<div>' + escape(data.text) + '</div>';
                 };
                 const control = new TomSelect(el, finalSettings);
+                el.addEventListener('change', function () {
+                  control.sync();
+                });
                 if (el.multiple) {
                   control.removeOption('_none');
                 }
