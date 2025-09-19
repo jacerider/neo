@@ -26,6 +26,9 @@ field.widget.settings.neo_options_buttons:
     style:
       type: string
       label: Style
+    size:
+      type: string
+      label: Size
 
 field.widget.settings.neo_link:
   type: mapping
