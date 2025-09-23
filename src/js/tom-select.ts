@@ -147,7 +147,9 @@
                 };
                 const control = new TomSelect(el, finalSettings);
                 el.addEventListener('change', function () {
-                  control.sync();
+                  if (control.getValue() !== el.value) {
+                    control.setValue(el.value, true);
+                  }
                 });
                 if (el.multiple) {
                   control.removeOption('_none');
