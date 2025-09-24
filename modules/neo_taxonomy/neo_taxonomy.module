@@ -141,7 +141,13 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
       $form['help']['message']['#markup'] = $description;
     }
   }
-  if (isset($controls['order']) && empty($controls['order'])) {
+  $hideWeight = FALSE;
+  foreach (Element::children($form['terms']) as $key) {
+    if ($form['terms'][$key]['weight'] === NULL) {
+      $hideWeight = TRUE;
+    }
+  }
+  if ($hideWeight || (isset($controls['order']) && empty($controls['order']))) {
     $form['actions']['reset_alphabetical']['#access'] = FALSE;
     unset($form['terms']['#tabledrag']);
     unset($form['terms']['#header']['weight']);
@@ -161,9 +167,9 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
       '#attributes' => [
         'class' => ['flex items-center gap-2'],
       ],
-      'tid' => $default['tid'],
-      'parent' => $default['parent'],
-      'depth' => $default['depth'],
+      'tid' => $default['tid'] ?? NULL,
+      'parent' => $default['parent'] ?? NULL,
+      'depth' => $default['depth'] ?? NULL,
       '#prefix' => $default['#prefix'] ?? '',
     ];
     unset($default['tid'], $default['parent'], $default['depth'], $default['#prefix']);
