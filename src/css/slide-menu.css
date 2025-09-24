@@ -46,7 +46,7 @@
 
     > li > .neo-slide-menu--item {
       animation-name: slideIn;
-      animation-duration: var(--);
+      animation-duration: var(--sm-transition-dur);
       animation-fill-mode: forwards;
     }
   }
