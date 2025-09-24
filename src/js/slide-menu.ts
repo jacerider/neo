@@ -243,7 +243,16 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
         ul.classList.add(CLASS_NAMES.focus);
 
         this.focusElem = ul;
-        this.wrapperElem.style.height = `${ul.clientHeight}px`;
+        function getHeightAfterRender(element: HTMLElement): Promise<number> {
+          return new Promise((resolve) => {
+            requestAnimationFrame(() => {
+              resolve(element.offsetHeight);
+            });
+          });
+        }
+        getHeightAfterRender(ul).then(height => {
+          this.wrapperElem.style.height = `${height}px`;
+        });
       }
     }
 
