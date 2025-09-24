@@ -19,9 +19,10 @@ class SlideMenu extends RenderElementBase {
     $class = static::class;
     return [
       '#title' => '',
+      '#menu_ids' => [],
       '#items' => [],
       '#attributes' => [],
-      '#item_attrbutes' => [],
+      '#item_attributes' => [],
       '#link_attributes' => [],
       '#child_icon' => 'chevron-right',
       '#child_icon_attributes' => [],
@@ -55,6 +56,23 @@ class SlideMenu extends RenderElementBase {
    *   The modified element.
    */
   public static function preRenderSlideMenu($element) {
+    if (!empty($element['#menu_ids'])) {
+      $items = [];
+      $menuLinkTree = \Drupal::menuTree();
+      foreach ($element['#menu_ids'] as $mid) {
+        $parameters = $menuLinkTree->getCurrentRouteMenuTreeParameters($mid);
+
+        $parameters->expandedParents = [];
+        $menuTree = $menuLinkTree->load($mid, $parameters);
+        $manipulators = [
+          ['callable' => 'menu.default_tree_manipulators:checkAccess'],
+          ['callable' => 'menu.default_tree_manipulators:generateIndexAndSort'],
+        ];
+        $tree = $menuLinkTree->transform($menuTree, $manipulators);
+        $items += static::generateItemFromMenuTree($tree);
+      }
+      $element['#items'] = $items;
+    }
     $slideMenu = new NeoSlideMenu($element['#items'], [
       'item_attributes' => $element['#item_attributes'],
       'link_attributes' => $element['#link_attributes'],
@@ -70,6 +88,29 @@ class SlideMenu extends RenderElementBase {
     ]);
     $element['slide'] = $slideMenu->toRenderable();
     return $element;
+  }
+
+  /**
+   * Recursively generate menu items from a menu tree.
+   *
+   * @param \Drupal\Core\Menu\MenuLinkTreeElement[] $menu_tree
+   *   The menu tree.
+   *
+   * @return array
+   *   The generated menu items.
+   */
+  protected static function generateItemFromMenuTree($menu_tree) {
+    $items = [];
+    foreach ($menu_tree as $key => $element) {
+      $item = [];
+      $item['title'] = $element->link->getTitle();
+      $item['url'] = $element->link->getUrlObject();
+      if ($element->hasChildren) {
+        $item['children'] = static::generateItemFromMenuTree($element->subtree);
+      }
+      $items[$key] = $item;
+    }
+    return $items;
   }
 
 }
