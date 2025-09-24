@@ -547,6 +547,7 @@ class SlideMenu implements RenderableInterface {
       ];
     }
     else {
+      $linkAttributes['class'][] = 'cursor-pointer';
       $build['link'] = [
         '#type' => 'html_tag',
         '#tag' => 'button',
