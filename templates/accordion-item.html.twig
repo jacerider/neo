@@ -31,7 +31,7 @@
   {%- if title -%}
     <button{{ summary_attributes.addClass(summary_classes) }} type="button" @click="{{ alpine_id }} = !{{ alpine_id }}" :aria-expanded="{{ alpine_id }}">
       <span>
-        <span>
+        <span class="inline-flex items-center gap-2">
           {{ title }}
         </span>
         {% if required %}
