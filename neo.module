@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
@@ -263,6 +264,7 @@ function template_preprocess_slide_list(&$variables) {
     $attributes = [];
     // If the item value is an array, then it is a render array.
     if (is_array($item)) {
+      $attributes = NestedArray::mergeDeep($attributes, $item['#wrapper_attributes'] ?? []);
       // Determine whether there are any child elements in the item that are not
       // fully-specified render arrays. If there are any, then the child
       // elements present nested lists and we automatically inherit the render
