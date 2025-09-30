@@ -60,10 +60,14 @@ trait NeoEntityReferenceLinkTrait {
       'content' => $this->t('Content'),
       'file' => $this->t('File'),
     ];
-    $fields = \Drupal::service('entity_field.manager')->getFieldDefinitions($this->fieldDefinition->getTargetEntityTypeId(), $this->fieldDefinition->getTargetBundle());
-    foreach ($fields as $field_name => $field) {
-      if ($field->getType() == 'link') {
-        $options[$field->getName()] = $this->t('Field @label', ['@label' => $field->getLabel()]);
+    $targetEntityTypeId = $this->fieldDefinition->getTargetEntityTypeId();
+    $targetBundle = $this->fieldDefinition->getTargetBundle();
+    if ($targetEntityTypeId && $targetBundle) {
+      $fields = \Drupal::service('entity_field.manager')->getFieldDefinitions($targetEntityTypeId, $targetBundle);
+      foreach ($fields as $field_name => $field) {
+        if ($field->getType() == 'link') {
+          $options[$field->getName()] = $this->t('Field @label', ['@label' => $field->getLabel()]);
+        }
       }
     }
     return $options;
