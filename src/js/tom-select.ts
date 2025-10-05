@@ -128,6 +128,7 @@
                   placeholder: 'Search...',
                 } as any;
                 if (el.multiple) {
+                  parent.classList.add('neo-tom-multiple');
                   settings = {...settings, ...{
                     maxOptions: null,
                     plugins: {
@@ -147,8 +148,17 @@
                 };
                 const control = new TomSelect(el, finalSettings);
                 el.addEventListener('change', function () {
-                  if (control.getValue() !== el.value) {
-                    control.setValue(el.value, true);
+                  let newValue:string | string[] = el.value;
+                  if (el.multiple) {
+                    newValue = [];
+                    for (const option of el.options) {
+                        if (option.selected) {
+                            newValue.push(option.value);
+                        }
+                    }
+                  }
+                  if (control.getValue() !== newValue) {
+                    control.setValue(newValue, true);
                   }
                 });
                 if (el.multiple) {
