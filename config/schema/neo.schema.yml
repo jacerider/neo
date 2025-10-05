@@ -103,7 +103,6 @@ field.formatter.settings.neo_link:
       type: boolean
       label: Title Only
 
-
 field.formatter.settings.neo_string:
   type: mapping
   label: 'Neo String Formatter'
@@ -123,3 +122,14 @@ field.formatter.settings.neo_string:
     suffix:
       type: string
       label: Suffix
+
+field_group.field_group_formatter_plugin.neo_grid:
+  type: field_group.field_group_formatter_plugin.html_element
+  label: 'Mapping for the html element formatter settings'
+  mapping:
+    cols:
+      type: string
+      label: 'Columns'
+    gap:
+      type: string
+      label: 'Gap'
