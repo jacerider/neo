@@ -6,11 +6,16 @@
   --ts-pr-min: .75rem;
 }
 
+.form--inline .neo-tom-multiple .ts-control {
+  @apply flex-nowrap;
+}
+
 .neo-tom-wrapper {
   --tw-ring-color: var(--form-item-primary);
 
   .ts-control input {
     font-size: inherit;
+    width: auto !important;
   }
 
   .ts-control {
