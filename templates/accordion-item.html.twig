@@ -19,13 +19,47 @@
 #}
 <div{{ attributes.addClass('divide-y divide-base-100') }}>
   {%
+    set iconSize = 16
+  %}
+  {%
+    set iconY = 7
+  %}
+  {% if neo_size == 'xs' or neo_size == 'sm' %}
+    {%
+      set iconSize = 12
+    %}
+    {%
+      set iconY = 5
+    %}
+  {% endif %}
+  {%
     set summary_classes = [
+      'relative',
+      'flex',
+      'flex-wrap',
+      'w-full',
+      'cursor-pointer',
+      'list-none',
+      'items-center',
+      'justify-between',
+      'transition',
+      'p-form-item',
+      'rounded-sm',
+      'text-form-item-label',
+      'hover:text-form-item-primary',
+      'hover:bg-form-item-base-100',
+      '[&>.summary]:w-full',
+      '[&>.summary]:text-xs',
+      '[&>.summary]:font-light',
+      '[&>.summary]:leading-tight',
+      '[&>.summary]:ml-7',
+      neo_size == 'xl' ? 'py-4 font-bold text-xl',
+      neo_size == 'lg' ? 'py-4 font-bold text-lg',
+      neo_size == 'md' ? 'py-4 font-bold',
+      neo_size == 'sm' ? 'font-semibold text-sm',
+      neo_size == 'xs' ? 'font-semibold text-xs',
       required ? 'js-form-required',
       required ? 'form-required',
-      'text-base relative z-10 flex items-center justify-between w-full text-left m-0 rounded focus transition cursor-pointer hover:text-primary-500',
-      neo_size == 'md' ? 'p-4 font-bold',
-      neo_size == 'sm' ? 'px-4 py-2 font-semibold text-sm',
-      neo_size == 'xs' ? 'px-4 py-1 font-semibold text-xm',
     ]
   %}
   {%- if title -%}
@@ -39,9 +73,9 @@
           <span class="visually-hidden">{{ 'required'|t }}</span>
         {% endif %}
       </span>
-      <svg class="shrink-0 ml-8" width="16" height="16" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" :class="{{ alpine_id }} ? 'fill-primary' : 'fill-base'">
-        <rect y="7" width="16" height="2" rx="1" class="transform origin-center transition duration-200 ease-out" :class="{'!rotate-180': {{ alpine_id }}}" />
-        <rect y="7" width="16" height="2" rx="1" class="transform origin-center rotate-90 transition duration-200 ease-out" :class="{'!rotate-180': {{ alpine_id }}}" />
+      <svg class="shrink-0 ml-8" width="{{ iconSize }}" height="{{ iconSize }}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" :class="{{ alpine_id }} ? 'fill-form-item-primary-active' : 'fill-form-item-label'">
+        <rect y="{{ iconY }}" width="{{ iconSize }}" height="2" rx="1" class="transform origin-center transition duration-200 ease-out" :class="{'!rotate-180': {{ alpine_id }}}" />
+        <rect y="{{ iconY }}" width="{{ iconSize }}" height="2" rx="1" class="transform origin-center rotate-90 transition duration-200 ease-out" :class="{'!rotate-180': {{ alpine_id }}}" />
       </svg>
     </button>
   {%- endif -%}
