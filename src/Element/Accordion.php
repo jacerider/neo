@@ -101,6 +101,7 @@ class Accordion extends FormElementBase {
         $open[] = Str::machine('acc' . implode('', $alterElement['#parents'])) . ':' . (!empty($alterElement['#open']) ? 'true' : 'false');
       }
       $alterElement['#attributes']['class'][] = 'accordion-item';
+      $alterElement['#neo_size'] = $element['#neo_size'] ?? 'md';
     }
     $element['#attributes']['x-data'] = '{' . implode(',', $open) . '}';
 
