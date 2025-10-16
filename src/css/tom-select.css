@@ -115,21 +115,19 @@
   box-sizing: border-box;
 }
 
-/* .ts-control {
-  line-height: 1.4;
-} */
-
 .ts-open {
-  filter: brightness(0.5);
-  transition: filter 0.3s ease;
+
+  .page-wrapper,
+  .neo-modal {
+    filter: brightness(0.5);
+    transition: filter 0.3s ease;
+  }
 }
 
 .ts-dropdown {
   border-top-width: var(--form-item-border-width);
   border-top-style: solid;
   border-radius: 4px;
-  /* border-bottom-width: var(--form-item-border-width);
-  border-bottom-style: solid; */
 
   .dropdown-input {
     color: rgb(var(--form-item-content));
