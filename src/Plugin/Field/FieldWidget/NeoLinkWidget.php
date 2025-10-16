@@ -303,6 +303,7 @@ class NeoLinkWidget extends LinkWidget {
         '#title' => $this->t('Open link in new window'),
         '#description' => $this->t('See WCAG guidance on <a href="https://www.w3.org/WAI/WCAG21/Techniques/general/G200" target="_blank">opening links in new windows/tabs</a>.'),
         '#default_value' => !empty($attributes['target']),
+        '#neo_size' => 'xs',
       ];
     }
 
