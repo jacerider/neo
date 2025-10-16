@@ -86,10 +86,9 @@
     </div>
   {% endif %}
 
-  {{ description }}
-
   <div{{ content_attributes.addClass('grid text-sm text-base-600 transition-all duration-300 ease-in-out') }} role="region" x-show="{{ alpine_id }}" x-cloak x-collapse>
     <div class="p-form-item">
+      {{ description }}
       {{ children }}
       {{ value }}
     </div>
