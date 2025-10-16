@@ -26,45 +26,47 @@
       // width of the dropdown.
       instance.dropdownWatch = null;
       instance.dropdownWatchCb = () => {
-        if (instance.isOpen) {
-          instance.popper.update();
+        if (instance.isOpen || true) {
           const rect = instance.wrapper.getBoundingClientRect();
           instance.dropdown.style.width = Math.max(rect.width, 140) + 'px';
         }
       }
-
-      // Use pooper.js to position the dropdown.
-      instance.popper = Popper.createPopper(instance.wrapper, instance.dropdown, {
-        modifiers: [
-          {
-            name: 'preventOverflow',
-            options: {
-              boundary: instance.wrapper,
-            },
-          },
-        ],
-      });
     },
     onDropdownOpen: function() {
       const instance = this as any;
-      const pageWrapper = document.querySelector('.page-wrapper');
-      if (pageWrapper) {
-        pageWrapper.classList.add('ts-open');
-      }
+      document.querySelector('body')?.classList.add('ts-open');
       const scheme = closestSchemeClass(instance.wrapper);
       if (scheme) {
         instance.dropdown.classList.add(scheme.schemeClass);
       }
+      // Utilize Popper.js to position the dropdown.
+      instance.popper = Popper.createPopper(instance.wrapper, instance.dropdown, {
+        placement: 'bottom-start',
+        modifiers: [
+          {
+            name: 'flip',
+            options: {
+              fallbackPlacements: ['top-start', 'bottom-start'],
+            },
+          },
+          {
+            name: 'preventOverflow',
+            options: {
+              boundary: 'viewport',
+              padding: 4,
+            },
+          },
+        ],
+      });
       instance.dropdownWatchCb();
       instance.dropdownWatch = setInterval(instance.dropdownWatchCb, 250);
     },
     onDropdownClose: function() {
       const instance = this as any;
-      const pageWrapper = document.querySelector('.page-wrapper');
-      if (pageWrapper) {
-        pageWrapper.classList.remove('ts-open');
-      }
+      document.querySelector('body')?.classList.remove('ts-open');
       clearInterval(instance.dropdownWatch);
+      instance.popper.destroy();
+      instance.popper = null;
     },
     onFocus: function() {
       if (Drupal.behaviors.neoTooltip) {
