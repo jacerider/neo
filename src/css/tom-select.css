@@ -125,6 +125,9 @@
 }
 
 .ts-dropdown {
+  position: fixed;
+  top: 0;
+  left: 0;
   border-top-width: var(--form-item-border-width);
   border-top-style: solid;
   border-radius: 4px;
