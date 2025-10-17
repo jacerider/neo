@@ -26,10 +26,8 @@
       // width of the dropdown.
       instance.dropdownWatch = null;
       instance.dropdownWatchCb = () => {
-        if (instance.isOpen || true) {
-          const rect = instance.wrapper.getBoundingClientRect();
-          instance.dropdown.style.width = Math.max(rect.width, 140) + 'px';
-        }
+        const rect = instance.wrapper.getBoundingClientRect();
+        instance.dropdown.style.width = Math.max(rect.width, 140) + 'px';
       }
     },
     onDropdownOpen: function() {
@@ -39,6 +37,9 @@
       if (scheme) {
         instance.dropdown.classList.add(scheme.schemeClass);
       }
+
+      instance.dropdownWatchCb();
+      instance.dropdownWatch = setInterval(instance.dropdownWatchCb, 250);
       // Utilize Popper.js to position the dropdown.
       instance.popper = Popper.createPopper(instance.wrapper, instance.dropdown, {
         placement: 'bottom-start',
@@ -58,15 +59,14 @@
           },
         ],
       });
-      instance.dropdownWatchCb();
-      instance.dropdownWatch = setInterval(instance.dropdownWatchCb, 250);
     },
     onDropdownClose: function() {
       const instance = this as any;
       document.querySelector('body')?.classList.remove('ts-open');
       clearInterval(instance.dropdownWatch);
+      instance.dropdown.classList.remove('is-open');
       instance.popper.destroy();
-      instance.popper = null;
+      instance.popper = null
     },
     onFocus: function() {
       if (Drupal.behaviors.neoTooltip) {
