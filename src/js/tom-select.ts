@@ -28,6 +28,9 @@
       instance.dropdownWatchCb = () => {
         const rect = instance.wrapper.getBoundingClientRect();
         instance.dropdown.style.width = Math.max(rect.width, 140) + 'px';
+        setTimeout(() => {
+          instance.popper.update();
+        }, 0);
       }
     },
     onDropdownOpen: function() {
