@@ -26,7 +26,7 @@ class GridElement extends HtmlElement {
     // Keep using preRender parent for BC.
     parent::process($element, $processed_object);
     $element['#wrapper_element'] = 'div';
-    $element['#attributes']['class'][] = 'grid grid-cols-1 m-children-0';
+    $element['#attributes']['class'][] = 'grid grid-cols-1 m-form-items-0 m-fields-0';
     $col_options = $this->getColOptions();
     $selected_col = $this->getSetting('cols');
     if (isset($col_options[$selected_col])) {
@@ -37,9 +37,6 @@ class GridElement extends HtmlElement {
     if (isset($gap_options[$selected_gap]) && !empty($gap_options[$selected_gap]['value'])) {
       $element['#attributes']['class'][] = $gap_options[$selected_gap]['value'];
     }
-    // if (!empty($element['#parents'])) {
-    //   $element['#attributes']['class'][] = 'gap-form-item';
-    // }
   }
 
   /**
