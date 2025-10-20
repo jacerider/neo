@@ -183,23 +183,26 @@
               observer.disconnect();
               const parent = el.parentElement;
               const multiple = el.classList.contains('neo-multi-select');
+              const autocreate = el.classList.contains('neo-autocreate');
               if (parent) {
                 parent.classList.add('neo-tom-wrapper');
               }
               let settings = {
                 valueField: 'value',
                 labelField: 'label',
-                searchField: 'label',
-                create: true,
-                createOnBlur: true,
+                searchField: [],
+                create: autocreate,
+                createOnBlur: autocreate,
                 dropdownParent: document.body,
                 maxItems: 1,
                 load: function(query:any, callback:any) {
                   const path = el.dataset.autocompletePath as string;
                   const url = path + (path.includes('?') ? '&' : '?') + 'q=' + encodeURIComponent(query);
+                  this.clearOptions();
                   fetch(url)
                     .then(response => response.json())
                     .then(json => {
+                      console.log(json);
                       callback(json);
                     }).catch(()=>{
                       callback();
@@ -257,7 +260,7 @@
                 return '<div>' + escape(label) + '</div>';
               };
               finalSettings.render.option_create = function(data:any, escape:any) {
-                if (el.classList.contains('neo-autocreate')) {
+                if (autocreate) {
                   return '<div class="create">Create <strong>' + escape(data.input) + '</strong>&hellip;</div>';
                 }
                 return null;
