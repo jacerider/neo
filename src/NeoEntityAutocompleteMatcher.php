@@ -41,7 +41,7 @@ class NeoEntityAutocompleteMatcher extends EntityAutocompleteMatcher {
     ];
     $handler = $this->selectionManager->getInstance($options);
 
-    if (isset($string)) {
+    if (!empty($string)) {
       // Get an array of matching entities.
       $match_operator = !empty($selection_settings['match_operator']) ? $selection_settings['match_operator'] : 'CONTAINS';
       $match_limit = isset($selection_settings['match_limit']) ? (int) $selection_settings['match_limit'] : 10;
