@@ -8,7 +8,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Path\PathValidatorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
-use Drupal\Core\Url;
 use Drupal\Core\Utility\Token;
 use Drupal\link\LinkItemInterface;
 use Drupal\neo\NeoLinkitFormatterTrait;
@@ -200,7 +199,9 @@ class NeoLinkFormatter extends LinkFormatter {
    */
   protected function buildUrl(LinkItemInterface $item) {
     if ($this->linkitModuleExists()) {
-      return $this->getLinkitUrl($item, $this->getSetting('linkit_profile'));
+      if ($url = $this->getLinkitUrl($item, $this->getSetting('linkit_profile'))) {
+        return $url;
+      }
     }
     return parent::buildUrl($item);
   }
