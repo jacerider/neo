@@ -8,6 +8,7 @@ use Drupal\link\Plugin\Field\FieldWidget\LinkWidget;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Field\FieldFilteredMarkup;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\neo\NeoLinkitTrait;
 
