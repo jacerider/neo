@@ -8,7 +8,10 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Path\PathValidatorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Url;
 use Drupal\Core\Utility\Token;
+use Drupal\link\LinkItemInterface;
+use Drupal\neo\NeoLinkitFormatterTrait;
 use Drupal\neo_icon\IconTrait;
 
 /**
@@ -25,6 +28,7 @@ use Drupal\neo_icon\IconTrait;
 class NeoLinkFormatter extends LinkFormatter {
 
   use IconTrait;
+  use NeoLinkitFormatterTrait;
 
   /**
    * The token service.
@@ -67,6 +71,7 @@ class NeoLinkFormatter extends LinkFormatter {
       'icon' => '',
       'position' => '',
       'title_only' => FALSE,
+      'linkit_profile' => 'default',
     ] + parent::defaultSettings();
   }
 
@@ -130,6 +135,17 @@ class NeoLinkFormatter extends LinkFormatter {
       '#default_value' => $this->getSetting('title_only'),
       '#description' => $this->t('Show only the link title without making it linkable.'),
     ];
+
+    if ($this->linkitModuleExists()) {
+      $element['linkit_profile'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Linkit profile'),
+        '#options' => $this->getLinkitProfilesAsOptions(),
+        '#empty_option' => $this->t('- Do not use Linkit -'),
+        '#default_value' => $this->getSetting('linkit_profile'),
+      ];
+    }
+
     return $form;
   }
 
@@ -171,6 +187,22 @@ class NeoLinkFormatter extends LinkFormatter {
       }
     }
     return $elements;
+  }
+
+  /**
+   * Builds the \Drupal\Core\Url object for a link field item.
+   *
+   * @param \Drupal\link\LinkItemInterface $item
+   *   The link field item being rendered.
+   *
+   * @return \Drupal\Core\Url
+   *   A Url object.
+   */
+  protected function buildUrl(LinkItemInterface $item) {
+    if ($this->linkitModuleExists()) {
+      return $this->getLinkitUrl($item, $this->getSetting('linkit_profile'));
+    }
+    return parent::buildUrl($item);
   }
 
 }
