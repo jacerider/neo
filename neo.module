@@ -130,9 +130,9 @@ function neo_preprocess_select(&$variables) {
   }
   $variables['attributes']['class'][] = 'neo-select';
   $variables['#attached']['library'][] = 'neo/tom-select';
+  $variables['attributes']['size'] = 1;
   if (!empty($variables['element']['#multiple'])) {
     $variables['attributes']['class'][] = 'neo-multi-select';
-    $variables['attributes']['size'] = 1;
   }
   else {
     $variables['attributes']['class'][] = 'neo-single-select';
