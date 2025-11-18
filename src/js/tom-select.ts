@@ -194,7 +194,7 @@
                 valueField: 'value',
                 labelField: 'label',
                 searchField: [],
-                create: autocreate,
+                create: true,
                 createOnBlur: autocreate,
                 dropdownParent: document.body,
                 maxItems: 1,
@@ -265,7 +265,7 @@
                 if (autocreate) {
                   return '<div class="create">Create <strong>' + escape(data.input) + '</strong>&hellip;</div>';
                 }
-                return null;
+                return '<div class="create">Use <strong>' + escape(data.input) + '</strong>&hellip;</div>';
               }
               const control = new TomSelect(el, finalSettings);
               control.on('change', function (_value:any) {
