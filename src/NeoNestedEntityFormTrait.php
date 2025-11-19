@@ -180,10 +180,6 @@ trait NeoNestedEntityFormTrait {
         $element['#inner_form_parents'] = $inner_form_parents;
         $element['#inner_form_submit'] = !empty($element['#submit']) ? $element['#submit'] : [];
         $element['#submit'] = ['::inlineButtonSubmit'];
-        if (!empty($element['#validate'])) {
-          $element['#inner_form_validate'] = $element['#validate'];
-          $element['#validate'][] = '::inlineButtonValidate';
-        }
       }
       if (!empty($element['#process'])) {
         $element['#inner_form_parents'] = $inner_form_parents;
@@ -193,13 +189,6 @@ trait NeoNestedEntityFormTrait {
         $this->processRecursiveInnerForms($element[$key], $inner_form_parents);
       }
     }
-  }
-
-  /**
-   * Make sure we use the correct form state.
-   */
-  public static function inlineButtonValidate(array $element, FormStateInterface $form_state) {
-    \Drupal::messenger()->addWarning('Site Settings need validation.');
   }
 
   /**
