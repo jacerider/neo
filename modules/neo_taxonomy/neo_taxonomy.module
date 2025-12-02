@@ -34,6 +34,12 @@ function neo_taxonomy_form_alter(&$form, FormStateInterface $form_state, $form_i
     $form['advanced']['#weight'] = 900;
     $form['actions']['#weight'] = 1000;
 
+    if (isset($form['description']) && !empty($controls['description_format'])) {
+      $form['description']['widget'][0]['#format'] = $controls['description_format'];
+      $form['description']['widget'][0]['#allowed_formats'] = [$controls['description_format']];
+      $form['description']['widget'][0]['#after_build'][] = 'neo_taxonomy_description_after_build';
+    }
+
     if (isset($controls['nest']) && empty($controls['nest'])) {
       $form['relations']['#access'] = FALSE;
     }
@@ -107,6 +113,17 @@ function neo_taxonomy_form_alter(&$form, FormStateInterface $form_state, $form_i
       $form['fieldset']['original']['relations']['#access'] = FALSE;
     }
   }
+}
+
+/**
+ * After build callback to remove help and guidelines from description field.
+ */
+function neo_taxonomy_description_after_build($form_element, FormStateInterface $form_state) {
+  if (isset($form_element['format'])) {
+    unset($form_element['format']['help']);
+    unset($form_element['format']['guidelines']);
+  }
+  return $form_element;
 }
 
 /**
@@ -251,6 +268,17 @@ function neo_taxonomy_form_taxonomy_vocabulary_form_alter(&$form, FormStateInter
     ],
   ];
 
+  $options = array_map(function ($format) {
+    return $format->label();
+  }, filter_formats());
+  $elements['description_format'] = [
+    '#type' => 'select',
+    '#title' => t('Description text format'),
+    '#options' => $options,
+    '#empty_option' => t('- Default -'),
+    '#default_value' => $controls['description_format'] ?? '',
+  ];
+
   // Insert after description.
   $keys = array_keys($form);
 	$index = array_search('description', $keys);
@@ -273,6 +301,7 @@ function neo_taxonomy_form_taxonomy_vocabulary_form_submit(array $form, FormStat
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'link', !empty($controls['link']));
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'order', !empty($controls['order']));
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'nest', !empty($controls['order']) && !empty($controls['nest']));
+  $vocabulary->setThirdPartySetting('neo_taxonomy', 'description_format', $controls['description_format'] ?? '');
   $vocabulary->save();
 }
 
