@@ -131,11 +131,17 @@ function neo_preprocess_select(&$variables) {
   $variables['attributes']['class'][] = 'neo-select';
   $variables['#attached']['library'][] = 'neo/tom-select';
   $variables['attributes']['size'] = 1;
+  if (!empty($variables['element']['#title'])) {
+    $variables['attributes']['data-neo-title'] = $variables['element']['#title'];
+  }
+  if (!empty($variables['element']['#neo_style'])) {
+    $variables['attributes']['data-neo-style'] = $variables['element']['#neo_style'];
+  }
   if (!empty($variables['element']['#multiple'])) {
-    $variables['attributes']['class'][] = 'neo-multi-select';
+    $variables['attributes']['class'][] = 'neo-select-multi';
   }
   else {
-    $variables['attributes']['class'][] = 'neo-single-select';
+    $variables['attributes']['class'][] = 'neo-select-single';
   }
 }
 
@@ -162,7 +168,7 @@ function neo_preprocess_input__textfield(&$variables) {
       $variables['attributes']['class'][] = 'neo-autocreate';
     }
     if (!empty($variables['element']['#tags'])) {
-      $variables['attributes']['class'][] = 'neo-multi-select';
+      $variables['attributes']['class'][] = 'neo-select-multi';
     }
   }
 }
