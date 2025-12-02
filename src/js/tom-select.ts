@@ -27,6 +27,11 @@
       instance.dropdownWatch = null;
       instance.dropdownWatchCb = () => {
         const rect = instance.wrapper.getBoundingClientRect();
+        if (rect.width === 0 && rect.height === 0) {
+          // When parent is hidden, close the dropdown.
+          instance.close();
+          return;
+        }
         instance.dropdown.style.width = Math.max(rect.width, 140) + 'px';
         setTimeout(() => {
           instance.popper.update();
