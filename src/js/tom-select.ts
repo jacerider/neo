@@ -84,6 +84,51 @@
     render: {},
   };
 
+  const styleClean = function (this: any) {
+    const instance = this as any;
+    var el: HTMLSpanElement;
+    var badgeEl: HTMLSpanElement;
+    var titleEl: HTMLSpanElement;
+    const title = instance.input.dataset.neoTitle || '';
+
+    const itemCount = function () {
+      // Remove all existing item nodes.
+      instance.control.querySelectorAll('.item').forEach((node: HTMLElement) => {
+        node.style.display = 'none';
+      });
+      badgeEl.style.display = instance.items.length > 0 ? 'inline-block' : 'none';
+      if (instance.items.length > 0) {
+        badgeEl.innerText = `${instance.items.length}`;
+      } else {
+        badgeEl.innerText = '';
+      }
+    };
+
+    instance.on("initialize", () => {
+      if (title) {
+        const parent = instance.control.closest('.form--item') as HTMLElement;
+        parent.querySelector('.form-label')?.classList.add('sr-only');
+      }
+      instance.control.querySelector('input').remove();
+      el = document.createElement("span");
+      el.className = "ts-n-items flex items-center whitespace-nowrap";
+      titleEl = document.createElement("span");
+      titleEl.className = "ts-n-title text-sm";
+      titleEl.innerText = title || instance.settings.placeholder;
+      el.append(titleEl);
+      badgeEl = document.createElement("span");
+      badgeEl.className = "badge bg-primary-500 text-primary-500-content ml-1";
+      el.append(badgeEl);
+      instance.control.prepend(el);
+      itemCount();
+    });
+
+    instance.on("item_remove", itemCount);
+    instance.on("item_add", itemCount);
+  };
+
+  TomSelect.define("style_clean", styleClean);
+
   function closestSchemeClass(el: Element | null): { element: Element, schemeClass: string } | null {
     while (el) {
       const classList = Array.from(el.classList); // <-- fixes TS warning
@@ -120,6 +165,8 @@
               if (entry.intersectionRatio > 0) {
                 observer.disconnect();
                 const parent = el.closest('.form--item') as HTMLElement;
+                const style = el.dataset.neoStyle || 'default';
+                const multiple = el.multiple;
                 if (parent) {
                   parent.classList.add('neo-tom-wrapper');
                   parent.classList.add('neo-tom-select-wrapper');
@@ -132,10 +179,18 @@
                   },
                   placeholder: 'Search...',
                 } as any;
-                if (el.multiple) {
+                if (multiple) {
                   parent.classList.add('neo-tom-multiple');
                   settings = {...settings, ...{
                     maxOptions: null,
+                  }};
+                }
+                if (style === 'clean') {
+                  settings.plugins.style_clean = {};
+                  settings.plugins.checkbox_options = {};
+                }
+                else if (multiple) {
+                  settings = {...settings, ...{
                     plugins: {
                       drag_drop: {},
                       remove_button: {
@@ -185,7 +240,7 @@
             if (entry.intersectionRatio > 0) {
               observer.disconnect();
               const parent = el.parentElement;
-              const multiple = el.classList.contains('neo-multi-select');
+              const multiple = el.classList.contains('neo-select-multi');
               const autocreate = el.classList.contains('neo-autocreate');
               if (parent) {
                 parent.classList.add('neo-tom-wrapper');
