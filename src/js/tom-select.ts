@@ -34,7 +34,9 @@
         }
         instance.dropdown.style.width = Math.max(rect.width, 140) + 'px';
         setTimeout(() => {
-          instance.popper.update();
+          if (instance.popper) {
+            instance.popper.update();
+          }
         }, 0);
       }
     },
