@@ -49,6 +49,7 @@ tom-select:
   dependencies:
     - core/once
     - core/drupal
+    - neo/animate
     - neo/library.tom-select
     - neo/library.popper
 
