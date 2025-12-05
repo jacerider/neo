@@ -1,5 +1,15 @@
 (function (Drupal, once, Popper) {
 
+  const overlay = document.createElement('div');
+  overlay.className = 'ts-overlay fixed top-displace-t left-displace-l right-displace-r bottom-displace-b w-full h-full z-100 invisible';
+  overlay.style.display = 'none';
+  overlay.style.setProperty('--animate-duration', '300ms');
+  const overlayInner = document.createElement('div');
+  overlayInner.className = 'ts-overlay-inner w-full h-full bg-base-950';
+  overlayInner.style.opacity = '0.4';
+  overlay.appendChild(overlayInner);
+  document.body.appendChild(overlay);
+
   const baseSettings = {
     dropdownParent: document.body,
     maxOptions: null,
@@ -42,7 +52,15 @@
     },
     onDropdownOpen: function() {
       const instance = this as any;
+
+      // Overlay show
       document.querySelector('body')?.classList.add('ts-open');
+      overlay.style.display = 'block';
+      setTimeout(() => {
+        overlay.classList.remove('invisible');
+        overlay.classList.add('neo-animate--animated', 'neo-animate--fadeIn');
+      });
+
       const scheme = closestSchemeClass(instance.wrapper);
       if (scheme) {
         instance.dropdown.classList.add(scheme.schemeClass);
@@ -72,7 +90,17 @@
     },
     onDropdownClose: function() {
       const instance = this as any;
+
+      // Overlay hide
       document.querySelector('body')?.classList.remove('ts-open');
+      overlay.classList.remove('neo-animate--fadeIn');
+      overlay.classList.add('neo-animate--fadeOut');
+      overlay.addEventListener('animationend', () => {
+        overlay.style.display = 'none';
+        overlay.classList.add('invisible');
+        overlay.classList.remove('neo-animate--animated', 'neo-animate--fadeOut');
+      }, { once: true });
+
       clearInterval(instance.dropdownWatch);
       instance.dropdown.classList.remove('is-open');
       instance.popper.destroy();
@@ -219,9 +247,9 @@
                   if (el.multiple) {
                     newValue = [];
                     for (const option of el.options) {
-                        if (option.selected) {
-                            newValue.push(option.value);
-                        }
+                      if (option.selected) {
+                        newValue.push(option.value);
+                      }
                     }
                   }
                   if (control.getValue() !== newValue) {
