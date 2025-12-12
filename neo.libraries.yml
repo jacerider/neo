@@ -69,6 +69,15 @@ visibility:
     - core/jquery
     - core/drupal
 
+slug:
+  version: VERSION
+  neo: true
+  js:
+    src/js/slug.ts: {}
+  dependencies:
+    - core/once
+    - core/drupal
+
 # Libraries
 
 library.alpine:
