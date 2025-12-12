@@ -20,9 +20,15 @@
         }
         transformSlugValue(input);
         input.addEventListener('input', handleSlugInput);
+        input.addEventListener('blur', handleSlugBlur);
       });
     }
   };
+
+  function handleSlugBlur(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    input.value = input.value.replace(/-+$/, '');
+  }
 
   function handleSlugInput(event: Event): void {
     override = true;
@@ -43,8 +49,7 @@
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z-]/g, '')
-      .replace(/-+/g, '-')
-      .replace(/[-/]+$/, '');
+      .replace(/-+/g, '-');
 
     input.value = transformedValue;
   }
