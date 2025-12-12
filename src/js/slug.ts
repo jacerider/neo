@@ -45,11 +45,15 @@
 
   function transformSlugValue(input: HTMLInputElement, source: HTMLInputElement|null = null): void {
     const from = source || input;
-    const transformedValue = from.value
+    let transformedValue = from.value
       .toLowerCase()
       .replace(/\s+/g, '-')
       .replace(/[^a-z-]/g, '')
       .replace(/-+/g, '-');
+
+    if (source) {
+      transformedValue = transformedValue.replace(/-+$/, '');
+    }
 
     input.value = transformedValue;
   }
