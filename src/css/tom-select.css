@@ -164,6 +164,12 @@
       }
     }
   }
+
+  &.neo-select-multi {
+    .ts-control {
+      flex-wrap: wrap;
+    }
+  }
 }
 
 .neo-tom-select-wrapper {
