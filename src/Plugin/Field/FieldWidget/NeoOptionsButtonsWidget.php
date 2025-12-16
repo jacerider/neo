@@ -48,7 +48,7 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
       '#title' => $this->t('Style'),
       '#default_value' => $this->getSetting('style'),
       '#description' => $this->t('The style of the widget.'),
-      '#required' => TRUE,
+      '#empty_option' => $this->t('Default'),
       '#options' => $this->getStyles(),
     ];
     $element['size'] = [
