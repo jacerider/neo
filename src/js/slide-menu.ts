@@ -396,7 +396,7 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
         const href = anchor.href;
         if (href) {
           const url = new URL(href);
-          if (url.pathname === window.location.pathname && anchor.parentElement) {
+          if (url.pathname !== '/' && url.pathname === window.location.pathname && anchor.parentElement) {
             activeLi = anchor.parentElement as HTMLElement;
           }
         }
