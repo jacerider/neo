@@ -334,6 +334,10 @@ function neo_element_info_alter(&$info) {
       $info[$type]['#pre_render'] ?? []
     );
   }
+  if (isset($info['entity_autocomplete'])) {
+    // Remove maxlength restriction for entity_autocomplete fields.
+    $info['entity_autocomplete']['#maxlength'] = NULL;
+  }
 }
 
 /**
