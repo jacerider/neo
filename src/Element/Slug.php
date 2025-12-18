@@ -2,11 +2,9 @@
 
 namespace Drupal\neo\Element;
 
-use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Attribute\FormElement;
-use Drupal\Core\Render\Element;
 use Drupal\Core\Render\Element\Textfield;
 
 /**
@@ -84,6 +82,10 @@ class Slug extends Textfield {
    */
   public static function validateSlug(&$element, FormStateInterface $form_state, &$complete_form) {
     $value = trim($element['#value']);
+    // Check if the slug in alphanumeric lowercase with dashes only.
+    if (!preg_match('/^[a-z0-9\-]+$/', $value)) {
+      $form_state->setError($element, t('The slug %slug is invalid. Only lowercase letters, numbers, and dashes are allowed.', ['%slug' => $value]));
+    }
   }
 
   /**
