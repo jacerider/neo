@@ -164,12 +164,6 @@
       }
     }
   }
-
-  &.neo-select-multi {
-    .ts-control {
-      flex-wrap: wrap;
-    }
-  }
 }
 
 .neo-tom-select-wrapper {
@@ -188,5 +182,11 @@
         color: var(--form-item-primary);
       }
     }
+  }
+}
+
+.neo-select-multi {
+  .ts-control {
+    flex-wrap: wrap;
   }
 }
