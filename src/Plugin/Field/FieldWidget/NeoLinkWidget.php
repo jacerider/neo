@@ -354,7 +354,12 @@ class NeoLinkWidget extends LinkWidget {
       $uri_as_url = $uri;
     }
     else {
-      $uri_as_url = !empty($uri) ? Url::fromUri($uri)->toString() : '';
+      try {
+        $uri_as_url = !empty($uri) ? Url::fromUri($uri)->toString() : '';
+      }
+      catch (\Exception $e) {
+        $uri_as_url = '';
+      }
     }
     $uri_as_url = self::getLinkitPathByAlias($uri_as_url);
     $linkit_profile_id = $this->getSetting('linkit_profile');
