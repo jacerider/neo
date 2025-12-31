@@ -1,4 +1,4 @@
-(function (Drupal, once, Popper) {
+(function (Drupal, once, Popper, TomSelect) {
 
   const overlay = document.createElement('div');
   overlay.className = 'ts-overlay fixed top-displace-t left-displace-l right-displace-r bottom-displace-b w-full h-full z-100 invisible';
@@ -388,4 +388,4 @@
     }
   };
 
-})(Drupal, once, Popper);
+})(Drupal, once, Popper, TomSelect);
