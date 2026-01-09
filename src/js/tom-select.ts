@@ -119,7 +119,7 @@
     render: {},
   };
 
-  const styleClean = function (this: any) {
+  const styleClean = function (this: any, settings: any) {
     const instance = this as any;
     var el: HTMLSpanElement;
     var badgeEl: HTMLSpanElement;
@@ -131,11 +131,16 @@
       instance.control.querySelectorAll('.item').forEach((node: HTMLElement) => {
         node.style.display = 'none';
       });
-      badgeEl.style.display = instance.items.length > 0 ? 'inline-block' : 'none';
-      if (instance.items.length > 0) {
-        badgeEl.innerText = `${instance.items.length}`;
-      } else {
-        badgeEl.innerText = '';
+      if (settings.multiple) {
+        badgeEl.style.display = instance.items.length > 0 ? 'inline-block' : 'none';
+        if (instance.items.length > 0) {
+          badgeEl.innerText = `${instance.items.length}`;
+        } else {
+          badgeEl.innerText = '';
+        }
+      }
+      else {
+        badgeEl.style.display = 'none';
       }
     };
 
@@ -221,8 +226,12 @@
                   }};
                 }
                 if (style === 'clean') {
-                  settings.plugins.style_clean = {};
-                  settings.plugins.checkbox_options = {};
+                  settings.plugins.style_clean = {
+                    multiple: multiple,
+                  };
+                  if (multiple) {
+                    settings.plugins.checkbox_options = {};
+                  }
                 }
                 else if (multiple) {
                   settings = {...settings, ...{
