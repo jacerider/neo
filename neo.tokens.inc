@@ -354,7 +354,7 @@ function neo_tokens_image_fetch(array $params, string $hook, ?ContentEntityInter
     // Cache the URI if it was found.
     $staticCache[$key] = $uri;
   }
-  return $uri ? neo_tokens_image_data($uri) : [
+  return $uri ? neo_tokens_image_data($uri, $params) : [
     'uri' => NULL,
     'url' => NULL,
   ];
@@ -369,7 +369,7 @@ function neo_tokens_image_fetch(array $params, string $hook, ?ContentEntityInter
  * @return array
  *   An array containing the uri and url.
  */
-function neo_tokens_image_data(string $uri): array {
+function neo_tokens_image_data(string $uri, array $params = []): array {
   if (\Drupal::moduleHandler()->moduleExists('neo_image')) {
     // Provide default parameters if none are given. These defaults are ideal
     // for meta tags and social media sharing.
