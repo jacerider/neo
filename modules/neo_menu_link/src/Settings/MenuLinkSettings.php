@@ -16,7 +16,7 @@ use Drupal\neo_settings\Plugin\SettingsBase;
  *   label = @Translation("Menu Links"),
  *   config_name = "neo_menu_link.settings",
  *   menu_title = @Translation("Menu Links"),
- *   route = "/admin/config/neo/neo-tooltip",
+ *   route = "/admin/config/neo/neo-menu-link",
  *   admin_permission = "administer neo_menu_link",
  *   variation_allow = false,
  *   variation_conditions = false,
