@@ -42,7 +42,7 @@
           instance.close();
           return;
         }
-        instance.dropdown.style.width = Math.max(rect.width, 140) + 'px';
+        instance.dropdown.style.maxWidth = Math.max(rect.width, 240) + 'px';
         setTimeout(() => {
           if (instance.popper) {
             instance.popper.update();
@@ -75,7 +75,7 @@
           {
             name: 'flip',
             options: {
-              fallbackPlacements: ['top-start', 'bottom-start'],
+              fallbackPlacements: ['bottom-start', 'bottom-end', 'top-start', 'top-end'],
             },
           },
           {
