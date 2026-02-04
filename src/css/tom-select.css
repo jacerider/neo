@@ -146,6 +146,16 @@
   .optgroup .option {
     padding-left: calc(var(--spacing) * 5);
   }
+
+
+  .option:has(input) {
+    padding-left: 32px;
+
+    input {
+      @apply border-2 border-primary-700;
+      margin-left: -24px;
+    }
+  }
 }
 
 .neo-entity-autocomplete {
