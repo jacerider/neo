@@ -83,7 +83,7 @@ class Slug extends Textfield {
   public static function validateSlug(&$element, FormStateInterface $form_state, &$complete_form) {
     $value = trim($element['#value']);
     // Check if the slug in alphanumeric lowercase with dashes only.
-    if (!preg_match('/^[a-z0-9\-]+$/', $value)) {
+    if ($value && !preg_match('/^[a-z0-9\-]+$/', $value)) {
       $form_state->setError($element, t('The slug %slug is invalid. Only lowercase letters, numbers, and dashes are allowed.', ['%slug' => $value]));
     }
   }
