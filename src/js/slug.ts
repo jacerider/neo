@@ -48,7 +48,8 @@
     let transformedValue = from.value
       .toLowerCase()
       .replace(/\s+/g, '-')
-      .replace(/[^a-z-]/g, '')
+      .replace(/^[0-9-]+/, '')
+      .replace(/[^a-z0-9-]/g, '')
       .replace(/-+/g, '-');
 
     if (source) {
