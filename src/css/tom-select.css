@@ -109,7 +109,8 @@
 }
 
 .tomselect-checkbox {
-  @apply form-item-border form-item-border-radius form-item-bg form-item-focus checked:bg-form-item-primary checked:hover:bg-form-item-primary-active transition;
+  @apply form-item-border form-item-bg form-item-focus checked:bg-form-item-primary checked:hover:bg-form-item-primary-active transition;
+  border-radius: 0.25rem;
 }
 
 .ts-control, .ts-control input, .ts-dropdown {
@@ -147,7 +148,6 @@
     padding-left: calc(var(--spacing) * 5);
   }
 
-
   .option:has(input) {
     padding-left: 32px;
 
@@ -177,12 +177,19 @@
 }
 
 .neo-tom-select-wrapper {
+  .ts-control {
+
+    &:after {
+      @apply icon-chevron-down;
+    }
+  }
+
   .ts-wrapper.single.input-active .ts-control,
   .ts-control {
     flex-wrap: nowrap;
 
     &:after {
-      @apply icon-chevron-down text-xs ml-auto;
+      @apply text-xs ml-auto;
       color: var(--form-item-label);
     }
 
