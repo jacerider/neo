@@ -67,6 +67,15 @@ function neo_theme() {
 }
 
 /**
+ * Implements hook_library_info_alter().
+ */
+function neo_library_info_alter(&$libraries, $extension) {
+  if ($extension == 'core') {
+    $libraries['drupal.autocomplete']['dependencies'][] = 'neo/autocomplete';
+  }
+}
+
+/**
  * Implements hook_theme_suggestions_HOOK() for theme().
  */
 function neo_theme_suggestions_views_view(array $variables) {

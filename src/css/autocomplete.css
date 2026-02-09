@@ -1,0 +1,41 @@
+.ui-autocomplete {
+  @apply shadow-xl border rounded-md;
+  max-height: 300px !important;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.linkit-result-line--description {
+  @apply text-xs text-default/60;
+
+  .ui-state-focus &,
+  .ui-state-active & {
+      @apply text-primary-500-content/70;
+  }
+}
+
+.ui-menu.ui-widget {
+  border-color: var(--form-item-border-hover);
+  border-width: var(--form-item-border-width);
+
+  .linkit-result-line--group.ui-menu-divider {
+    @apply text-xs text-base-900-content sticky top-0 z-10 shadow-sm;
+    background-color: var(--form-item-border-hover);
+    border-radius: 0;
+    border-width: 0;
+    margin: 0;
+    text-transform: uppercase;
+  }
+
+  .ui-menu-item {
+
+    .ui-menu-item-wrapper {
+      @apply bg-base-0;
+    }
+
+    .ui-state-focus,
+    .ui-state-active {
+      @apply bg-primary-500 text-primary-500-content;
+    }
+  }
+}

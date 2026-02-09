@@ -78,6 +78,17 @@ slug:
     - core/once
     - core/drupal
 
+autocomplete:
+  version: VERSION
+  neo: true
+  css:
+    component:
+      src/css/autocomplete.css: {}
+  js:
+    src/js/autocomplete.ts: {}
+  dependencies:
+    - neo/library.popper
+
 # Libraries
 
 library.alpine:
