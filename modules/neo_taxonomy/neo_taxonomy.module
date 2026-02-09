@@ -23,6 +23,9 @@ use Drupal\taxonomy_manager\Form\TaxonomyManagerTermForm;
  * Implements hook_form_alter().
  */
 function neo_taxonomy_form_alter(&$form, FormStateInterface $form_state, $form_id) {
+  if ($form_id === 'taxonomy_vocabulary_form') {
+    neo_taxonomy_form_alter_form_taxonomy_vocabulary($form, $form_state);
+  }
   $form_object = $form_state->getFormObject();
   if ($form_object instanceof TermForm) {
     $term = $form_object->getEntity();
@@ -225,9 +228,9 @@ function neo_taxonomy_form_taxonomy_overview_terms_alter(&$form, FormStateInterf
 }
 
 /**
- * Implements hook_form_BASE_FORM_ID_alter().
+ * Alter form for taxonomy vocabulary to add neo_taxonomy settings.
  */
-function neo_taxonomy_form_taxonomy_vocabulary_form_alter(&$form, FormStateInterface $form_state) {
+function neo_taxonomy_form_alter_form_taxonomy_vocabulary(&$form, FormStateInterface $form_state) {
   /** @var \Drupal\Core\Entity\EntityFormInterface $form_object */
   $form_object = $form_state->getFormObject();
   /** @var \Drupal\taxonomy\VocabularyInterface $vocabulary */
