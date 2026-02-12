@@ -197,7 +197,6 @@
 
   Drupal.behaviors.neoTomSelect = {
     attach: () => {
-
       once('neo.tom', 'select.neo-select').forEach((el) => {
         if (el instanceof HTMLSelectElement) {
           var observer = new IntersectionObserver((entries, observer) => {
@@ -250,7 +249,19 @@
                 finalSettings.render.option = function(data:any, escape:Function) {
                   return '<div>' + escape(data.text) + '</div>';
                 };
+                let refocus = false;
+                if (el === document.activeElement) {
+                  // In Chrome, the select element remains focused after
+                  // being replaced, which can lead to focus issues. Blurring
+                  // the element before initializing TomSelect can help mitigate
+                  // this.
+                  refocus = true;
+                  el.blur();
+                }
                 const control = new TomSelect(el, finalSettings);
+                if (refocus) {
+                  control.focus();
+                }
                 el.addEventListener('change', function () {
                   let newValue:string | string[] = el.value;
                   if (el.multiple) {
