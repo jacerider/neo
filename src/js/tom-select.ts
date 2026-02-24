@@ -9,6 +9,7 @@
   overlayInner.style.opacity = '0.4';
   overlay.appendChild(overlayInner);
   document.body.appendChild(overlay);
+  let refocusDisable = false;
 
   const baseSettings = {
     dropdownParent: document.body,
@@ -49,6 +50,9 @@
           }
         }, 0);
       }
+    },
+    onDelete: function() {
+      refocusDisable = true;
     },
     onDropdownOpen: function() {
       const instance = this as any;
@@ -260,7 +264,10 @@
                 }
                 const control = new TomSelect(el, finalSettings);
                 if (refocus) {
-                  control.focus();
+                  if (!refocusDisable) {
+                    control.focus();
+                  }
+                  refocusDisable = false;
                 }
                 el.addEventListener('change', function () {
                   let newValue:string | string[] = el.value;
