@@ -4,7 +4,6 @@
   Drupal.behaviors.autocompletePopper = {
     attach(context: HTMLElement | undefined): void {
       once('neo-autocomplete', '[data-autocomplete-path]', context).forEach((input) => {
-        console.log('autocomplete', input);
         const $input: JQuery = $(input);
         const originalAutocomplete: JQueryAutocompleteInstance | undefined = $input.autocomplete('instance');
         if (!originalAutocomplete) {
