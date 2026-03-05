@@ -342,6 +342,7 @@ class NeoLinkWidget extends LinkWidget {
    * {@inheritdoc}
    */
   public function formElementLinkit(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
+    /** @var \Drupal\link\LinkItemInterface $item */
     $item = $items[$delta];
     $uri = $item->uri;
     $uri_scheme = $uri ? parse_url($uri, PHP_URL_SCHEME) : NULL;
@@ -482,6 +483,15 @@ class NeoLinkWidget extends LinkWidget {
     if (empty($values['options']['attributes']['data-icon'])) {
       $values['options']['attributes']['data-icon-position'] = '';
     }
+
+    // Move Linkit data attributes from $values['attributes'] to $values['options']['attributes']
+    // These come from the hidden form elements created in formElementLinkit().
+    foreach (['data-entity-type', 'data-entity-uuid', 'data-entity-substitution'] as $linkit_attr) {
+      if (!empty($values['attributes'][$linkit_attr])) {
+        $values['options']['attributes'][$linkit_attr] = $values['attributes'][$linkit_attr];
+      }
+    }
+
     if (!empty($values)) {
       foreach ($values['options']['attributes'] as $attribute => $value) {
         if (!empty($value)) {

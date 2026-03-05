@@ -199,6 +199,22 @@ class NeoLinkFormatter extends LinkFormatter {
    */
   protected function buildUrl(LinkItemInterface $item) {
     if ($this->linkitModuleExists()) {
+
+      // Check if we have Linkit data attributes in options['attributes'].
+      // The Neo Link widget stores them there, but getLinkitUrl() expects
+      // them directly in options for proper entity URL substitution.
+      $needsClone = !empty($item->options['attributes']['data-entity-type']) || !empty($item->options['attributes']['data-entity-uuid']);
+      if ($needsClone) {
+        $item = clone $item;
+        $value = $item->getValue();
+        foreach (['data-entity-type', 'data-entity-uuid', 'data-entity-substitution'] as $key) {
+          if (isset($value['options']['attributes'][$key])) {
+            $value['options'][$key] = $value['options']['attributes'][$key];
+          }
+        }
+        $item->setValue($value);
+      }
+
       if ($url = $this->getLinkitUrl($item, $this->getSetting('linkit_profile'))) {
         return $url;
       }
