@@ -457,6 +457,9 @@ function neo_views_plugins_area_alter(array &$plugins) {
   $plugins['result']['class'] = 'Drupal\neo\Plugin\views\area\NeoResult';
 }
 
+/**
+ * Backwards support for old habbits.
+ */
 if (!function_exists('ksm') && class_exists('Kint')) {
 
   /**
@@ -474,5 +477,26 @@ if (!function_exists('ksm') && class_exists('Kint')) {
   }
 
   Kint::$aliases[] = 'ksm';
+
+}
+
+/**
+ * Backwards support for old habbits.
+ */
+if (!function_exists('kint') && class_exists('Kint')) {
+
+  /**
+   * Prints passed argument(s) to the 'message' area of the page.
+   *
+   * Wrapper for DevelDumperManager::message().
+   *
+   * @see \Drupal\devel\DevelDumperManager::message()
+   */
+  function kint(mixed ...$args): void {
+    ob_start();
+    Kint::dump(...$args);
+  }
+
+  Kint::$aliases[] = 'kint';
 
 }
