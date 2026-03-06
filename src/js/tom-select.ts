@@ -9,7 +9,18 @@
   overlayInner.style.opacity = '0.4';
   overlay.appendChild(overlayInner);
   document.body.appendChild(overlay);
-  let refocusDisable = false;
+  let isOpen = false;
+
+  // If not clicking on the dropdown, close all dropdowns. This is necessary
+  // because TomSelect doesn't always close dropdowns when clicking outside,
+  // which can lead to issues with the overlay staying open.
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    // if target has a wrapper with .ts-dropdown
+    if (isOpen && !target.closest('.ts-dropdown')) {
+      isOpen = false;
+    }
+  });
 
   const baseSettings = {
     dropdownParent: document.body,
@@ -51,11 +62,9 @@
         }, 0);
       }
     },
-    onDelete: function() {
-      refocusDisable = true;
-    },
     onDropdownOpen: function() {
       const instance = this as any;
+      isOpen = true;
 
       // Overlay show
       document.querySelector('body')?.classList.add('ts-open');
@@ -264,10 +273,9 @@
                 }
                 const control = new TomSelect(el, finalSettings);
                 if (refocus) {
-                  if (!refocusDisable) {
+                  if (isOpen) {
                     control.focus();
                   }
-                  refocusDisable = false;
                 }
                 el.addEventListener('change', function () {
                   let newValue:string | string[] = el.value;
