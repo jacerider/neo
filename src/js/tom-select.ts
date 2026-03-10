@@ -137,7 +137,7 @@
     var el: HTMLSpanElement;
     var badgeEl: HTMLSpanElement;
     var titleEl: HTMLSpanElement;
-    const title = instance.input.dataset.neoTitle || '';
+    let title = instance.input.dataset.neoTitle || '';
 
     const itemCount = function () {
       // Remove all existing item nodes.
@@ -167,6 +167,15 @@
       el.className = "ts-n-items flex items-center whitespace-nowrap";
       titleEl = document.createElement("span");
       titleEl.className = "ts-n-title text-sm";
+      if (!settings.multiple) {
+        const val = instance.getValue();
+        if (val) {
+          const option = instance.options[val];
+          if (option) {
+            title = option.text;
+          }
+        }
+      }
       titleEl.innerText = title || instance.settings.placeholder;
       el.append(titleEl);
       badgeEl = document.createElement("span");
@@ -268,7 +277,7 @@
                   // being replaced, which can lead to focus issues. Blurring
                   // the element before initializing TomSelect can help mitigate
                   // this.
-                  refocus = true;
+                  refocus = multiple; // Only refocus if it's a multiple select, as single selects will focus the first option by default.
                   el.blur();
                 }
                 const control = new TomSelect(el, finalSettings);
