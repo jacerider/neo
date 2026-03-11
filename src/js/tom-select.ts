@@ -10,6 +10,7 @@
   overlay.appendChild(overlayInner);
   document.body.appendChild(overlay);
   let isOpen = false;
+  let overlayCloseController: AbortController | null = null;
 
   // If not clicking on the dropdown, close all dropdowns. This is necessary
   // because TomSelect doesn't always close dropdowns when clicking outside,
@@ -66,6 +67,14 @@
       const instance = this as any;
       isOpen = true;
 
+      // Abort any pending close animation listener.
+      if (overlayCloseController) {
+        overlayCloseController.abort();
+        overlayCloseController = null;
+      }
+      overlay.classList.remove('neo-animate--fadeOut');
+      overlay.getAnimations().forEach(a => a.cancel());
+
       // Overlay show
       document.querySelector('body')?.classList.add('ts-open');
       overlay.style.display = 'block';
@@ -108,11 +117,13 @@
       document.querySelector('body')?.classList.remove('ts-open');
       overlay.classList.remove('neo-animate--fadeIn');
       overlay.classList.add('neo-animate--fadeOut');
+      overlayCloseController = new AbortController();
       overlay.addEventListener('animationend', () => {
         overlay.style.display = 'none';
         overlay.classList.add('invisible');
         overlay.classList.remove('neo-animate--animated', 'neo-animate--fadeOut');
-      }, { once: true });
+        overlayCloseController = null;
+      }, { once: true, signal: overlayCloseController.signal });
 
       clearInterval(instance.dropdownWatch);
       instance.dropdown.classList.remove('is-open');
