@@ -34,6 +34,7 @@ class NeoLinkWidget extends LinkWidget {
   public static function defaultSettings() {
     return [
       'linkit_profile' => 'default',
+      'linkit_auto_link_text' => FALSE,
       'placeholder_url' => '',
       'placeholder_title' => '',
       'icon' => TRUE,
@@ -60,6 +61,11 @@ class NeoLinkWidget extends LinkWidget {
       if ($profile) {
         $summary[] = $this->t('Use Linkit: %profile', ['%profile' => $profile->label()]);
       }
+      $auto_link_text = $this->getSetting('linkit_auto_link_text') ? $this->t('Yes') : $this->t('No');
+      $summary[] = $this->t(
+        'Automatically populate link text from entity label: @auto_link_text',
+        ['@auto_link_text' => $auto_link_text]
+      );
     }
     if ($this->getSetting('icon')) {
       $summary[] = $this->t('Allow icon selection');
@@ -107,6 +113,11 @@ class NeoLinkWidget extends LinkWidget {
         '#options' => $this->getLinkitProfilesAsOptions(),
         '#empty_option' => $this->t('- Do not use Linkit -'),
         '#default_value' => $this->getSetting('linkit_profile'),
+      ];
+      $element['linkit_auto_link_text'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Automatically populate link text from entity label'),
+        '#default_value' => $this->getSetting('linkit_auto_link_text'),
       ];
     }
 
@@ -222,7 +233,7 @@ class NeoLinkWidget extends LinkWidget {
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
     $element['#type'] = $this->getSetting('wrapper_type');
-    $element['#element_validate'][] = [get_called_class(), 'validateElement'];
+    // $element['#element_validate'][] = [get_called_class(), 'validateElement'];
 
     $item = $items[$delta];
     $options = $item->get('options')->getValue();
@@ -363,7 +374,7 @@ class NeoLinkWidget extends LinkWidget {
         $uri_as_url = '';
       }
     }
-    $uri_as_url = self::getLinkitPathByAlias($uri_as_url);
+    // $uri_as_url = self::getLinkitPathByAlias($uri_as_url);
     $linkit_profile_id = $this->getSetting('linkit_profile');
 
     // The current field value could have been entered by a different user.
@@ -371,8 +382,15 @@ class NeoLinkWidget extends LinkWidget {
     // to them.
     $default_allowed = !$item->isEmpty() && (\Drupal::currentUser()->hasPermission('link to any page') || $item->getUrl()->access());
 
-    if ($default_allowed && $uri_scheme == 'entity') {
-      $entity = self::getLinkitEntityFromUri($uri);
+    // if ($default_allowed && $uri_scheme == 'entity') {
+    //   $entity = self::getLinkitEntityFromUri($uri);
+    // }
+
+    if (!empty($item->options['data-entity-type']) && !empty($item->options['data-entity-uuid'])) {
+      $entity = \Drupal::service('entity.repository')->loadEntityByUuid($item->options['data-entity-type'], $item->options['data-entity-uuid']);
+    }
+    else {
+      $entity = $default_allowed && $uri ? self::getLinkitEntityFromUri($uri) : NULL;
     }
 
     $element['uri'] = [
@@ -383,6 +401,9 @@ class NeoLinkWidget extends LinkWidget {
       '#maxlength' => 2048,
       '#required' => $element['#required'],
       '#description' => $this->t('Start typing to find content or paste a URL and click on the suggestion below.'),
+      '#wrapper_attributes' => [
+        'class' => ['form-item--linkit-widget-uri'],
+      ],
       '#autocomplete_route_name' => 'linkit.autocomplete',
       '#autocomplete_route_parameters' => [
         'linkit_profile' => $linkit_profile_id,
@@ -425,6 +446,9 @@ class NeoLinkWidget extends LinkWidget {
         'class' => ['linkit-widget-title'],
       ],
     ];
+    if ($this->getSetting('linkit_auto_link_text')) {
+      $element['title']['#attributes']['data-linkit-widget-title-autofill-enabled'] = TRUE;
+    }
     // Post-process the title field to make it conditionally required if URL is
     // non-empty. Omit the validation on the field edit form, since the field
     // settings cannot be saved otherwise.
@@ -473,42 +497,24 @@ class NeoLinkWidget extends LinkWidget {
   }
 
   /**
-   * Recursively clean up options array if no data-icon is set.
+   * {@inheritdoc}
    */
-  public static function validateElement($element, FormStateInterface $form_state, $form) {
-    $values = $form_state->getValue($element['#parents']);
-    $values['icon_libraries'] = array_filter($values['icon_libraries'] ?? []);
-    if (!empty($values['options']['attributes']['target'])) {
-      $values['options']['attributes']['target'] = '_blank';
-    }
-    if (empty($values['options']['attributes']['data-icon'])) {
-      $values['options']['attributes']['data-icon-position'] = '';
-    }
-
-    // Move Linkit data attributes from $values['attributes'] to $values['options']['attributes']
-    // These come from the hidden form elements created in formElementLinkit().
-    foreach (['data-entity-type', 'data-entity-uuid', 'data-entity-substitution'] as $linkit_attr) {
-      if (!empty($values['attributes'][$linkit_attr])) {
-        $values['options']['attributes'][$linkit_attr] = $values['attributes'][$linkit_attr];
+  public function massageFormValues(array $values, array $form, FormStateInterface $form_state) {
+    foreach ($values as &$value) {
+      if ($this->supportsInternalLinks() && $this->linkitModuleExists()) {
+        $value['uri'] = self::getLinkitUriFromUserInput($value['uri']);
       }
-    }
-
-    if (!empty($values)) {
-      foreach ($values['options']['attributes'] as $attribute => $value) {
-        if (!empty($value)) {
-          if ($attribute == 'class') {
-            $value = explode(' ', $value);
-          }
-          $values['options']['attributes'][$attribute] = $value;
-          $values['attributes'][$attribute] = $value;
-        }
-        else {
-          unset($values['options']['attributes'][$attribute]);
-          unset($values['attributes'][$attribute]);
-        }
+      $value['options'] = $value['options'] ?? [];
+      $value['options'] += $value['attributes'] ?? [];
+      if (!empty($value['options']['attributes']['target'])) {
+        $value['options']['attributes']['target'] = '_blank';
       }
+      if (empty($value['options']['attributes']['data-icon'])) {
+        $value['options']['attributes']['data-icon-position'] = '';
+      }
+      unset($value['attributes']);
     }
-    $form_state->setValueForElement($element, $values);
+    return $values;
   }
 
   /**

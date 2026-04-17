@@ -46,6 +46,9 @@ field.widget.settings.neo_link:
     linkit_profile:
       type: string
       label: Linkit Profile
+    linkit_auto_link_text:
+      type: boolean
+      label: Automatically link text
     wrapper_type:
       type: string
       label: Wrapper Type

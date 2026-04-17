@@ -98,11 +98,12 @@ trait NeoLinkitTrait {
    *   uri, or NULL if could not match any entity.
    */
   public static function getLinkitEntityFromUri($uri) {
-    // Stripe out potential query and fragment from the uri.
+    // Strip out potential query and fragment from the uri.
     $uri = strtok(strtok($uri, "?"), "#");
     // Remove the schema, if any. Otherwise, remove the forwarding "/".
     if (strpos($uri, 'entity:') !== FALSE) {
-      [, $uri] = explode(':', $uri);
+      $uri_parts = explode(':', $uri);
+      $uri = $uri_parts[1] ?? $uri;
     }
     else {
       $uri = trim($uri, '/');
@@ -110,9 +111,10 @@ trait NeoLinkitTrait {
 
     if ($uri) {
       $parts = explode('/', $uri, 2);
-      if (count($parts) == 2 && ($entity_type = $parts[0]) && ($entity_id = $parts[1])) {
+      if (count($parts) === 2) {
+        [$entity_type, $entity_id] = $parts;
         $entity_manager = \Drupal::entityTypeManager();
-        if ($entity_manager->getDefinition($entity_type, FALSE)) {
+        if ($entity_manager->hasDefinition($entity_type)) {
           if ($entity = $entity_manager->getStorage($entity_type)->load($entity_id)) {
             return \Drupal::service('entity.repository')->getTranslationFromContext($entity);
           }
@@ -185,17 +187,16 @@ trait NeoLinkitTrait {
       ->getViaScheme('public')
       ->getDirectoryPath();
 
-    $protocol_matches = [];
-    preg_match('/^([a-z]*?):/', $input, $protocol_matches);
     if (!empty($public_files_dir) && strpos($input, "/$public_files_dir") === 0) {
       return "base:$input";
     }
-    elseif ((count($protocol_matches) > 1 && in_array($protocol_matches[1], UrlHelper::getAllowedProtocols())) || $is_nolink) {
+    $scheme = parse_url($input, PHP_URL_SCHEME);
+    // Check if the input already contains a scheme.
+    if (!empty($scheme)) {
       return $input;
     }
-    else {
-      return "internal:$input";
-    }
+
+    return "internal:$input";
   }
 
   /**
@@ -224,17 +225,18 @@ trait NeoLinkitTrait {
     try {
       $route_name = Url::fromUri($input)->getRouteName();
       $params = array_filter(Url::fromUri($input)->getRouteParameters());
-      $possibly_an_entity_type = key($params);
-      // Return only the entity, if this is a canonical route.
-      if ($route_name === 'entity.' . $possibly_an_entity_type . '.canonical') {
-        $entity = \Drupal::entityTypeManager()
-          ->getStorage($possibly_an_entity_type)
-          ->load($params[$possibly_an_entity_type]);
-        if (!($entity instanceof EntityInterface)) {
-          return NULL;
+      foreach ($params as $possibly_an_entity_type => $possibly_an_entity_id) {
+        // Return only the entity, if this is a canonical route.
+        if ($route_name === 'entity.' . $possibly_an_entity_type . '.canonical') {
+          $entity = \Drupal::entityTypeManager()
+            ->getStorage($possibly_an_entity_type)
+            ->load($possibly_an_entity_id);
+          if (!($entity instanceof EntityInterface)) {
+            return NULL;
+          }
+          return \Drupal::service('entity.repository')
+            ->getTranslationFromContext($entity);
         }
-        return \Drupal::service('entity.repository')
-          ->getTranslationFromContext($entity);
       }
     }
     catch (\Exception $e) {
@@ -280,8 +282,8 @@ trait NeoLinkitTrait {
     /** @var \Drupal\Core\Language\LanguageManagerInterface $language_manager */
     $language_manager = \Drupal::service('language_manager');
 
+    $input_path = parse_url($input, PHP_URL_PATH);
     foreach ($language_manager->getLanguages() as $language) {
-      $input_path = parse_url($input, PHP_URL_PATH);
       if ($prefix = $config->get('url.prefixes.' . $language->getId())) {
         // Strip the language prefix.
         $input_path = preg_replace("/^\/$prefix\//", '/', $input_path);

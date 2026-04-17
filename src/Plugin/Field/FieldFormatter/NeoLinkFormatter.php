@@ -8,6 +8,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Path\PathValidatorInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
+use Drupal\Core\Url;
 use Drupal\Core\Utility\Token;
 use Drupal\link\LinkItemInterface;
 use Drupal\neo\NeoLinkitFormatterTrait;
@@ -159,27 +160,38 @@ class NeoLinkFormatter extends LinkFormatter {
     $default_position = $this->getSetting('position');
     $icon_id = $this->getSetting('icon');
     $title_only = $this->getSetting('title_only');
+
     foreach ($elements as $delta => &$element) {
       $element['#type'] = 'link';
       if ($title && empty($items[$delta]->title)) {
         $element['#title'] = $this->token->replace($title, [$entity_type => $entity]);
       }
-      if (!$icon_id && !empty($element['#options']['attributes']['data-icon'])) {
-        $icon_id = $element['#options']['attributes']['data-icon'];
+      $attributes = $items[$delta]->options['attributes'] ?? [];
+      $urlAttributes = [];
+      if (!$icon_id && !empty($attributes['data-icon'])) {
+        $icon_id = $attributes['data-icon'];
       }
       if (!$icon_id) {
         $element['#title'] = [
           '#markup' => '<span>' . $element['#title'] . '</span>',
         ];
       }
+      if (!empty($element['#url']) && $element['#url'] instanceof Url) {
+        if (!empty($attributes['target'])) {
+          $urlAttributes['target'] = $attributes['target'];
+        }
+        if (!empty($attributes['class'])) {
+          $urlAttributes['class'][] = $attributes['class'];
+        }
+      }
+      $element['#url']->setOption('attributes', $urlAttributes);
       if ($icon_id) {
-        $position = !empty($element['#options']['attributes']['data-icon-position']) ? $element['#options']['attributes']['data-icon-position'] : $default_position;
+        $position = !empty($attributes['data-icon-position']) ? $attributes['data-icon-position'] : $default_position;
         $icon = $this->icon($element['#title'], $icon_id);
         if ($position == 'after') {
           $icon->iconAfter();
         }
         $element['#title'] = $icon;
-        unset($element['#options']['attributes']['data-icon']);
       }
       if ($title_only) {
         $element = $element['#title'];
@@ -199,22 +211,6 @@ class NeoLinkFormatter extends LinkFormatter {
    */
   protected function buildUrl(LinkItemInterface $item) {
     if ($this->linkitModuleExists()) {
-
-      // Check if we have Linkit data attributes in options['attributes'].
-      // The Neo Link widget stores them there, but getLinkitUrl() expects
-      // them directly in options for proper entity URL substitution.
-      $needsClone = !empty($item->options['attributes']['data-entity-type']) || !empty($item->options['attributes']['data-entity-uuid']);
-      if ($needsClone) {
-        $item = clone $item;
-        $value = $item->getValue();
-        foreach (['data-entity-type', 'data-entity-uuid', 'data-entity-substitution'] as $key) {
-          if (isset($value['options']['attributes'][$key])) {
-            $value['options'][$key] = $value['options']['attributes'][$key];
-          }
-        }
-        $item->setValue($value);
-      }
-
       if ($url = $this->getLinkitUrl($item, $this->getSetting('linkit_profile'))) {
         return $url;
       }
