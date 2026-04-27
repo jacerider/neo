@@ -2,7 +2,7 @@ name: 'Neo | Menu Link'
 type: module
 description: 'Provides menu link enhancements and the ability to set additional data (icons, target, etc.) for menu items.'
 package: Neo
-version: 0.0.0
+version: 1.0.121
 core_version_requirement: ^10.3 || ^11
 dependencies:
   - neo:neo
