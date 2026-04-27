@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Routing\RouteObjectInterface;
@@ -150,7 +151,9 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
 
       // Store in cache.
       $staticCache[$key] = $value;
-      $cache->set($key, $value);
+      if ($entity) {
+        $cache->set($key, $value, CacheBackendInterface::CACHE_PERMANENT, $entity->getCacheTagsToInvalidate());
+      }
 
       if ($value) {
         $replacements[$original] = $value;
@@ -188,6 +191,8 @@ function neo_tokens_title(array $params = [], ?ContentEntityInterface $entity = 
 
   // Allow modules to alter the title before using.
   \Drupal::moduleHandler()->alter('neo_token_title', $title, $params, $entity);
+
+  ksm('hit');
 
   if (!$title) {
     $request = \Drupal::request();
