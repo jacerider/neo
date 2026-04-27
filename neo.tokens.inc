@@ -192,8 +192,6 @@ function neo_tokens_title(array $params = [], ?ContentEntityInterface $entity = 
   // Allow modules to alter the title before using.
   \Drupal::moduleHandler()->alter('neo_token_title', $title, $params, $entity);
 
-  ksm('hit');
-
   if (!$title) {
     $request = \Drupal::request();
     $route = $request->attributes->get(RouteObjectInterface::ROUTE_OBJECT);
