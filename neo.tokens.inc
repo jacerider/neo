@@ -201,7 +201,7 @@ function neo_tokens_title(array $params = [], ?ContentEntityInterface $entity = 
       $title = \Drupal::service('title_resolver')->getTitle($request, $route);
       $title = token_render_array_value($title);
     }
-    else {
+    elseif ($entity) {
       $title = $entity->label();
     }
   }
@@ -264,7 +264,7 @@ function neo_tokens_description(array $params = [], ?ContentEntityInterface $ent
  */
 function neo_tokens_logo(array $params = [], ?ContentEntityInterface $entity = NULL) {
   $op = $params[0] ?? NULL;
-  if (in_array($op, ['width', 'height'])) {
+  if (in_array($op, ['width', 'height'], TRUE)) {
     // If the first parameter is 'width' or 'height', we will return the
     // respective dimension of the image.
     $params = array_slice($params, 1);
@@ -272,8 +272,7 @@ function neo_tokens_logo(array $params = [], ?ContentEntityInterface $entity = N
 
   if ($data = neo_tokens_image_fetch($params, 'neo_token_logo', $entity, FALSE)) {
     return match ($op) {
-      'width' => $data['uri'] && file_exists($data['uri']) ? (((string) getimagesize($data['uri'])[0]) ?? NULL) : NULL,
-      'height' => $data['uri'] && file_exists($data['uri']) ? (((string) getimagesize($data['uri'])[1]) ?? NULL) : NULL,
+      'width', 'height' => neo_tokens_image_dimension($data['uri'], $op),
       default => $data['url'],
     };
   }
@@ -300,7 +299,7 @@ function neo_tokens_image(array $params = [], ?ContentEntityInterface $entity = 
     return neo_tokens_logo($params, $entity);
   }
   $op = $params[0] ?? NULL;
-  if (in_array($op, ['width', 'height'])) {
+  if (in_array($op, ['width', 'height'], TRUE)) {
     // If the first parameter is 'width' or 'height', we will return the
     // respective dimension of the image.
     $params = array_slice($params, 1);
@@ -308,8 +307,7 @@ function neo_tokens_image(array $params = [], ?ContentEntityInterface $entity = 
 
   if ($data = neo_tokens_image_fetch($params, 'neo_token_image', $entity, TRUE)) {
     return match ($op) {
-      'width' => $data['uri'] && file_exists($data['uri']) ? (((string) getimagesize($data['uri'])[0]) ?? NULL) : NULL,
-      'height' => $data['uri'] && file_exists($data['uri']) ? (((string) getimagesize($data['uri'])[1]) ?? NULL) : NULL,
+      'width', 'height' => neo_tokens_image_dimension($data['uri'], $op),
       default => $data['url'],
     };
   }
@@ -336,8 +334,7 @@ function neo_tokens_image(array $params = [], ?ContentEntityInterface $entity = 
  *   An array containing the uri and url.
  */
 function neo_tokens_image_fetch(array $params, string $hook, ?ContentEntityInterface $entity = NULL, bool $crawlEntity = TRUE): array {
-  $staticCache = &drupal_static(__FUNCTION__);
-  $moduleHandler = \Drupal::moduleHandler();
+  $staticCache = &drupal_static(__FUNCTION__, []);
   $key = implode(':', $entity ? [
     $entity->getEntityTypeId(),
     $entity->id(),
@@ -346,23 +343,51 @@ function neo_tokens_image_fetch(array $params, string $hook, ?ContentEntityInter
     'no-entity',
     $hook,
   ]);
-  $uri = $staticCache[$key] ?? [];
-  if (!$uri) {
+  if (!array_key_exists($key, $staticCache)) {
+    $uri = NULL;
     if ($entity && $crawlEntity) {
       // Try to get a media image from the entity's fields.
       $uri = neo_tokens_entity_to_media_image_uri($entity);
     }
 
     // Allow modules to alter the URI before using.
-    $moduleHandler->alter($hook, $uri, $params, $entity);
+    \Drupal::moduleHandler()->alter($hook, $uri, $params, $entity);
 
-    // Cache the URI if it was found.
     $staticCache[$key] = $uri;
   }
+  $uri = $staticCache[$key];
   return $uri ? neo_tokens_image_data($uri, $params) : [
     'uri' => NULL,
     'url' => NULL,
   ];
+}
+
+/**
+ * Reads a dimension (width or height) from a local image file.
+ *
+ * Memoizes getimagesize() so width and height tokens for the same file
+ * resolve in one syscall.
+ *
+ * @param string|null $uri
+ *   The file URI to inspect.
+ * @param string $dimension
+ *   Either 'width' or 'height'.
+ *
+ * @return string|null
+ *   The dimension as a string, or NULL if the file is missing or unreadable.
+ */
+function neo_tokens_image_dimension(?string $uri, string $dimension): ?string {
+  if (empty($uri) || !file_exists($uri)) {
+    return NULL;
+  }
+  $cache = &drupal_static(__FUNCTION__, []);
+  if (!array_key_exists($uri, $cache)) {
+    $cache[$uri] = @getimagesize($uri) ?: NULL;
+  }
+  if ($cache[$uri] === NULL) {
+    return NULL;
+  }
+  return (string) $cache[$uri][$dimension === 'width' ? 0 : 1];
 }
 
 /**
