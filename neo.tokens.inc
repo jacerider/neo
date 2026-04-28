@@ -135,9 +135,11 @@ function neo_tokens($type, $tokens, array $data, array $options, BubbleableMetad
       }
 
       // Check database cache.
-      if ($cacheData = $cache->get($key)) {
-        $replacements[$original] = $cacheData->data;
-        continue 2;
+      if ($entity) {
+        if ($cacheData = $cache->get($key)) {
+          $replacements[$original] = $cacheData->data;
+          continue 2;
+        }
       }
 
       // Fetch values if not found in cache.
