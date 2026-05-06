@@ -2,7 +2,7 @@ name: 'Neo | Metatag'
 type: module
 description: 'Enable to remove the Generator META tag. Provides metatag defaults.'
 package: Neo
-version: 0.0.0
+version: 1.0.123
 core_version_requirement: ^10.3 || ^11
 dependencies:
   - neo_site_settings:neo_site_settings
