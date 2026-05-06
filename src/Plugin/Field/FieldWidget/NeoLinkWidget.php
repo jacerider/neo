@@ -10,7 +10,6 @@ use Drupal\Core\Field\FieldFilteredMarkup;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
-use Drupal\link\LinkTitleVisibility;
 use Drupal\neo\NeoLinkitTrait;
 
 /**
@@ -432,7 +431,10 @@ class NeoLinkWidget extends LinkWidget {
       '#default_value' => $default_allowed && isset($entity) ? ($entity->getEntityTypeId() == 'file' ? 'file' : 'canonical') : '',
     ];
 
-    $title_visibility_setting = LinkTitleVisibility::tryFrom((int) $this->getFieldSetting('title'));
+    // Title visibility values: 0 = Disabled, 1 = Optional, 2 = Required.
+    // Use integers for compatibility with Drupal 10 (LinkTitleVisibility enum
+    // was added in 11.1).
+    $title_visibility_setting = (int) $this->getFieldSetting('title');
 
     $element['title'] = [
       '#type' => 'textfield',
@@ -440,8 +442,8 @@ class NeoLinkWidget extends LinkWidget {
       '#placeholder' => $this->getSetting('placeholder_title'),
       '#default_value' => $items[$delta]->title ?? NULL,
       '#maxlength' => 255,
-      '#access' => $title_visibility_setting !== LinkTitleVisibility::Disabled,
-      '#required' => $title_visibility_setting === LinkTitleVisibility::Required && $element['#required'],
+      '#access' => $title_visibility_setting !== 0,
+      '#required' => $title_visibility_setting === 2 && $element['#required'],
       '#attributes' => [
         'class' => ['linkit-widget-title'],
       ],
@@ -452,7 +454,7 @@ class NeoLinkWidget extends LinkWidget {
     // Post-process the title field to make it conditionally required if URL is
     // non-empty. Omit the validation on the field edit form, since the field
     // settings cannot be saved otherwise.
-    if (!$this->isDefaultValueWidget($form_state) && $title_visibility_setting === LinkTitleVisibility::Required) {
+    if (!$this->isDefaultValueWidget($form_state) && $title_visibility_setting === 2) {
       $element['#element_validate'][] = [
         get_called_class(),
         'validateTitleElement',
@@ -463,7 +465,7 @@ class NeoLinkWidget extends LinkWidget {
     if ($this->fieldDefinition->getFieldStorageDefinition()->getCardinality() == 1) {
       // If the link title is disabled, use the field definition label as the
       // title of the 'uri' element.
-      if ($title_visibility_setting === LinkTitleVisibility::Disabled) {
+      if ($title_visibility_setting === 0) {
         $element['uri']['#title'] = $element['#title'];
       }
       // Otherwise wrap everything in a details element.
