@@ -106,6 +106,7 @@ trait NeoLinkitFormatterTrait {
   protected function getLinkitUrl(LinkItemInterface $item, $profileId = 'default') {
     // First try to derive entity information from Linkit-specific attributes.
     // This is more reliable and is required for File entities.
+    $entity = NULL;
     if (!empty($item->options['data-entity-type']) && !empty($item->options['data-entity-uuid'])) {
       $entity = $this->entityRepository()->loadEntityByUuid($item->options['data-entity-type'], $item->options['data-entity-uuid']);
       if ($entity instanceof EntityInterface) {
@@ -113,7 +114,9 @@ trait NeoLinkitFormatterTrait {
       }
     }
     else {
-      $entity = LinkitHelper::getEntityFromUserInput($item->uri);
+      if (is_string($item->uri)) {
+        $entity = LinkitHelper::getEntityFromUserInput($item->uri);
+      }
     }
     if ($entity instanceof EntityInterface) {
       $linkit_profile = $this->linkitProfileStorage()->load($profileId);
