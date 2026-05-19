@@ -3,6 +3,10 @@
 namespace Drupal\neo;
 
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\GeneratedUrl;
+use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 use Drupal\linkit\ProfileInterface;
 use Drupal\linkit\SubstitutionManagerInterface;
@@ -12,6 +16,21 @@ use Drupal\linkit\Utility\LinkitHelper;
  * Provides helper to operate on URIs.
  */
 trait NeoLinkitFormatterTrait {
+
+  /**
+   * Optionally-injected entity repository. Falls back to \Drupal::service().
+   */
+  protected ?EntityRepositoryInterface $entityRepository = NULL;
+
+  /**
+   * Optionally-injected linkit_profile storage. Falls back to \Drupal::service().
+   */
+  protected ?EntityStorageInterface $linkitProfileStorage = NULL;
+
+  /**
+   * Optionally-injected substitution manager. Falls back to \Drupal::service().
+   */
+  protected ?SubstitutionManagerInterface $substitutionManager = NULL;
 
   /**
    * Checks if the Linkit module exists.
@@ -128,7 +147,27 @@ trait NeoLinkitFormatterTrait {
       /** @var \Drupal\linkit\Plugin\Linkit\Matcher\EntityMatcher $matcher */
       $matcher = $linkit_profile->getMatcherByEntityType($entity->getEntityTypeId());
       $substitution_type = $matcher ? $matcher->getConfiguration()['settings']['substitution_type'] : SubstitutionManagerInterface::DEFAULT_SUBSTITUTION;
-      return $this->substitutionManager()->createInstance($substitution_type)->getUrl($entity);
+      $url = $this->substitutionManager()->createInstance($substitution_type)->getUrl($entity);
+
+      // The substituted entity URL drops any fragment present on the original
+      // uri (e.g. "entity:node/385#hello"). Re-apply it so in-page anchors
+      // survive Linkit substitution.
+      if ($url && is_string($item->uri) && ($hashPos = strpos($item->uri, '#')) !== FALSE) {
+        $fragment = substr($item->uri, $hashPos + 1);
+        if ($fragment !== '') {
+          if ($url instanceof Url) {
+            $url->setOption('fragment', $fragment);
+          }
+          elseif ($url instanceof GeneratedUrl) {
+            $generated = $url->getGeneratedUrl();
+            if (strpos($generated, '#') === FALSE) {
+              $url->setGeneratedUrl($generated . '#' . $fragment);
+            }
+          }
+        }
+      }
+
+      return $url;
     }
     return NULL;
   }
