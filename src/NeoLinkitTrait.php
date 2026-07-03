@@ -141,6 +141,14 @@ trait NeoLinkitTrait {
       return NULL;
     }
 
+    // Support linking to nothing. These special routes must be stored as
+    // 'route:<nolink>' (etc.) and must not be treated as internal paths, which
+    // would URL-encode the angle brackets into e.g. '/%3Cnolink%3E'.
+    // @see \Drupal\link\Plugin\Field\FieldWidget\LinkWidget::getUserEnteredStringAsUri()
+    if (in_array($input, ['<nolink>', '<none>', '<button>'], TRUE)) {
+      return 'route:' . $input;
+    }
+
     $host = parse_url($input, PHP_URL_HOST);
     $scheme = parse_url($input, PHP_URL_SCHEME);
 

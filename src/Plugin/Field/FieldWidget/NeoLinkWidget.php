@@ -232,7 +232,6 @@ class NeoLinkWidget extends LinkWidget {
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
     $element['#type'] = $this->getSetting('wrapper_type');
-    // $element['#element_validate'][] = [get_called_class(), 'validateElement'];
 
     $item = $items[$delta];
     $options = $item->get('options')->getValue();
@@ -357,13 +356,13 @@ class NeoLinkWidget extends LinkWidget {
     $item = $items[$delta];
     $uri = $item->uri;
     $uri_scheme = $uri ? parse_url($uri, PHP_URL_SCHEME) : NULL;
-    $is_nolink = $uri && substr($uri, 0, 14) === 'route:<nolink>';
-    if (!empty($uri) && empty($uri_scheme) && $is_nolink) {
-      $uri = self::getLinkitUriFromUserInput($uri);
-      $uri_scheme = parse_url($uri, PHP_URL_SCHEME);
-    }
-    if ($is_nolink) {
-      $uri_as_url = $uri;
+    // Special "route:" URIs (<nolink>, <none>, <button>) are displayed as their
+    // token form. Running them through Url::fromUri()->toString() would either
+    // URL-encode the angle brackets or resolve to an empty string, losing the
+    // value on edit.
+    $is_special_route = $uri && $uri_scheme === 'route' && in_array(substr($uri, 6), ['<nolink>', '<none>', '<button>'], TRUE);
+    if ($is_special_route) {
+      $uri_as_url = substr($uri, 6);
     }
     else {
       try {
