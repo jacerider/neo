@@ -105,6 +105,9 @@ field.formatter.settings.neo_link:
     title_only:
       type: boolean
       label: Title Only
+    linkit_profile:
+      type: string
+      label: Linkit Profile
 
 field.formatter.settings.neo_string:
   type: mapping
