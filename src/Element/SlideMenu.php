@@ -34,6 +34,10 @@ class SlideMenu extends RenderElementBase {
       '#all_status' => TRUE,
       '#all_prefix' => t('View All'),
       '#all_suffix' => '',
+      // Depth at which children render expanded within the current panel
+      // (as group headings with inline lists) instead of opening another
+      // slide level. 0 always slides; 2 = a mobile mega menu.
+      '#expand_depth' => 0,
       '#process' => [
         [$class, 'processGroup'],
       ],
@@ -70,6 +74,8 @@ class SlideMenu extends RenderElementBase {
         ];
         $tree = $menuLinkTree->transform($menuTree, $manipulators);
         $items += static::generateItemFromMenuTree($tree);
+        // Refresh whatever render-caches this element when the menu changes.
+        $element['#cache']['tags'][] = 'config:system.menu.' . $mid;
       }
       $element['#items'] = $items;
     }
@@ -85,6 +91,7 @@ class SlideMenu extends RenderElementBase {
       'all_status' => $element['#all_status'],
       'all_prefix' => $element['#all_prefix'],
       'all_suffix' => $element['#all_suffix'],
+      'expand_depth' => $element['#expand_depth'],
     ]);
     $element['slide'] = $slideMenu->toRenderable();
     return $element;
@@ -101,12 +108,20 @@ class SlideMenu extends RenderElementBase {
    */
   protected static function generateItemFromMenuTree($menu_tree) {
     $items = [];
+    $moduleHandler = \Drupal::moduleHandler();
     foreach ($menu_tree as $key => $element) {
       $item = [];
       $item['title'] = $element->link->getTitle();
       $item['url'] = $element->link->getUrlObject();
       if ($element->hasChildren) {
         $item['children'] = static::generateItemFromMenuTree($element->subtree);
+      }
+      // Let modules enrich or veto individual items (set $item to NULL to
+      // drop one). For example, neo_alchemist_menu swaps its region items
+      // for their rendered component tree.
+      $moduleHandler->alter('neo_slide_menu_item', $item, $element);
+      if ($item === NULL) {
+        continue;
       }
       $items[$key] = $item;
     }

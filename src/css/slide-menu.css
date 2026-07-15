@@ -29,9 +29,23 @@
       visibility: hidden;
     }
 
+    /* Inline (expanded) child lists are part of the current panel — not a
+       slide level. */
+    ul.neo-slide-menu--inline {
+      position: static;
+      top: auto;
+      left: auto;
+      visibility: inherit;
+    }
+
     a {
       display: flex;
     }
+  }
+
+  /* Separate expanded groups from the rows around them. */
+  li.neo-slide-menu--group:not(:first-child) {
+    margin-top: 0.75rem;
   }
 
   a {

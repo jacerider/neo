@@ -7,6 +7,7 @@ namespace Drupal\neo;
 use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Template\Attribute;
+use Drupal\Core\Url;
 use Drupal\neo\Helpers\Str;
 use Drupal\neo_icon\IconTrait;
 
@@ -119,6 +120,19 @@ class SlideMenu implements RenderableInterface {
    * @var bool
    */
   protected bool $allStatus = TRUE;
+
+  /**
+   * The depth at which children render inline instead of as slide levels.
+   *
+   * 0 disables inline expansion. With a value of N, items at depth N (and
+   * deeper) render their children expanded within the current panel as a
+   * grouped list — e.g. 2 turns second-level items into group headings whose
+   * children are listed directly beneath them (a mobile mega menu) instead
+   * of triggers for a third slide level.
+   *
+   * @var int
+   */
+  protected int $expandDepth = 0;
 
   /**
    * Prefix text for "view all" links.
@@ -463,18 +477,20 @@ class SlideMenu implements RenderableInterface {
    *
    * @param array $items
    *   The menu items to build.
+   * @param int $depth
+   *   The depth of the items, starting at 1 for the top level.
    *
    * @return array
    *   A render array representing the items.
    */
-  protected function buildItems(array $items): array {
+  protected function buildItems(array $items, int $depth = 1): array {
     $build = [
       '#theme' => 'slide_list',
       '#items' => [],
     ];
 
     foreach ($items as $item) {
-      $build['#items'][] = $this->buildItem($item);
+      $build['#items'][] = $this->buildItem($item, $depth);
     }
 
     return $build;
@@ -485,22 +501,55 @@ class SlideMenu implements RenderableInterface {
    *
    * @param array $item
    *   The menu item to build.
+   * @param int $depth
+   *   The depth of the item, starting at 1 for the top level.
    *
    * @return array
    *   A render array representing the item.
    */
-  protected function buildItem(array $item): array {
+  protected function buildItem(array $item, int $depth = 1): array {
     $build = [
       '#wrapper_attributes' => $item['item_attributes'] ?? $this->getItemAttributes()->toArray(),
     ];
 
+    // A content-only row renders a render array in place of a link — e.g. a
+    // neo_alchemist_menu region item's component tree. The wrapper must be a
+    // fully-specified render array (#type) or template_preprocess_slide_list
+    // mistakes the raw render array for a nested list and wraps it in a
+    // hidden submenu <ul>. Attributes for the wrapper may be supplied via
+    // content_attributes (the li itself takes item_attributes as usual).
+    if (!empty($item['content'])) {
+      $build['content'] = [
+        '#type' => 'container',
+        '#attributes' => $item['content_attributes'] ?? [],
+        'content' => $item['content'],
+      ];
+      return $build;
+    }
+
     $linkAttributes = $item['link_attributes'] ?? $this->getLinkAttributes()->toArray();
 
     // Handle items with children.
+    $expanded = FALSE;
     if (!empty($item['children'])) {
-      $build['children'] = $this->buildItems($item['children']);
+      $expanded = $this->getExpandDepth() > 0 && $depth >= $this->getExpandDepth();
+      $build['children'] = $this->buildItems($item['children'], $depth + 1);
 
-      if (!empty($build['children']['#items'])) {
+      if (empty($build['children']['#items'])) {
+        $expanded = FALSE;
+      }
+      elseif ($expanded) {
+        // Render the children expanded within the current panel — the item
+        // becomes a group heading followed by its children as an inline
+        // list — instead of as a nested slide level. The inline class opts
+        // the list out of the slide mechanics (CSS panel positioning, JS
+        // forward navigation, content wrapping).
+        $build['#wrapper_attributes']['class'][] = 'neo-slide-menu--group';
+        $linkAttributes['class'][] = 'neo-slide-menu--group-heading';
+        $linkAttributes['class'][] = 'font-bold';
+        $build['children']['#attributes']['class'][] = 'neo-slide-menu--inline';
+      }
+      else {
         $linkAttributes['class'][] = 'neo-slide-menu--children';
         $linkAttributes['aria-expanded'] = 'false';
         $linkAttributes['aria-haspopup'] = 'true';
@@ -530,12 +579,21 @@ class SlideMenu implements RenderableInterface {
 
     $item['title'] = [
       '#type' => 'inline_template',
-      '#template' => '<span>{{ label }}</span>{% if suffix %} {{ suffix }}{% endif %}',
+      '#template' => '<span>{{ label }}</span>{% if suffix %} <span>{{ suffix }}</span>{% endif %}',
       '#context' => [
         'label' => $item['title'],
         'suffix' => $suffix ?? '',
       ],
     ];
+
+    // A non-linking url (<nolink>, <none>, <button>) on an item with children
+    // renders as a real button — core renders such urls as a plain <span>,
+    // which is neither focusable nor clickable, making the submenu
+    // unreachable. Expanded groups keep the plain rendering: their children
+    // are already visible, so the heading triggers nothing.
+    if (!empty($item['url']) && !$expanded && !empty($build['children']['#items']) && $this->isNonLinkingUrl($item['url'])) {
+      unset($item['url']);
+    }
 
     // Create link or non-link element.
     if (!empty($item['url'])) {
@@ -559,6 +617,15 @@ class SlideMenu implements RenderableInterface {
       $build['after'] = $item['after'];
     }
 
+    // Children were assigned before the link; re-append them so they render
+    // after it. Slide levels are position:absolute so order never showed,
+    // but inline (expanded) lists render in flow below their heading.
+    if (isset($build['children'])) {
+      $children = $build['children'];
+      unset($build['children']);
+      $build['children'] = $children;
+    }
+
     return $build;
   }
 
@@ -578,6 +645,7 @@ class SlideMenu implements RenderableInterface {
 
     $backAttributes = clone $this->getBackAttributes();
     $backAttributes->setAttribute('aria-label', $title);
+    $backAttributes->addClass('neo-slide-menu--backlink');
 
     $back = $this->buildItem([
       'title' => [
@@ -610,7 +678,8 @@ class SlideMenu implements RenderableInterface {
    *   A render array for the "view all" link.
    */
   protected function buildItemAll(array $item): array {
-    if (empty($item['url'])) {
+    if (empty($item['url']) || $this->isNonLinkingUrl($item['url'])) {
+      // A non-linking url has no destination to "view all" of.
       return [];
     }
 
@@ -644,6 +713,43 @@ class SlideMenu implements RenderableInterface {
       $all['#wrapper_attributes']['class'][] = 'sr-only';
     }
     return $all;
+  }
+
+  /**
+   * Sets the depth at which children render inline.
+   *
+   * @param int $depth
+   *   The depth, starting at 1 for the top level; 0 disables inline
+   *   expansion (children always open a new slide level).
+   */
+  public function setExpandDepth(int $depth): void {
+    $this->expandDepth = max(0, $depth);
+  }
+
+  /**
+   * Gets the depth at which children render inline.
+   *
+   * @return int
+   *   The depth; 0 when inline expansion is disabled.
+   */
+  public function getExpandDepth(): int {
+    return $this->expandDepth;
+  }
+
+  /**
+   * Checks whether a url is a non-linking route.
+   *
+   * @param mixed $url
+   *   The value stored as the item url.
+   *
+   * @return bool
+   *   TRUE for <nolink>, <none> and <button> routes, which core's link
+   *   generator renders as a plain <span>.
+   */
+  protected function isNonLinkingUrl($url): bool {
+    return $url instanceof Url
+      && $url->isRouted()
+      && in_array($url->getRouteName(), ['<nolink>', '<none>', '<button>'], TRUE);
   }
 
   /**

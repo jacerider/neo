@@ -195,16 +195,18 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
      * Set up all event handlers
      */
     private initEventHandlers() {
-      // Ordinary links inside the menu
-      const anchors = Array.from(this.menuElem.querySelectorAll('a'));
+      // Menu triggers: links and buttons inside the menu. Buttons are used
+      // for non-linking items (e.g. <nolink>) whose only action is opening
+      // their submenu.
+      const triggers = Array.from(this.menuElem.querySelectorAll('a, button')) as HTMLElement[];
 
-      anchors.forEach((anchor: HTMLAnchorElement) =>
-        anchor.addEventListener('click', event => {
+      triggers.forEach((trigger: HTMLElement) =>
+        trigger.addEventListener('click', event => {
           const target = event.target as HTMLElement;
-          const targetAnchor = target.matches('a') ? target : parentsOne(target, 'a');
+          const targetTrigger = target.matches('a, button') ? target : parentsOne(target, 'a, button');
 
-          if (targetAnchor) {
-            this.navigate(Direction.Forward, targetAnchor);
+          if (targetTrigger) {
+            this.navigate(Direction.Forward, targetTrigger);
           }
         }),
       );
@@ -300,7 +302,9 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
           return;
         }
 
-        const ul = parent.querySelector('ul');
+        // Inline (expanded) lists are part of the current panel, not a
+        // slide level to navigate into.
+        const ul = parent.querySelector<HTMLElement>('ul:not(.neo-slide-menu--inline)');
 
         if (!ul) {
           return;
@@ -388,12 +392,13 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
         });
       });
 
-      this.menuElem.querySelectorAll('a').forEach((anchor: HTMLAnchorElement) => {
+      this.menuElem.querySelectorAll('a, button').forEach((trigger) => {
+        const anchor = trigger as HTMLElement;
         if (anchor.parentElement === null) {
           return;
         }
 
-        const href = anchor.href;
+        const href = anchor instanceof HTMLAnchorElement ? anchor.href : '';
         if (href) {
           const url = new URL(href);
           if (url.pathname !== '/' && url.pathname === window.location.pathname && anchor.parentElement) {
@@ -406,7 +411,9 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
           return;
         }
 
-        const submenu = parent.querySelector('ul');
+        // Inline (expanded) lists are part of the current panel; their
+        // parent stays an ordinary link.
+        const submenu = parent.querySelector('ul:not(.neo-slide-menu--inline)');
         if (!submenu) {
           return;
         }
@@ -446,7 +453,7 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
     }
 
     // Add `before` and `after` text
-    private addLinkDecorators(anchor: HTMLAnchorElement): HTMLAnchorElement {
+    private addLinkDecorators(anchor: HTMLElement): HTMLElement {
       const { submenuLinkBefore, submenuLinkAfter } = this.options;
 
       if (submenuLinkBefore) {

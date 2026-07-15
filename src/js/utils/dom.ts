@@ -92,9 +92,12 @@ export function wrapLiContents(rootElement: HTMLElement, className?: string, lev
 
     // Process each child node
     childNodes.forEach(node => {
-      // Check if this is a ul element
+      // Check if this is a submenu ul element. Inline (expanded) lists are
+      // ordinary content of the current panel and stay inside the wrapper so
+      // they animate with the row.
       if (node.nodeType === Node.ELEMENT_NODE &&
-          (node as Element).tagName.toLowerCase() === 'ul') {
+          (node as Element).tagName.toLowerCase() === 'ul' &&
+          !(node as Element).classList.contains('neo-slide-menu--inline')) {
         // Store ul elements to reattach later
         ulElements.push(node as Element);
       } else {
