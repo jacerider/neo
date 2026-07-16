@@ -15,6 +15,7 @@ disable:
   dependencies:
     - core/jquery
     - core/drupal
+    - core/once
 
 coloris:
   version: VERSION
@@ -88,6 +89,11 @@ autocomplete:
     src/js/autocomplete.ts: {}
   dependencies:
     - neo/library.popper
+    # The chunk is invoked with (jQuery, Drupal, once, Popper); only Popper
+    # arrived via library.popper.
+    - core/jquery
+    - core/drupal
+    - core/once
 
 # Libraries
 
