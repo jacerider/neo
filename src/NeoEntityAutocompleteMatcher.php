@@ -65,6 +65,13 @@ class NeoEntityAutocompleteMatcher extends EntityAutocompleteMatcher {
           $key = preg_replace('/\s\s+/', ' ', str_replace("\n", '', trim(Html::decodeEntities(strip_tags($key)))));
           // Names containing commas or quotes must be wrapped in quotes.
           $key = Tags::encode($key);
+          // The selection handler HTML-escapes labels (e.g. an apostrophe
+          // becomes &#039;), but tom-select escapes the label again when
+          // rendering the option, which double-encodes it and displays the
+          // literal entity. Decode here so the label is plain text that
+          // tom-select can safely re-escape. Markup for display belongs in
+          // the separate 'option' key.
+          $label = Html::decodeEntities($label);
           $matches[] = ['value' => $key, 'label' => $label, 'option' => $option];
         }
       }
