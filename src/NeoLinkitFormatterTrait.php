@@ -23,7 +23,9 @@ trait NeoLinkitFormatterTrait {
   protected ?EntityRepositoryInterface $entityRepository = NULL;
 
   /**
-   * Optionally-injected linkit_profile storage. Falls back to \Drupal::service().
+   * Optionally-injected linkit_profile storage.
+   *
+   * Falls back to \Drupal::service().
    */
   protected ?EntityStorageInterface $linkitProfileStorage = NULL;
 
@@ -148,6 +150,35 @@ trait NeoLinkitFormatterTrait {
       $matcher = $linkit_profile->getMatcherByEntityType($entity->getEntityTypeId());
       $substitution_type = $matcher ? $matcher->getConfiguration()['settings']['substitution_type'] : SubstitutionManagerInterface::DEFAULT_SUBSTITUTION;
       $url = $this->substitutionManager()->createInstance($substitution_type)->getUrl($entity);
+
+      // The substituted entity URL drops any query string present on the
+      // original uri (e.g. "internal:/projects?market=1"). Re-apply it so
+      // deliberate query parameters survive Linkit substitution.
+      if ($url && is_string($item->uri) && ($queryPos = strpos($item->uri, '?')) !== FALSE) {
+        // A fragment may trail the query; keep only the query portion.
+        $queryString = substr($item->uri, $queryPos + 1);
+        if (($hashPos = strpos($queryString, '#')) !== FALSE) {
+          $queryString = substr($queryString, 0, $hashPos);
+        }
+        if ($queryString !== '') {
+          parse_str($queryString, $query);
+          if ($url instanceof Url) {
+            $url->setOption('query', $query + ($url->getOption('query') ?? []));
+          }
+          elseif ($url instanceof GeneratedUrl) {
+            $generated = $url->getGeneratedUrl();
+            if (strpos($generated, '?') === FALSE) {
+              // Insert the query ahead of any fragment already on the URL.
+              $fragment = '';
+              if (($generatedHashPos = strpos($generated, '#')) !== FALSE) {
+                $fragment = substr($generated, $generatedHashPos);
+                $generated = substr($generated, 0, $generatedHashPos);
+              }
+              $url->setGeneratedUrl($generated . '?' . $queryString . $fragment);
+            }
+          }
+        }
+      }
 
       // The substituted entity URL drops any fragment present on the original
       // uri (e.g. "entity:node/385#hello"). Re-apply it so in-page anchors
