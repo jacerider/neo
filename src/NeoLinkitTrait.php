@@ -100,21 +100,27 @@ trait NeoLinkitTrait {
   public static function getLinkitEntityFromUri($uri) {
     // Strip out potential query and fragment from the uri.
     $uri = strtok(strtok($uri, "?"), "#");
-    // Remove the schema, if any. Otherwise, remove the forwarding "/".
-    if (strpos($uri, 'entity:') !== FALSE) {
-      $uri_parts = explode(':', $uri);
-      $uri = $uri_parts[1] ?? $uri;
+    // Strip a known on-site scheme so the remainder is a plain "type/id" path.
+    // "entity:node/23", "internal:/node/23" and "base:node/23" all reference
+    // local content. Any other scheme (external URLs, "mailto:", "route:…")
+    // is left untouched and simply won't resolve to an entity below.
+    $scheme = parse_url($uri, PHP_URL_SCHEME);
+    if (in_array($scheme, ['entity', 'internal', 'base'], TRUE)) {
+      $uri = substr($uri, strlen($scheme) + 1);
     }
-    else {
-      $uri = trim($uri, '/');
-    }
+    $uri = trim($uri, '/');
 
     if ($uri) {
       $parts = explode('/', $uri, 2);
       if (count($parts) === 2) {
         [$entity_type, $entity_id] = $parts;
+        // External URLs ("https://example.com/…") keep the scheme's colon glued
+        // to the first segment. A real entity type ID never contains the plugin
+        // derivative separator (":"), and passing such an ID to the entity type
+        // manager throws a LogicException before hasDefinition() can suppress
+        // it, so bail out early.
         $entity_manager = \Drupal::entityTypeManager();
-        if ($entity_manager->hasDefinition($entity_type)) {
+        if (!str_contains($entity_type, ':') && $entity_manager->hasDefinition($entity_type)) {
           if ($entity = $entity_manager->getStorage($entity_type)->load($entity_id)) {
             return \Drupal::service('entity.repository')->getTranslationFromContext($entity);
           }
