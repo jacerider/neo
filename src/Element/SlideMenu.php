@@ -2,6 +2,8 @@
 
 namespace Drupal\neo\Element;
 
+use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Render\Attribute\RenderElement;
 use Drupal\Core\Render\Element\RenderElementBase;
 use Drupal\neo\SlideMenu as NeoSlideMenu;
@@ -62,6 +64,11 @@ class SlideMenu extends RenderElementBase {
   public static function preRenderSlideMenu($element) {
     if (!empty($element['#menu_ids'])) {
       $items = [];
+      // Collects the access + link cacheability of the whole tree so the
+      // rendered menu varies by whatever the access results vary by. Without
+      // this the menu render-caches with no user variance at all, and the first
+      // request to build it fixes that markup for every subsequent viewer.
+      $cacheability = new CacheableMetadata();
       $menuLinkTree = \Drupal::menuTree();
       foreach ($element['#menu_ids'] as $mid) {
         $parameters = $menuLinkTree->getCurrentRouteMenuTreeParameters($mid);
@@ -73,11 +80,16 @@ class SlideMenu extends RenderElementBase {
           ['callable' => 'menu.default_tree_manipulators:generateIndexAndSort'],
         ];
         $tree = $menuLinkTree->transform($menuTree, $manipulators);
-        $items += static::generateItemFromMenuTree($tree);
+        $items += static::generateItemFromMenuTree($tree, $cacheability);
         // Refresh whatever render-caches this element when the menu changes.
         $element['#cache']['tags'][] = 'config:system.menu.' . $mid;
       }
       $element['#items'] = $items;
+      // Merge rather than applyTo() alone: applyTo() replaces #cache outright
+      // and would drop the menu config tags added above.
+      $cacheability
+        ->merge(CacheableMetadata::createFromRenderArray($element))
+        ->applyTo($element);
     }
     $slideMenu = new NeoSlideMenu($element['#items'], [
       'item_attributes' => $element['#item_attributes'],
@@ -102,19 +114,42 @@ class SlideMenu extends RenderElementBase {
    *
    * @param \Drupal\Core\Menu\MenuLinkTreeElement[] $menu_tree
    *   The menu tree.
+   * @param \Drupal\Core\Cache\CacheableMetadata|null $cacheability
+   *   (optional) Collects the access and link cacheability of the tree.
    *
    * @return array
    *   The generated menu items.
    */
-  protected static function generateItemFromMenuTree($menu_tree) {
+  protected static function generateItemFromMenuTree($menu_tree, ?CacheableMetadata $cacheability = NULL) {
     $items = [];
     $moduleHandler = \Drupal::moduleHandler();
     foreach ($menu_tree as $key => $element) {
+      // Gather cacheability for EVERY element, including inaccessible ones —
+      // that is what lets the menu be render-cached while still varying by the
+      // cache contexts the access results depend on. Links may also be dynamic
+      // (a title that varies by user, a dynamic route), so their cacheability
+      // is collected too. Mirrors \Drupal\Core\Menu\MenuLinkTree::buildItems().
+      if ($cacheability) {
+        if ($element->access instanceof AccessResultInterface) {
+          $cacheability->addCacheableDependency($element->access);
+        }
+        $cacheability->addCacheableDependency($element->link);
+      }
+
+      // Only render accessible links. checkAccess() deliberately KEEPS
+      // inaccessible top-level links in the tree so their cacheability can
+      // bubble, swapping in an InaccessibleMenuLink whose getTitle() returns
+      // the literal string "Inaccessible" — rendering those leaks a
+      // placeholder row into the menu.
+      if ($element->access instanceof AccessResultInterface && !$element->access->isAllowed()) {
+        continue;
+      }
+
       $item = [];
       $item['title'] = $element->link->getTitle();
       $item['url'] = $element->link->getUrlObject();
       if ($element->hasChildren) {
-        $item['children'] = static::generateItemFromMenuTree($element->subtree);
+        $item['children'] = static::generateItemFromMenuTree($element->subtree, $cacheability);
       }
       // Let modules enrich or veto individual items (set $item to NULL to
       // drop one). For example, neo_alchemist_menu swaps its region items
