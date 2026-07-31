@@ -11,6 +11,9 @@ taxonomy.vocabulary.*.third_party.neo_taxonomy:
     nest:
       type: boolean
       label: Nest taxonomy
+    description_required:
+      type: boolean
+      label: Description required
     description_format:
       type: string
       label: Description format

@@ -7,9 +7,11 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Url;
+use Drupal\filter\FilterFormatRepositoryInterface;
 use Drupal\media\MediaInterface;
 use Drupal\menu_ui\Form\MenuLinkEditForm;
 use Drupal\menu_ui\MenuForm;
@@ -18,6 +20,23 @@ use Drupal\taxonomy\TermForm;
 use Drupal\taxonomy\TermInterface;
 use Drupal\taxonomy_manager\Form\TaxonomyManagerForm;
 use Drupal\taxonomy_manager\Form\TaxonomyManagerTermForm;
+
+/**
+ * Implements hook_entity_bundle_field_info().
+ */
+function neo_taxonomy_entity_bundle_field_info(EntityTypeInterface $entity_type, $bundle, array $base_field_definitions) {
+  $fields = [];
+  // The description field is a base field and cannot be made required via the
+  // field UI. Allow it to be required on a per-vocabulary basis.
+  if ($entity_type->id() === 'taxonomy_term' && isset($base_field_definitions['description'])) {
+    $settings = \Drupal::config('taxonomy.vocabulary.' . $bundle)->get('third_party_settings.neo_taxonomy');
+    if (!empty($settings['description_required'])) {
+      $fields['description'] = clone $base_field_definitions['description'];
+      $fields['description']->setRequired(TRUE);
+    }
+  }
+  return $fields;
+}
 
 /**
  * Implements hook_form_alter().
@@ -271,9 +290,17 @@ function neo_taxonomy_form_alter_form_taxonomy_vocabulary(&$form, FormStateInter
     ],
   ];
 
+  $elements['description_required'] = [
+    '#type' => 'checkbox',
+    '#title' => t('Require Description'),
+    '#description' => t('Require a description to be entered when creating or editing a term.'),
+    '#default_value' => !empty($controls['description_required']),
+  ];
+
+  $formats = \Drupal::service(FilterFormatRepositoryInterface::class)->getAllFormats();
   $options = array_map(function ($format) {
     return $format->label();
-  }, filter_formats());
+  }, $formats);
   $elements['description_format'] = [
     '#type' => 'select',
     '#title' => t('Description text format'),
@@ -304,6 +331,7 @@ function neo_taxonomy_form_taxonomy_vocabulary_form_submit(array $form, FormStat
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'link', !empty($controls['link']));
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'order', !empty($controls['order']));
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'nest', !empty($controls['order']) && !empty($controls['nest']));
+  $vocabulary->setThirdPartySetting('neo_taxonomy', 'description_required', !empty($controls['description_required']));
   $vocabulary->setThirdPartySetting('neo_taxonomy', 'description_format', $controls['description_format'] ?? '');
   $vocabulary->save();
 }
