@@ -215,6 +215,62 @@
     return null;
   }
 
+  /**
+   * Splits a Drupal "tags" string into its individual, still-encoded tags.
+   *
+   * Mirrors \Drupal\Component\Utility\Tags::explode(). Entity autocomplete
+   * elements separate values with commas, so any label that itself contains a
+   * comma or a double quote arrives wrapped in double quotes (with inner
+   * quotes doubled). TomSelect's own parsing splits on the delimiter alone,
+   * which tears "Rob Copouls, PE (21)" into two items.
+   *
+   * The returned tags stay encoded so that joining them back together with the
+   * TomSelect delimiter produces a string Drupal can explode again.
+   */
+  function tagsExplode(tags: string): string[] {
+    const regexp = /(?:^|,\s*)("[^"]*(?:""[^"]*)*"|[^",]*)/g;
+    const result: string[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = regexp.exec(tags)) !== null) {
+      // A zero-length match would leave lastIndex untouched and spin forever.
+      if (match.index === regexp.lastIndex) {
+        regexp.lastIndex++;
+      }
+      const tag = match[1].trim();
+      if (tag !== '' && result.indexOf(tag) === -1) {
+        result.push(tag);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * Unwraps a single encoded tag for display. Mirrors Tags::explode()'s
+   * per-tag cleanup. A tag without wrapping quotes is returned untouched.
+   */
+  function tagsDecode(tag: string): string {
+    return tag.replace(/^"(.*)"$/, '$1').replace(/""/g, '"').trim();
+  }
+
+  /**
+   * Quotes a tag that would otherwise be split apart on the comma. Mirrors
+   * \Drupal\Component\Utility\Tags::encode().
+   */
+  function tagsEncode(tag: string): string {
+    if (tag.indexOf(',') !== -1 || tag.indexOf('"') !== -1) {
+      return '"' + tag.replace(/"/g, '""') + '"';
+    }
+    return tag;
+  }
+
+  // TomSelect derives `splitOn` from the delimiter and uses it to break pasted
+  // text into items, via String.match() then String.split(). Supplying an
+  // object with the matching well-known symbols keeps quoted labels intact.
+  const tagsSplitter = {
+    [Symbol.match]: (value: string) => (value.indexOf(',') !== -1 ? [value] : null),
+    [Symbol.split]: (value: string) => tagsExplode(value),
+  };
+
   function findEmptyOption(selectElement: HTMLSelectElement): HTMLOptionElement | null {
     const options = selectElement.options;
 
@@ -275,7 +331,9 @@
                     }
                   }};
                 }
-                const finalSettings = {...settings, ...baseSettings};
+                // `render` gets its own object so the renderers below cannot
+                // leak into the autocomplete instances that share baseSettings.
+                const finalSettings = {...settings, ...baseSettings, render: {} as any};
                 finalSettings.render.item = function(data:any, escape:Function) {
                   return '<div>' + escape(data.text) + '</div>';
                 };
@@ -335,11 +393,23 @@
               if (parent) {
                 parent.classList.add('neo-tom-wrapper');
               }
+              // Seed the initial items ourselves. TomSelect would otherwise
+              // split the input value on the delimiter, which breaks labels
+              // that legitimately contain a comma.
+              const initialTags = tagsExplode(el.value);
               let settings = {
                 valueField: 'value',
                 labelField: 'label',
                 searchField: [],
-                create: true,
+                options: initialTags.map(tag => ({ value: tag, label: tagsDecode(tag) })),
+                items: initialTags,
+                splitOn: tagsSplitter,
+                create: function (input: string) {
+                  // Keep created values encoded so a typed comma survives the
+                  // round trip back through Drupal's tag parsing.
+                  const label = tagsDecode(input.trim());
+                  return { value: tagsEncode(label), label: label };
+                },
                 createOnBlur: autocreate,
                 dropdownParent: document.body,
                 maxItems: 1,
@@ -385,9 +455,13 @@
               else {
                 settings.plugins.clear_button = {};
               }
-              const finalSettings = {...settings, ...baseSettings};
+              // `render` gets its own object so the renderers below cannot leak
+              // into the select instances that share baseSettings.
+              const finalSettings = {...settings, ...baseSettings, render: {} as any};
               finalSettings.render.item = function(data:any, escape:Function) {
-                return '<div>' + escape(data[finalSettings.valueField]) + '</div>';
+                // The stored value stays encoded for submission; strip the
+                // wrapping quotes so the tag reads as the plain label.
+                return '<div>' + escape(tagsDecode(data[finalSettings.valueField] || '')) + '</div>';
               };
               finalSettings.render.option = function(data:any, escape:Function) {
                 // Allow HTML in the option text.
