@@ -46,7 +46,7 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
     $element['style'] = [
       '#type' => 'select',
       '#title' => $this->t('Style'),
-      '#default_value' => $this->getSetting('style'),
+      '#default_value' => $this->getStyle(),
       '#description' => $this->t('The style of the widget.'),
       '#empty_option' => $this->t('Default'),
       '#options' => $this->getStyles(),
@@ -54,7 +54,7 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
     $element['size'] = [
       '#type' => 'select',
       '#title' => $this->t('Size'),
-      '#default_value' => $this->getSetting('size'),
+      '#default_value' => $this->getSize(),
       '#description' => $this->t('The size of the buttons.'),
       '#required' => TRUE,
       '#options' => $this->getSizes(),
@@ -67,10 +67,10 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
    */
   public function settingsSummary() {
     $summary = [];
-    if ($style = $this->getSetting('style')) {
+    if ($style = $this->getStyle()) {
       $summary[] = $this->t('Style: @placeholder', ['@placeholder' => $this->getStyles()[$style]]);
     }
-    $summary[] = $this->t('Size: @placeholder', ['@placeholder' => $this->getSizes()[$this->getSetting('size')]]);
+    $summary[] = $this->t('Size: @placeholder', ['@placeholder' => $this->getSizes()[$this->getSize()]]);
     return $summary;
   }
 
@@ -80,15 +80,43 @@ class NeoOptionsButtonsWidget extends OptionsButtonsWidget {
   public function formElement(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     $element = parent::formElement($items, $delta, $element, $form, $form_state);
 
-    if ($style = $this->getSetting('style')) {
+    if ($style = $this->getStyle()) {
       $element['#neo_style'] = $style;
-      $size = $this->getSetting('size');
+      $size = $this->getSize();
       if ($size !== 'md') {
         $element['#neo_size'] = $size;
       }
     }
 
     return $element;
+  }
+
+  /**
+   * Get the configured style, ignoring values that are not ours.
+   *
+   * When the widget type is switched in the Manage form display UI, core keeps
+   * the previous widget's settings and filters them by key only, so a widget
+   * that happens to share a key name can leave a foreign value behind.
+   *
+   * @return string
+   *   The style key, or an empty string for the default style.
+   */
+  protected function getStyle() {
+    $style = $this->getSetting('style');
+    return isset($this->getStyles()[$style]) ? (string) $style : '';
+  }
+
+  /**
+   * Get the configured size, ignoring values that are not ours.
+   *
+   * @return string
+   *   The size key.
+   *
+   * @see static::getStyle()
+   */
+  protected function getSize() {
+    $size = $this->getSetting('size');
+    return isset($this->getSizes()[$size]) ? (string) $size : static::defaultSettings()['size'];
   }
 
   /**
