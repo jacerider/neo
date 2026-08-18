@@ -24,6 +24,18 @@ use Drupal\neo_settings\Plugin\SettingsBase;
  * )
  */
 class MenuLinkSettings extends SettingsBase {
+  /**
+   * {@inheritdoc}
+   *
+   * The `icon_libraries` value is a list, so clearing it must replace the stored
+   * value rather than deep-merge with it. key([]) is NULL, so
+   * mergeDeepStrict() would otherwise recurse and swallow the empty array,
+   * silently restoring the previous selection.
+   */
+  protected $strictParents = [
+    ['icon_libraries'],
+  ];
+
 
   /**
    * {@inheritdoc}
