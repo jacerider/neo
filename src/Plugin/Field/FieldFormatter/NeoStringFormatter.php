@@ -50,7 +50,7 @@ class NeoStringFormatter extends StringFormatter {
       'inline' => [
         'label' => $this->t('Inline'),
         'class' => 'flex gap-2',
-      ]
+      ],
     ];
   }
 

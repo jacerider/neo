@@ -3,7 +3,6 @@
 namespace Drupal\neo\Plugin\Field\FieldFormatter;
 
 use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;

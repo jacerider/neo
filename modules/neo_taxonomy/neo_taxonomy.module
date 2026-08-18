@@ -311,9 +311,9 @@ function neo_taxonomy_form_alter_form_taxonomy_vocabulary(&$form, FormStateInter
 
   // Insert after description.
   $keys = array_keys($form);
-	$index = array_search('description', $keys);
-	$pos = false === $index ? count($form) : $index + 1;
-	$form = array_merge( array_slice($form, 0, $pos), ['neo_taxonomy' => $elements], array_slice($form, $pos) );
+  $index = array_search('description', $keys);
+  $pos = FALSE === $index ? count($form) : $index + 1;
+  $form = array_merge(array_slice($form, 0, $pos), ['neo_taxonomy' => $elements], array_slice($form, $pos));
 
   $form['actions']['submit']['#submit'][] = 'neo_taxonomy_form_taxonomy_vocabulary_form_submit';
 }

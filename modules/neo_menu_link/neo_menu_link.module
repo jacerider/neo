@@ -124,7 +124,7 @@ function neo_menu_link_menu_ui_form_node_form_submit(array $form, FormStateInter
       // Decompose the selected menu parent option into 'menu_name' and
       // 'parent', if the form used the default parent selection widget.
       if (!empty($values['menu_parent'])) {
-        list($menu_name, $parent) = explode(':', $values['menu_parent'], 2);
+        [$menu_name, $parent] = explode(':', $values['menu_parent'], 2);
         $values['menu_name'] = $menu_name;
         $values['parent'] = $parent;
       }
@@ -177,7 +177,7 @@ function neo_menu_link_menu_ui_node_save(NodeInterface $node, array $values) {
 
   $entity->menu_name->value = $values['menu_name'];
   $entity->parent->value = $values['parent'];
-  $entity->weight->value = isset($values['weight']) ? $values['weight'] : 0;
+  $entity->weight->value = $values['weight'] ?? 0;
   $entity->save();
 }
 
@@ -195,7 +195,7 @@ function neo_menu_link_preprocess_menu_items($items) {
   foreach ($items as &$item) {
     $options = $item['url']->getOptions();
     if (!empty($options['attributes']['data-icon']) && !empty($item['title'])) {
-      $position = isset($options['attributes']['data-icon-position']) ? $options['attributes']['data-icon-position'] : 'before';
+      $position = $options['attributes']['data-icon-position'] ?? 'before';
       $icon = new IconElement($item['title'], $options['attributes']['data-icon']);
       $icon->iconPosition($position);
       $item['title'] = $icon->render();

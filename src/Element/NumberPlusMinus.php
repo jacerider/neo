@@ -4,8 +4,6 @@ namespace Drupal\neo\Element;
 
 use Drupal\Core\Render\Attribute\FormElement;
 use Drupal\Core\Render\Element\Number;
-use Drupal\Core\Render\Markup;
-use Drupal\Core\Template\Attribute;
 
 /**
  * Provides a form element for numeric input, with special numeric validation.

@@ -380,10 +380,9 @@ class NeoLinkWidget extends LinkWidget {
     // to them.
     $default_allowed = !$item->isEmpty() && (\Drupal::currentUser()->hasPermission('link to any page') || $item->getUrl()->access());
 
-    // if ($default_allowed && $uri_scheme == 'entity') {
-    //   $entity = self::getLinkitEntityFromUri($uri);
+    // If ($default_allowed && $uri_scheme == 'entity') {
+    // $entity = self::getLinkitEntityFromUri($uri);
     // }
-
     if (!empty($item->options['data-entity-type']) && !empty($item->options['data-entity-uuid'])) {
       $entity = \Drupal::service('entity.repository')->loadEntityByUuid($item->options['data-entity-type'], $item->options['data-entity-uuid']);
     }
