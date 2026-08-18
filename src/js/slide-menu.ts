@@ -520,7 +520,10 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
 
     // When opening in a modal, you can pass this method as a titleCallback
     // and it will swap the title with the current menu item parent.
-    modalTitle: (modal:neoModal.NeoModalStatic, title:HTMLElement) => {
+    // Receives a modal INSTANCE -- it is passed as a titleCallback. It was
+    // annotated as NeoModalStatic, which only type-checked while that
+    // interface described the constructor and the instance at once.
+    modalTitle: (modal:neoModal.NeoModalInstance, title:HTMLElement) => {
       const menu = modal.getContent()?.querySelector('.neo-slide-menu');
       if (menu) {
         const instance = (menu as MenuHTMLElement)._slideMenu;
