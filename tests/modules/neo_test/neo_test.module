@@ -9,7 +9,7 @@
  * that always contributed would change what those tests see. The state key each
  * one reads is named on the implementation.
  *
- * The two token hooks additionally **record what they were passed**, on every
+ * The three token hooks additionally **record what they were passed**, on every
  * invocation and whether or not they are switched on, so a test can assert that
  * the hook ran and what context it received without having to make it alter
  * anything. Recording is observation; contributing is the switch.
@@ -78,6 +78,31 @@ function neo_test_neo_token_title_alter(&$title, $params, $entity): void {
   $value = $state->get('neo_test.token_title_alter');
   if ($value !== NULL) {
     $title = $value;
+  }
+}
+
+/**
+ * Implements hook_neo_token_description_alter().
+ *
+ * State keys:
+ * - `neo_test.token_description_alter`: NULL (the default) contributes nothing;
+ *   any string is written into `$description`, which short-circuits the entity
+ *   and site-slogan lookups behind it.
+ * - `neo_test.token_description_alter_seen`: written on every invocation with
+ *   the `$description` this hook was handed, the `$params` and the entity it
+ *   was given, as `entity_type:id` or NULL.
+ */
+function neo_test_neo_token_description_alter(&$description, $params, $entity): void {
+  $state = \Drupal::state();
+  $state->set('neo_test.token_description_alter_seen', [
+    'description' => $description,
+    'params' => $params,
+    'entity' => $entity instanceof ContentEntityInterface ? $entity->getEntityTypeId() . ':' . $entity->id() : NULL,
+  ]);
+
+  $value = $state->get('neo_test.token_description_alter');
+  if ($value !== NULL) {
+    $description = $value;
   }
 }
 
