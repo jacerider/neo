@@ -9,7 +9,7 @@
  * that always contributed would change what those tests see. The state key each
  * one reads is named on the implementation.
  *
- * The three token hooks additionally **record what they were passed**, on every
+ * The four token hooks additionally **record what they were passed**, on every
  * invocation and whether or not they are switched on, so a test can assert that
  * the hook ran and what context it received without having to make it alter
  * anything. Recording is observation; contributing is the switch.
@@ -128,6 +128,36 @@ function neo_test_neo_token_image_alter(&$uri, $params, $entity): void {
   ]);
 
   $value = $state->get('neo_test.token_image_alter');
+  if ($value !== NULL) {
+    $uri = $value;
+  }
+}
+
+/**
+ * Implements hook_neo_token_logo_alter().
+ *
+ * The logo token asks `neo_tokens_image_fetch()` with crawling switched **off**,
+ * so this hook is the only thing in existence that can give it a uri. Without an
+ * implementation the logo resolves to NULL on every site, entity or not.
+ *
+ * State keys:
+ * - `neo_test.token_logo_alter`: NULL (the default) contributes nothing; any
+ *   string is written into `$uri`. As with the image hook, the value left behind
+ *   is memoised by `neo_tokens_image_fetch()` per entity and hook, so switching
+ *   the state key mid-request does not change an answer already resolved.
+ * - `neo_test.token_logo_alter_seen`: written on every invocation with the
+ *   `$uri` this hook was handed — always NULL, because nothing crawled — the
+ *   `$params` and the entity it was given, as `entity_type:id` or NULL.
+ */
+function neo_test_neo_token_logo_alter(&$uri, $params, $entity): void {
+  $state = \Drupal::state();
+  $state->set('neo_test.token_logo_alter_seen', [
+    'uri' => $uri,
+    'params' => $params,
+    'entity' => $entity instanceof ContentEntityInterface ? $entity->getEntityTypeId() . ':' . $entity->id() : NULL,
+  ]);
+
+  $value = $state->get('neo_test.token_logo_alter');
   if ($value !== NULL) {
     $uri = $value;
   }
