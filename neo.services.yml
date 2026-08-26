@@ -1,0 +1,13 @@
+services:
+  neo.linkit_resolver:
+    class: Drupal\neo\Linkit\NeoLinkitResolver
+    arguments:
+      - '@entity_type.manager'
+      - '@entity.repository'
+      - '@module_handler'
+      - '@stream_wrapper_manager'
+      - '@path_alias.manager'
+      - '@language_manager'
+      - '@config.factory'
+      - '@request_stack'
+      - '@plugin.manager.linkit.substitution'

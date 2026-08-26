@@ -2,15 +2,52 @@
 
 namespace Drupal\neo;
 
-use Drupal\Component\Utility\UrlHelper;
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Url;
 use Drupal\linkit\ProfileInterface;
+use Drupal\neo\Linkit\NeoLinkitResolver;
 
 /**
  * Provides helper to operate on URIs.
  */
 trait NeoLinkitTrait {
+
+  /**
+   * Optionally-injected Linkit resolver. Falls back to the container.
+   */
+  protected ?NeoLinkitResolver $linkitResolver = NULL;
+
+  /**
+   * Returns the Linkit resolver for a static call site.
+   *
+   * The URI helpers below are `public static` because `NeoLinkWidget` calls
+   * them as `self::`, so they cannot read an injected property. The container
+   * is the only seam available to them.
+   *
+   * @return \Drupal\neo\Linkit\NeoLinkitResolver
+   *   The Linkit resolver.
+   */
+  protected static function staticLinkitResolver(): NeoLinkitResolver {
+    if (\Drupal::hasService('neo.linkit_resolver')) {
+      return \Drupal::service('neo.linkit_resolver');
+    }
+    // A container that has not registered `neo`'s services file still gets a
+    // working seam, assembled here out of whatever that container does hold.
+    // This is where the `\Drupal::` fallback these methods used to make lives
+    // now; the resolver itself never reaches the container.
+    return NeoLinkitResolver::fromContainer(\Drupal::getContainer());
+  }
+
+  /**
+   * Returns the Linkit resolver.
+   *
+   * @return \Drupal\neo\Linkit\NeoLinkitResolver
+   *   The Linkit resolver.
+   */
+  protected function linkitResolver(): NeoLinkitResolver {
+    if (isset($this->linkitResolver)) {
+      return $this->linkitResolver;
+    }
+    return static::staticLinkitResolver();
+  }
 
   /**
    * Checks if the Linkit module exists.
@@ -22,7 +59,7 @@ trait NeoLinkitTrait {
    *   TRUE if the Linkit module exists, FALSE otherwise.
    */
   public function linkitModuleExists(): bool {
-    return \Drupal::service('module_handler')->moduleExists('linkit');
+    return $this->linkitResolver()->moduleExists();
   }
 
   /**
@@ -32,7 +69,7 @@ trait NeoLinkitTrait {
    *   An array of Linkit profiles.
    */
   public function getLinkitProfiles() {
-    return \Drupal::entityTypeManager()->getStorage('linkit_profile')->loadMultiple();
+    return $this->linkitResolver()->getProfiles();
   }
 
   /**
@@ -83,7 +120,7 @@ trait NeoLinkitTrait {
    *   The Linkit profile, or NULL if not found.
    */
   public function getLinkitProfile($profile_id): ?ProfileInterface {
-    return \Drupal::entityTypeManager()->getStorage('linkit_profile')->load($profile_id);
+    return $this->linkitResolver()->getProfile($profile_id);
   }
 
   /**
@@ -98,37 +135,7 @@ trait NeoLinkitTrait {
    *   uri, or NULL if could not match any entity.
    */
   public static function getLinkitEntityFromUri($uri) {
-    // Strip out potential query and fragment from the uri.
-    $uri = strtok(strtok($uri, "?"), "#");
-    // Strip a known on-site scheme so the remainder is a plain "type/id" path.
-    // "entity:node/23", "internal:/node/23" and "base:node/23" all reference
-    // local content. Any other scheme (external URLs, "mailto:", "route:…")
-    // is left untouched and simply won't resolve to an entity below.
-    $scheme = parse_url($uri, PHP_URL_SCHEME);
-    if (in_array($scheme, ['entity', 'internal', 'base'], TRUE)) {
-      $uri = substr($uri, strlen($scheme) + 1);
-    }
-    $uri = trim($uri, '/');
-
-    if ($uri) {
-      $parts = explode('/', $uri, 2);
-      if (count($parts) === 2) {
-        [$entity_type, $entity_id] = $parts;
-        // External URLs ("https://example.com/…") keep the scheme's colon glued
-        // to the first segment. A real entity type ID never contains the plugin
-        // derivative separator (":"), and passing such an ID to the entity type
-        // manager throws a LogicException before hasDefinition() can suppress
-        // it, so bail out early.
-        $entity_manager = \Drupal::entityTypeManager();
-        if (!str_contains($entity_type, ':') && $entity_manager->hasDefinition($entity_type)) {
-          if ($entity = $entity_manager->getStorage($entity_type)->load($entity_id)) {
-            return \Drupal::service('entity.repository')->getTranslationFromContext($entity);
-          }
-        }
-      }
-    }
-
-    return NULL;
+    return static::staticLinkitResolver()->getEntityFromUri($uri);
   }
 
   /**
@@ -143,74 +150,7 @@ trait NeoLinkitTrait {
    *   The uri string or null if the input is empty.
    */
   public static function getLinkitUriFromUserInput($input) {
-    if (empty($input)) {
-      return NULL;
-    }
-
-    // Support linking to nothing. These special routes must be stored as
-    // 'route:<nolink>' (etc.) and must not be treated as internal paths, which
-    // would URL-encode the angle brackets into e.g. '/%3Cnolink%3E'.
-    // @see \Drupal\link\Plugin\Field\FieldWidget\LinkWidget::getUserEnteredStringAsUri()
-    if (in_array($input, ['<nolink>', '<none>', '<button>'], TRUE)) {
-      return 'route:' . $input;
-    }
-
-    $host = parse_url($input, PHP_URL_HOST);
-    $scheme = parse_url($input, PHP_URL_SCHEME);
-
-    if ($scheme == 'mailto') {
-      return $input;
-    }
-
-    if ($host && UrlHelper::isExternal($input)) {
-      if (UrlHelper::externalIsLocal($input, \Drupal::request()->getSchemeAndHttpHost())) {
-        // The link points to this domain. Make it relative to perform an entity
-        // lookup.
-        $host_end = strpos($input, $host) + strlen($host);
-        $input = substr($input, $host_end);
-      }
-      else {
-        // This link is really external.
-        return $input;
-      }
-    }
-
-    // Make sure the URI starts with a slash, otherwise the Url's factory
-    // methods will throw exceptions.
-    $starts_with_hash = strpos($input, '#') === 0;
-    $starts_with_a_slash = strpos($input, '/') === 0;
-    $is_front = substr($input, 0, 7) === '<front>';
-    $is_nolink = substr($input, 0, 14) === 'route:<nolink>';
-    if (!$scheme && !$is_front && !$is_nolink && !$starts_with_a_slash && !$starts_with_hash) {
-      $input = "/$input";
-    }
-    // - '<front>' -> '/'
-    // - '<front>#foo' -> '/#foo'
-    if ($is_front) {
-      $input = '/' . substr($input, strlen('<front>'));
-    }
-
-    $entity = self::getLinkitEntityFromUserInput($input);
-    if ($entity) {
-      return 'entity:' . $entity->getEntityTypeId() . '/' . $entity->id() . static::getLinkitQueryAndFragment($input);
-    }
-
-    // It's a relative link. If it's a file, store it as `base:`. Otherwise it's
-    // most likely internal.
-    $public_files_dir = \Drupal::service('stream_wrapper_manager')
-      ->getViaScheme('public')
-      ->getDirectoryPath();
-
-    if (!empty($public_files_dir) && strpos($input, "/$public_files_dir") === 0) {
-      return "base:$input";
-    }
-    $scheme = parse_url($input, PHP_URL_SCHEME);
-    // Check if the input already contains a scheme.
-    if (!empty($scheme)) {
-      return $input;
-    }
-
-    return "internal:$input";
+    return static::staticLinkitResolver()->getUriFromUserInput($input);
   }
 
   /**
@@ -223,41 +163,7 @@ trait NeoLinkitTrait {
    *   The entity if found, null otherwise.
    */
   public static function getLinkitEntityFromUserInput($input) {
-    $scheme = parse_url($input, PHP_URL_SCHEME);
-
-    // Check if it's an entity URI (e.g. entity:node/1).
-    if (($scheme === 'entity' || !$scheme) && ($entity = static::getLinkitEntityFromUri($input))) {
-      return $entity;
-    }
-
-    // If not, it can be a path pointing to an entity.
-    if (!$scheme) {
-      // Which can be hidden behind an alias in any of the site's languages.
-      $input = 'internal:' . static::getLinkitPathByAlias($input);
-    }
-
-    try {
-      $route_name = Url::fromUri($input)->getRouteName();
-      $params = array_filter(Url::fromUri($input)->getRouteParameters());
-      foreach ($params as $possibly_an_entity_type => $possibly_an_entity_id) {
-        // Return only the entity, if this is a canonical route.
-        if ($route_name === 'entity.' . $possibly_an_entity_type . '.canonical') {
-          $entity = \Drupal::entityTypeManager()
-            ->getStorage($possibly_an_entity_type)
-            ->load($possibly_an_entity_id);
-          if (!($entity instanceof EntityInterface)) {
-            return NULL;
-          }
-          return \Drupal::service('entity.repository')
-            ->getTranslationFromContext($entity);
-        }
-      }
-    }
-    catch (\Exception $e) {
-      // Or not.
-    }
-
-    return NULL;
+    return static::staticLinkitResolver()->getEntityFromUserInput($input);
   }
 
   /**
@@ -270,14 +176,7 @@ trait NeoLinkitTrait {
    *   The query and fragment parts or an empty string.
    */
   public static function getLinkitQueryAndFragment($input) {
-    $result = '';
-    if ($query = parse_url($input, PHP_URL_QUERY)) {
-      $result .= "?$query";
-    }
-    if ($fragment = parse_url($input, PHP_URL_FRAGMENT)) {
-      $result .= "#$fragment";
-    }
-    return $result;
+    return static::staticLinkitResolver()->getQueryAndFragment($input);
   }
 
   /**
@@ -290,25 +189,7 @@ trait NeoLinkitTrait {
    *   The internal path if any matched. The input string otherwise.
    */
   public static function getLinkitPathByAlias($input) {
-    $config = \Drupal::config('language.negotiation');
-    /** @var \Drupal\path_alias\AliasManagerInterface $path_alias_manager */
-    $path_alias_manager = \Drupal::service('path_alias.manager');
-    /** @var \Drupal\Core\Language\LanguageManagerInterface $language_manager */
-    $language_manager = \Drupal::service('language_manager');
-
-    $input_path = parse_url($input, PHP_URL_PATH);
-    foreach ($language_manager->getLanguages() as $language) {
-      if ($prefix = $config->get('url.prefixes.' . $language->getId())) {
-        // Strip the language prefix.
-        $input_path = preg_replace("/^\/$prefix\//", '/', $input_path);
-      }
-      $path_resolved = $path_alias_manager->getPathByAlias($input_path, $language->getId());
-      if ($path_resolved !== $input_path) {
-        return $path_resolved . static::getLinkitQueryAndFragment($input);
-      }
-    }
-
-    return $input;
+    return static::staticLinkitResolver()->getPathByAlias($input);
   }
 
 }

@@ -49,7 +49,7 @@ class NeoLinkFormatter extends LinkFormatter {
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    return new static(
+    $instance = new static(
       $plugin_id,
       $plugin_definition,
       $configuration['field_definition'],
@@ -60,6 +60,10 @@ class NeoLinkFormatter extends LinkFormatter {
       $container->get('path.validator'),
       $container->get('token')
     );
+    // Set the Linkit seam from inside the class, so the plugin's constructor
+    // signature — core's, with one argument added — does not change.
+    $instance->linkitResolver = $container->get('neo.linkit_resolver');
+    return $instance;
   }
 
   /**

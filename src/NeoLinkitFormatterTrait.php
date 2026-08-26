@@ -2,15 +2,8 @@
 
 namespace Drupal\neo;
 
-use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityRepositoryInterface;
-use Drupal\Core\Entity\EntityStorageInterface;
-use Drupal\Core\GeneratedUrl;
-use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
-use Drupal\linkit\ProfileInterface;
-use Drupal\linkit\SubstitutionManagerInterface;
-use Drupal\linkit\Utility\LinkitHelper;
+use Drupal\neo\Linkit\NeoLinkitResolver;
 
 /**
  * Provides helper to operate on URIs.
@@ -18,21 +11,29 @@ use Drupal\linkit\Utility\LinkitHelper;
 trait NeoLinkitFormatterTrait {
 
   /**
-   * Optionally-injected entity repository. Falls back to \Drupal::service().
+   * Optionally-injected Linkit resolver. Falls back to the container.
    */
-  protected ?EntityRepositoryInterface $entityRepository = NULL;
+  protected ?NeoLinkitResolver $linkitResolver = NULL;
 
   /**
-   * Optionally-injected linkit_profile storage.
+   * Returns the Linkit resolver.
    *
-   * Falls back to \Drupal::service().
+   * @return \Drupal\neo\Linkit\NeoLinkitResolver
+   *   The Linkit resolver.
    */
-  protected ?EntityStorageInterface $linkitProfileStorage = NULL;
-
-  /**
-   * Optionally-injected substitution manager. Falls back to \Drupal::service().
-   */
-  protected ?SubstitutionManagerInterface $substitutionManager = NULL;
+  protected function linkitResolver(): NeoLinkitResolver {
+    if (isset($this->linkitResolver)) {
+      return $this->linkitResolver;
+    }
+    if (\Drupal::hasService('neo.linkit_resolver')) {
+      return \Drupal::service('neo.linkit_resolver');
+    }
+    // A container that has not registered `neo`'s services file still gets a
+    // working seam, assembled here out of whatever that container does hold.
+    // This is where the `\Drupal::` fallback these methods used to make lives
+    // now; the resolver itself never reaches the container.
+    return NeoLinkitResolver::fromContainer(\Drupal::getContainer());
+  }
 
   /**
    * Checks if the Linkit module exists.
@@ -44,46 +45,7 @@ trait NeoLinkitFormatterTrait {
    *   TRUE if the Linkit module exists, FALSE otherwise.
    */
   public function linkitModuleExists(): bool {
-    return \Drupal::service('module_handler')->moduleExists('linkit');
-  }
-
-  /**
-   * Returns the entity repository service.
-   *
-   * @return \Drupal\Core\Entity\EntityRepositoryInterface
-   *   The entity repository service.
-   */
-  protected function entityRepository() {
-    if (isset($this->entityRepository)) {
-      return $this->entityRepository;
-    }
-    return \Drupal::service('entity.repository');
-  }
-
-  /**
-   * Returns the Linkit profile storage.
-   *
-   * @return \Drupal\Core\Entity\EntityStorageInterface
-   *   The Linkit profile storage.
-   */
-  protected function linkitProfileStorage() {
-    if (isset($this->linkitProfileStorage)) {
-      return $this->linkitProfileStorage;
-    }
-    return \Drupal::entityTypeManager()->getStorage('linkit_profile');
-  }
-
-  /**
-   * Returns the substitution manager.
-   *
-   * @return \Drupal\linkit\SubstitutionManagerInterface
-   *   The substitution manager.
-   */
-  protected function substitutionManager() {
-    if (isset($this->substitutionManager)) {
-      return $this->substitutionManager;
-    }
-    return \Drupal::service('plugin.manager.linkit.substitution');
+    return $this->linkitResolver()->moduleExists();
   }
 
   /**
@@ -93,7 +55,7 @@ trait NeoLinkitFormatterTrait {
    *   An array of Linkit profiles.
    */
   public function getLinkitProfiles() {
-    return $this->linkitProfileStorage()->loadMultiple();
+    return $this->linkitResolver()->getProfiles();
   }
 
   /**
@@ -125,82 +87,7 @@ trait NeoLinkitFormatterTrait {
    *   The substitution URL, or NULL if not able to retrieve it from the item.
    */
   protected function getLinkitUrl(LinkItemInterface $item, $profileId = 'default') {
-    // First try to derive entity information from Linkit-specific attributes.
-    // This is more reliable and is required for File entities.
-    $entity = NULL;
-    if (!empty($item->options['data-entity-type']) && !empty($item->options['data-entity-uuid'])) {
-      $entity = $this->entityRepository()->loadEntityByUuid($item->options['data-entity-type'], $item->options['data-entity-uuid']);
-      if ($entity instanceof EntityInterface) {
-        $entity = $this->entityRepository()->getTranslationFromContext($entity);
-      }
-    }
-    else {
-      if (is_string($item->uri)) {
-        $entity = LinkitHelper::getEntityFromUserInput($item->uri);
-      }
-    }
-    if ($entity instanceof EntityInterface) {
-      $linkit_profile = $this->linkitProfileStorage()->load($profileId);
-
-      if (!$linkit_profile instanceof ProfileInterface) {
-        return NULL;
-      }
-
-      /** @var \Drupal\linkit\Plugin\Linkit\Matcher\EntityMatcher $matcher */
-      $matcher = $linkit_profile->getMatcherByEntityType($entity->getEntityTypeId());
-      $substitution_type = $matcher ? $matcher->getConfiguration()['settings']['substitution_type'] : SubstitutionManagerInterface::DEFAULT_SUBSTITUTION;
-      $url = $this->substitutionManager()->createInstance($substitution_type)->getUrl($entity);
-
-      // The substituted entity URL drops any query string present on the
-      // original uri (e.g. "internal:/projects?market=1"). Re-apply it so
-      // deliberate query parameters survive Linkit substitution.
-      if ($url && is_string($item->uri) && ($queryPos = strpos($item->uri, '?')) !== FALSE) {
-        // A fragment may trail the query; keep only the query portion.
-        $queryString = substr($item->uri, $queryPos + 1);
-        if (($hashPos = strpos($queryString, '#')) !== FALSE) {
-          $queryString = substr($queryString, 0, $hashPos);
-        }
-        if ($queryString !== '') {
-          parse_str($queryString, $query);
-          if ($url instanceof Url) {
-            $url->setOption('query', $query + ($url->getOption('query') ?? []));
-          }
-          elseif ($url instanceof GeneratedUrl) {
-            $generated = $url->getGeneratedUrl();
-            if (strpos($generated, '?') === FALSE) {
-              // Insert the query ahead of any fragment already on the URL.
-              $fragment = '';
-              if (($generatedHashPos = strpos($generated, '#')) !== FALSE) {
-                $fragment = substr($generated, $generatedHashPos);
-                $generated = substr($generated, 0, $generatedHashPos);
-              }
-              $url->setGeneratedUrl($generated . '?' . $queryString . $fragment);
-            }
-          }
-        }
-      }
-
-      // The substituted entity URL drops any fragment present on the original
-      // uri (e.g. "entity:node/385#hello"). Re-apply it so in-page anchors
-      // survive Linkit substitution.
-      if ($url && is_string($item->uri) && ($hashPos = strpos($item->uri, '#')) !== FALSE) {
-        $fragment = substr($item->uri, $hashPos + 1);
-        if ($fragment !== '') {
-          if ($url instanceof Url) {
-            $url->setOption('fragment', $fragment);
-          }
-          elseif ($url instanceof GeneratedUrl) {
-            $generated = $url->getGeneratedUrl();
-            if (strpos($generated, '#') === FALSE) {
-              $url->setGeneratedUrl($generated . '#' . $fragment);
-            }
-          }
-        }
-      }
-
-      return $url;
-    }
-    return NULL;
+    return $this->linkitResolver()->getSubstitutedUrl($item, $profileId);
   }
 
 }
