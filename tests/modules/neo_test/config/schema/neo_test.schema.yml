@@ -1,0 +1,57 @@
+# Schema for the two fixture visibility entity types.
+#
+# Kernel tests run with strict config schema, so without these neither fixture
+# entity can be saved. Both extend `config_entity`, which already declares
+# `uuid`, `langcode`, `status`, `dependencies` and `_core` — the properties
+# `ConfigEntityType::getPropertiesToExport()` adds to every `config_export`
+# list on its own.
+#
+# The `visibility` sequence is the shape `neo_settings` and `neo_toolbar` both
+# use: condition plugin configuration keyed by plugin id, typed through
+# `condition.plugin.[id]` so each plugin's own schema validates its own
+# settings.
+neo_test.neo_test_visibility.*:
+  type: config_entity
+  label: 'Neo test visibility'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    visibility:
+      type: sequence
+      label: 'Visibility conditions'
+      sequence:
+        type: condition.plugin.[id]
+        label: 'Visibility condition'
+
+neo_test.neo_test_plugin_visibility.*:
+  type: config_entity
+  label: 'Neo test plugin visibility'
+  mapping:
+    id:
+      type: string
+      label: 'ID'
+    label:
+      type: label
+      label: 'Label'
+    settings:
+      type: neo_test_plugin_visibility_settings
+      label: 'Plugin settings'
+    visibility:
+      type: sequence
+      label: 'Visibility conditions'
+      sequence:
+        type: condition.plugin.[id]
+        label: 'Visibility condition'
+
+# The settings key the plugin-backed entity reads its access answer from.
+neo_test_plugin_visibility_settings:
+  type: mapping
+  label: 'Neo test visibility plugin settings'
+  mapping:
+    access:
+      type: string
+      label: 'The access answer this entity''s plugin returns'

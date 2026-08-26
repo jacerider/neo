@@ -1,0 +1,28 @@
+# Three routes behind the fixture menu links.
+#
+# `neo_test.open` and `neo_test.child` are open to everyone; `neo_test.gated`
+# is behind a permission nobody has by default, which is what puts an
+# inaccessible element into a real menu tree without a test having to fake one.
+neo_test.open:
+  path: '/neo-test/open'
+  defaults:
+    _controller: '\Drupal\neo_test\Controller\NeoTestController::page'
+    _title: 'Neo test open'
+  requirements:
+    _access: 'TRUE'
+
+neo_test.child:
+  path: '/neo-test/open/child'
+  defaults:
+    _controller: '\Drupal\neo_test\Controller\NeoTestController::page'
+    _title: 'Neo test child'
+  requirements:
+    _access: 'TRUE'
+
+neo_test.gated:
+  path: '/neo-test/gated'
+  defaults:
+    _controller: '\Drupal\neo_test\Controller\NeoTestController::page'
+    _title: 'Neo test gated'
+  requirements:
+    _permission: 'view neo test gated'

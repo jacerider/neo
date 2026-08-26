@@ -1,0 +1,7 @@
+'administer neo_test':
+  title: 'Administer Neo test fixtures'
+  description: 'The admin permission both fixture entity types declare, so the non-view operations of the visibility access handler have something to resolve against.'
+  restrict access: true
+'view neo test gated':
+  title: 'View the Neo test gated route'
+  description: 'Gates neo_test.gated, so a menu tree can contain an element whose access result is not allowed.'

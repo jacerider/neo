@@ -1,0 +1,26 @@
+# A three-link fixture tree in the main menu.
+#
+# `neo_test.open` carries an accessible child, so a tree walk has a branch to
+# recurse into; `neo_test.gated` sits on a permission-gated route, so the same
+# tree also carries an element whose access result is not allowed.
+neo_test.open:
+  title: 'Neo test open'
+  description: 'An accessible link carrying an accessible child.'
+  route_name: neo_test.open
+  menu_name: main
+  weight: -10
+
+neo_test.child:
+  title: 'Neo test child'
+  description: 'The accessible child of neo_test.open.'
+  route_name: neo_test.child
+  parent: neo_test.open
+  menu_name: main
+  weight: 0
+
+neo_test.gated:
+  title: 'Neo test gated'
+  description: 'A link on a permission-gated route.'
+  route_name: neo_test.gated
+  menu_name: main
+  weight: -9

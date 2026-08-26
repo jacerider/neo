@@ -1,0 +1,109 @@
+<?php
+
+/**
+ * @file
+ * Switchable alter hook implementations for the neo test suite.
+ *
+ * Every hook here is inert until a test switches it on from state, because all
+ * three fire on code paths other tests in this suite assert against and a hook
+ * that always contributed would change what those tests see. The state key each
+ * one reads is named on the implementation.
+ *
+ * The two token hooks additionally **record what they were passed**, on every
+ * invocation and whether or not they are switched on, so a test can assert that
+ * the hook ran and what context it received without having to make it alter
+ * anything. Recording is observation; contributing is the switch.
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Menu\MenuLinkTreeElement;
+
+/**
+ * Implements hook_neo_slide_menu_item_alter().
+ *
+ * State keys:
+ * - `neo_test.slide_menu_item_alter`: `off` (the default) contributes nothing;
+ *   `after` appends an `after` render array naming the link; `veto` sets the
+ *   item to NULL, which drops it from the menu entirely.
+ * - `neo_test.slide_menu_item_alter_target`: when set to a menu link plugin id,
+ *   only that link is acted on. NULL — the default — acts on every link.
+ *
+ * The target key is what makes `veto` usable: a run that vetoed every item
+ * would empty the menu and prove nothing about which item was dropped.
+ */
+function neo_test_neo_slide_menu_item_alter(?array &$item, MenuLinkTreeElement $element): void {
+  $state = \Drupal::state();
+  $mode = $state->get('neo_test.slide_menu_item_alter', 'off');
+  if ($mode === 'off') {
+    return;
+  }
+
+  $pluginId = $element->link->getPluginId();
+  $target = $state->get('neo_test.slide_menu_item_alter_target');
+  if ($target !== NULL && $target !== $pluginId) {
+    return;
+  }
+
+  if ($mode === 'veto') {
+    $item = NULL;
+    return;
+  }
+
+  $item['after'] = [
+    '#markup' => '<span class="neo-test-after">' . $pluginId . '</span>',
+  ];
+}
+
+/**
+ * Implements hook_neo_token_title_alter().
+ *
+ * State keys:
+ * - `neo_test.token_title_alter`: NULL (the default) contributes nothing; any
+ *   string is written into `$title`, which short-circuits the route title and
+ *   entity label lookups behind it.
+ * - `neo_test.token_title_alter_seen`: written on every invocation with the
+ *   `$title` this hook was handed, the `$params` and the entity it was given,
+ *   as `entity_type:id` or NULL.
+ */
+function neo_test_neo_token_title_alter(&$title, $params, $entity): void {
+  $state = \Drupal::state();
+  $state->set('neo_test.token_title_alter_seen', [
+    'title' => $title,
+    'params' => $params,
+    'entity' => $entity instanceof ContentEntityInterface ? $entity->getEntityTypeId() . ':' . $entity->id() : NULL,
+  ]);
+
+  $value = $state->get('neo_test.token_title_alter');
+  if ($value !== NULL) {
+    $title = $value;
+  }
+}
+
+/**
+ * Implements hook_neo_token_image_alter().
+ *
+ * State keys:
+ * - `neo_test.token_image_alter`: NULL (the default) contributes nothing; any
+ *   string is written into `$uri`, which is what the entity crawl would
+ *   otherwise have produced. Note that the value this hook leaves behind is
+ *   memoised by `neo_tokens_image_fetch()` per entity and hook, so switching
+ *   the state key mid-request does not change an answer already resolved.
+ * - `neo_test.token_image_alter_seen`: written on every invocation with the
+ *   `$uri` this hook was handed, the `$params` and the entity it was given, as
+ *   `entity_type:id` or NULL.
+ */
+function neo_test_neo_token_image_alter(&$uri, $params, $entity): void {
+  $state = \Drupal::state();
+  $state->set('neo_test.token_image_alter_seen', [
+    'uri' => $uri,
+    'params' => $params,
+    'entity' => $entity instanceof ContentEntityInterface ? $entity->getEntityTypeId() . ':' . $entity->id() : NULL,
+  ]);
+
+  $value = $state->get('neo_test.token_image_alter');
+  if ($value !== NULL) {
+    $uri = $value;
+  }
+}

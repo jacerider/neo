@@ -1,0 +1,8 @@
+name: 'Neo | Test'
+type: module
+description: 'Fixture module for the neo test suite: two visibility consumer entity types whose access answer is declared per entity, a values consumer, a visibility form, menu links on an open and a permission-gated route, and switchable alter hook implementations.'
+package: Testing
+hidden: true
+core_version_requirement: ^10.3 || ^11
+dependencies:
+  - neo:neo
