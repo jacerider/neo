@@ -46,33 +46,27 @@ class ClassList {
 
     $list = explode("\n", $string);
     $list = array_map('trim', $list);
-    $list = array_filter($list, 'strlen');
+    // Drop blank and whitespace-only lines, keeping a line that reads `0`: it
+    // is a legal CSS class name, and a bare array_filter() would eat it.
+    $list = array_filter($list, static fn ($text) => $text !== '');
 
-    $generated_keys = $explicit_keys = FALSE;
-    foreach ($list as $position => $text) {
+    foreach ($list as $text) {
       // Check for an explicit key.
       $matches = [];
       if (preg_match('/(.*)\|(.*)/', $text, $matches)) {
         // Trim key and value to avoid unwanted spaces issues.
         $key = trim($matches[1]);
         $value = trim($matches[2]);
-        $explicit_keys = TRUE;
       }
       // Otherwise see if we can use the value as the key.
       elseif (!$validate($text)) {
         $key = $value = $text;
-        $explicit_keys = TRUE;
       }
       else {
         return;
       }
 
       $values[$key] = $value;
-    }
-
-    // We generate keys only if the list contains no explicit key at all.
-    if ($explicit_keys && $generated_keys) {
-      return;
     }
 
     return $values;
