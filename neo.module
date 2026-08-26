@@ -362,6 +362,21 @@ function neo_table_props(): array {
       'label' => t('Neo Align'),
       'options' => [],
     ],
+    'neo_sticky' => [
+      'label' => t('Neo Sticky'),
+      'options' => [
+        'none' => t('None'),
+        'left' => t('Left'),
+        'right' => t('Right'),
+      ],
+      // Unlike the other props, sticky is structural, not presentational:
+      // pinning one column implies pinning everything between it and the
+      // edge, and each pinned column needs an offset derived from its
+      // neighbours. That normalization has to see every column at once, so
+      // this prop is persisted and exposed in the UI here while the class
+      // itself is computed downstream by \Drupal\neo_base\NeoBasePreRender.
+      'apply' => FALSE,
+    ],
   ];
 }
 
@@ -406,7 +421,10 @@ function neo_preprocess_views_ui_style_plugin_table(&$variables) {
 function neo_preprocess_views_view_table(&$variables) {
   $view = $variables['view'];
   $options = $view->style_plugin->options;
-  $props = neo_table_props();
+  // Props flagged 'apply' => FALSE are persisted and exposed in the Views UI
+  // but their class is worked out further down the render pipeline, so
+  // stamping one here would only have to be undone later.
+  $props = array_filter(neo_table_props(), fn ($prop) => ($prop['apply'] ?? TRUE) !== FALSE);
   foreach ($variables['rows'] as $row_id => $row) {
     foreach ($row['columns'] as $column_id => $column) {
       foreach ($props as $key => $prop) {
