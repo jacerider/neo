@@ -295,7 +295,7 @@ class NeoLinkWidget extends LinkWidget {
         '#type' => 'textfield',
         '#title' => $this->t('CSS classes'),
         '#description' => $this->t('Enter space-separated CSS class names that will be added to the link.'),
-        '#default_value' => !empty($attributes['class']) ? implode(' ', $attributes['class']) : NULL,
+        '#default_value' => !empty($attributes['class']) ? implode(' ', (array) $attributes['class']) : NULL,
       ];
       if (!empty($this->getSetting('class_list'))) {
         $element['options']['attributes']['class']['#type'] = 'select';
