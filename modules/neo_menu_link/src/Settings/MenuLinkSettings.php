@@ -115,8 +115,9 @@ class MenuLinkSettings extends SettingsBase {
   /**
    * Extracts the allowed values array from the allowed_values element.
    *
-   * @return array|null
-   *   The array of extracted key/value pairs, or NULL if the string is invalid.
+   * @return array<array-key, string>
+   *   The array of extracted key/value pairs, empty when the class list is
+   *   empty or invalid.
    *
    * @see \Drupal\options\Plugin\Field\FieldType\ListItemBase::allowedValuesString()
    */

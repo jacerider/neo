@@ -30,8 +30,13 @@ class ClassList {
    *   both surfaces' validateClassListValue() already has. Omitted, the
    *   built-in rule below applies, so the parser is usable without a caller.
    *
-   * @return array|null
-   *   The array of extracted key/value pairs, or NULL if the string is invalid.
+   * @return array<array-key, string>
+   *   The array of extracted key/value pairs. Empty when the string is empty,
+   *   and empty when it is invalid: a line that breaks the class key rule and
+   *   carries no `|` still discards the whole list rather than only itself,
+   *   exactly as it always has. Only the empty value callers receive changed,
+   *   because one of them unions the result with a placeholder options array
+   *   and a NULL made that a fatal.
    *
    * @see \Drupal\options\Plugin\Field\FieldType\ListItemBase::allowedValuesString()
    */
@@ -63,7 +68,7 @@ class ClassList {
         $key = $value = $text;
       }
       else {
-        return;
+        return [];
       }
 
       $values[$key] = $value;
