@@ -140,15 +140,13 @@ class NeoLinkFormatter extends LinkFormatter {
       '#description' => $this->t('Show only the link title without making it linkable.'),
     ];
 
-    if ($this->linkitModuleExists()) {
-      $element['linkit_profile'] = [
-        '#type' => 'select',
-        '#title' => $this->t('Linkit profile'),
-        '#options' => $this->getLinkitProfilesAsOptions(),
-        '#empty_option' => $this->t('- Do not use Linkit -'),
-        '#default_value' => $this->getSetting('linkit_profile'),
-      ];
-    }
+    $element['linkit_profile'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Linkit profile'),
+      '#options' => $this->getLinkitProfilesAsOptions(),
+      '#empty_option' => $this->t('- Do not use Linkit -'),
+      '#default_value' => $this->getSetting('linkit_profile'),
+    ];
 
     return $form;
   }
@@ -214,10 +212,8 @@ class NeoLinkFormatter extends LinkFormatter {
    *   A Url object.
    */
   protected function buildUrl(LinkItemInterface $item) {
-    if ($this->linkitModuleExists()) {
-      if ($url = $this->getLinkitUrl($item, $this->getSetting('linkit_profile'))) {
-        return $url;
-      }
+    if ($url = $this->getLinkitUrl($item, $this->getSetting('linkit_profile'))) {
+      return $url;
     }
     return parent::buildUrl($item);
   }

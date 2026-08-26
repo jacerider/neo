@@ -55,7 +55,7 @@ class NeoLinkWidget extends LinkWidget {
     if ($this->getSetting('link_text_label')) {
       $summary[] = $this->t('Link text label: %label', ['%label' => $this->getSetting('link_text_label')]);
     }
-    if ($this->supportsInternalLinks() && $this->linkitModuleExists()) {
+    if ($this->supportsInternalLinks()) {
       $profile = $this->getLinkitProfile($this->getSetting('linkit_profile'));
       if ($profile) {
         $summary[] = $this->t('Use Linkit: %profile', ['%profile' => $profile->label()]);
@@ -105,7 +105,7 @@ class NeoLinkWidget extends LinkWidget {
       '#description' => $this->t('The text that will be used as the label for the link text field. If left empty, the default label will be used.'),
     ];
 
-    if ($this->supportsInternalLinks() && $this->linkitModuleExists()) {
+    if ($this->supportsInternalLinks()) {
       $element['linkit_profile'] = [
         '#type' => 'select',
         '#title' => $this->t('Linkit profile'),
@@ -237,7 +237,7 @@ class NeoLinkWidget extends LinkWidget {
     $options = $item->get('options')->getValue();
     $attributes = $options['attributes'] ?? [];
 
-    if ($this->supportsInternalLinks() && $this->linkitModuleExists()) {
+    if ($this->supportsInternalLinks()) {
       $element = $this->formElementLinkit($items, $delta, $element, $form, $form_state);
     }
 
@@ -504,7 +504,7 @@ class NeoLinkWidget extends LinkWidget {
    */
   public function massageFormValues(array $values, array $form, FormStateInterface $form_state) {
     foreach ($values as &$value) {
-      if ($this->supportsInternalLinks() && $this->linkitModuleExists()) {
+      if ($this->supportsInternalLinks()) {
         $value['uri'] = self::getLinkitUriFromUserInput($value['uri']);
       }
       $value['options'] = $value['options'] ?? [];
