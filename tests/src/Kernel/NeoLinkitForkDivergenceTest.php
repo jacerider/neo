@@ -16,10 +16,13 @@ use PHPUnit\Framework\Attributes\Group;
  * There is not one Linkit seam in this module, there are two.
  * `NeoLinkitTrait` is a method-for-method fork of Linkit's `LinkitHelper` —
  * the **link write path** — and it has taken fixes upstream never got.
- * `NeoLinkitFormatterTrait` — the **link read path** — does not use the fork
- * at all: `getLinkitUrl()` calls `LinkitHelper::getEntityFromUserInput()`
- * directly. So an editor's input is massaged into a stored uri by Neo's copy
- * and resolved back to an entity by Linkit's copy.
+ * `NeoLinkitFormatterTrait` — the **link read path** — did not use the fork
+ * at all: `getLinkitUrl()` called `LinkitHelper::getEntityFromUserInput()`
+ * directly, so an editor's input was massaged into a stored uri by Neo's copy
+ * and resolved back to an entity by Linkit's copy. Ticket 03 collapsed the two
+ * steps onto the fork, and upstream is now reached from nowhere in `neo`'s own
+ * code — only from this file, which keeps calling it so the divergence the
+ * module chose to own stays legible.
  *
  * For the inputs this seam sees, the two copies differ in exactly two places,
  * and both are in the entity-from-a-stored-uri step:
@@ -38,9 +41,9 @@ use PHPUnit\Framework\Attributes\Group;
  *    carrying a colon is refused there too.
  *
  * Which half produces which is named at every assertion below, because that is
- * the whole point of the file: **ticket 03 replaces exactly these pins** when
- * the read path stops calling upstream, and whoever does that has to be able
- * to see which answer is changing.
+ * the whole point of the file: **ticket 03 replaced exactly one of these
+ * pins** when the read path stopped calling upstream, and whoever reads this
+ * next has to be able to see which answer changed and which did not.
  *
  * One nuance worth having written down, because it is the reason the switch is
  * argued as a near-no-op. The divergence lives in `getEntityFromUri()`, and
@@ -49,7 +52,9 @@ use PHPUnit\Framework\Attributes\Group;
  * the router, and the router resolves `internal:/node/23` perfectly well.
  * `base:node/23` is refused by both, because `base:` produces an unrouted URL
  * that has no route name to read. Only difference 1 survives all the way to
- * the read path's observable answer, and the last criterion here pins that.
+ * the read path's observable answer, which is why switching the read path onto
+ * the fork moved exactly one pin, and the last criterion here is where it
+ * moved.
  */
 #[Group('neo')]
 final class NeoLinkitForkDivergenceTest extends NeoLinkitKernelTestBase {
@@ -162,23 +167,25 @@ final class NeoLinkitForkDivergenceTest extends NeoLinkitKernelTestBase {
   }
 
   /**
-   * The read path today answers through upstream, and this pins it doing so.
+   * The read path answers through the fork, and this pins it doing so.
    *
-   * `getLinkitUrl()` is the only place in `neo` that calls upstream
+   * `getLinkitUrl()` used to be the only place in `neo` that called upstream
    * `LinkitHelper` directly, and `/entity:node/N` is the input that makes the
    * choice visible: upstream resolves it and the fork does not, all the way
-   * up. So a link item storing that uri renders the node's canonical URL
-   * today — through Linkit's copy, not Neo's.
+   * up. So a link item storing that uri rendered the node's canonical URL
+   * through Linkit's copy — and now answers NULL, through Neo's.
    *
-   * This assertion is written to be replaced. When ticket 03 switches the read
-   * path onto the fork, the same item answers NULL, and this is the pin that
-   * has to be flipped to say so. Nothing else in this suite changes, which is
-   * the claim that ticket is making.
+   * This method was `testTheReadPathResolvesThroughUpstreamToday()` and its
+   * `/entity:node/N` block asserted a `Url` of `/node/N`. Those two assertions
+   * are the two pins ticket 03 replaced with the single answer that now holds;
+   * every other assertion in this suite is exactly as ticket 01 wrote it,
+   * which is the claim that ticket was making.
    *
-   * Covers: it pins the fork and upstream answers for the two inputs on which
-   * they differ, each named in the test as such.
+   * Covers: it gives the read path the fork's answer for a uri whose first
+   * segment glues a colon to a host; it gives the read path the fork's answer
+   * for an internal and a base scheme uri.
    */
-  public function testTheReadPathResolvesThroughUpstreamToday(): void {
+  public function testTheReadPathResolvesThroughTheFork(): void {
     $this->createLinkField();
     $node = $this->createPage();
     $id = $node->id();
@@ -190,21 +197,24 @@ final class NeoLinkitForkDivergenceTest extends NeoLinkitKernelTestBase {
     $this->assertInstanceOf(Url::class, $url);
     $this->assertSame('/node/' . $id, $url->toString());
 
-    // UPSTREAM's answer, reached through the read path: `/entity:node/N`
-    // resolves. The fork would answer NULL here — see the criterion above —
-    // so this is the assertion ticket 03 replaces.
-    $url = $seam->linkitUrl($this->linkItem('/entity:node/' . $id));
-    $this->assertInstanceOf(Url::class, $url);
-    $this->assertSame('/node/' . $id, $url->toString());
+    // THE FORK's answer, reached through the read path: `/entity:node/N` is
+    // refused, because `parse_url()` reports no scheme on a string that begins
+    // with a slash and the first segment `entity:node` then carries the plugin
+    // derivative separator. Upstream answered the node here — see the
+    // criterion above — and this is the pin ticket 03 replaced.
+    $this->assertNull(
+      $seam->linkitUrl($this->linkItem('/entity:node/' . $id)),
+      'The read path refuses /entity:node/N, which is the fork answering.'
+    );
 
     // `internal:` is the difference the router fallback hides, so the read
-    // path answers the same either way. Pinned so that ticket 03 can show it
-    // did not move.
+    // path answers the same either way. Pinned by ticket 01 so that ticket 03
+    // could show it did not move, and it did not.
     $url = $seam->linkitUrl($this->linkItem('internal:/node/' . $id));
     $this->assertInstanceOf(Url::class, $url);
     $this->assertSame('/node/' . $id, $url->toString());
 
-    // `base:` is refused by both copies, so it is NULL before and after.
+    // `base:` was refused by both copies, so it is NULL before and after.
     $this->assertNull($seam->linkitUrl($this->linkItem('base:node/' . $id)));
   }
 

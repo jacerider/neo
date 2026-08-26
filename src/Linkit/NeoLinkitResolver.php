@@ -15,7 +15,6 @@ use Drupal\Core\Url;
 use Drupal\link\LinkItemInterface;
 use Drupal\linkit\ProfileInterface;
 use Drupal\linkit\SubstitutionManagerInterface;
-use Drupal\linkit\Utility\LinkitHelper;
 use Drupal\path_alias\AliasManagerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -293,6 +292,12 @@ final class NeoLinkitResolver {
   /**
    * Tries to convert an uri into an entity in multiple ways.
    *
+   * Both halves of the seam resolve here. The link read path used to call
+   * Linkit's own utility helper instead — upstream's copy of this method,
+   * without the fixes this module's fork has taken — so a fix had to be
+   * applied twice to hold. It no longer does, and `neo` now owns this code
+   * outright: a future Linkit release changing that helper has no effect here.
+   *
    * @param string $input
    *   A uri or a path.
    *
@@ -335,25 +340,6 @@ final class NeoLinkitResolver {
     }
 
     return NULL;
-  }
-
-  /**
-   * Tries to convert an uri into an entity through Linkit's own helper.
-   *
-   * This is the link read path's step, and it is deliberately separate from
-   * ::getEntityFromUserInput(). `NeoLinkitFormatterTrait` has always resolved
-   * a stored uri through upstream `LinkitHelper` rather than through this
-   * module's fork, and the extraction carries that divergence rather than
-   * collapsing it.
-   *
-   * @param string $input
-   *   A uri or a path.
-   *
-   * @return \Drupal\Core\Entity\EntityInterface|null
-   *   The entity if found, null otherwise.
-   */
-  public function getUpstreamEntityFromUserInput($input) {
-    return LinkitHelper::getEntityFromUserInput($input);
   }
 
   /**
@@ -432,7 +418,7 @@ final class NeoLinkitResolver {
     }
     else {
       if (is_string($item->uri)) {
-        $entity = $this->getUpstreamEntityFromUserInput($item->uri);
+        $entity = $this->getEntityFromUserInput($item->uri);
       }
     }
     if ($entity instanceof EntityInterface) {

@@ -26,14 +26,15 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * The third fix is the `is_string($item->uri)` guard, and it is pinned here
  * too — a link item whose uri is not a string answers `NULL` rather than
- * fataling inside the upstream helper.
+ * fataling inside the resolution step.
  *
- * Note which half of the seam this path uses. `getLinkitUrl()` resolves the
- * uri through upstream `LinkitHelper::getEntityFromUserInput()`, not through
- * `NeoLinkitTrait`'s fork — that is the divergence the plan is about, and
- * `NeoLinkitForkDivergenceTest` pins it. Everything here is written against
- * `entity:` uris, which both halves resolve identically, so these pins are the
- * ones that have to still hold after the read path switches.
+ * Note which half of the seam this path uses. `getLinkitUrl()` resolved the
+ * uri through upstream `LinkitHelper::getEntityFromUserInput()` until ticket
+ * 03; it now resolves it through the same fork the write path uses, which is
+ * what the plan was for, and `NeoLinkitForkDivergenceTest` pins what that
+ * changed. Everything here is written against `entity:` uris, which both
+ * halves resolve identically, so every pin below held across the switch
+ * unmoved.
  *
  * The trait is reached through `TestNeoLinkitFormatterConsumer`, because
  * `getLinkitUrl()` is protected and `NeoLinkFormatter` is a field plugin that
