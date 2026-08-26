@@ -61,7 +61,7 @@ trait NeoLinkitFormatterTrait {
   /**
    * Get all Linkit profiles as options.
    *
-   * @return array
+   * @return array<int|string, string|\Drupal\Core\StringTranslation\TranslatableMarkup|null>
    *   An array of Linkit profiles as options.
    */
   public function getLinkitProfilesAsOptions() {

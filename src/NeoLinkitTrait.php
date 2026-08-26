@@ -80,7 +80,7 @@ trait NeoLinkitTrait {
    * @param string $linkit_profile_id
    *   The ID of the Linkit profile.
    *
-   * @return array
+   * @return array<string, mixed>
    *   A Linkit element.
    */
   public function getLinkitElement($default_value = NULL, $linkit_profile_id = 'default') {
@@ -98,7 +98,7 @@ trait NeoLinkitTrait {
   /**
    * Get all Linkit profiles as options.
    *
-   * @return array
+   * @return array<int|string, string|\Drupal\Core\StringTranslation\TranslatableMarkup|null>
    *   An array of Linkit profiles as options.
    */
   public function getLinkitProfilesAsOptions() {

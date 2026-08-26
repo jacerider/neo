@@ -354,7 +354,10 @@ class NeoLinkWidget extends LinkWidget {
   public function formElementLinkit(FieldItemListInterface $items, $delta, array $element, array &$form, FormStateInterface $form_state) {
     /** @var \Drupal\link\LinkItemInterface $item */
     $item = $items[$delta];
-    $uri = $item->uri;
+    // Read the stored uri through the item's own value accessor. `$item->uri`
+    // is a magic typed-data property that analysis cannot see; this is the
+    // same read, because FieldItemBase::__get() answers get($name)->getValue().
+    $uri = $item->get('uri')->getValue();
     $uri_scheme = $uri ? parse_url($uri, PHP_URL_SCHEME) : NULL;
     // Special "route:" URIs (<nolink>, <none>, <button>) are displayed as their
     // token form. Running them through Url::fromUri()->toString() would either

@@ -6,6 +6,7 @@ use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\GeneratedUrl;
@@ -115,7 +116,7 @@ final class NeoLinkitResolver {
    * @return object|null
    *   The service, or NULL if the container does not have it.
    */
-  private static function optionalService(ContainerInterface $container, string $id) {
+  private static function optionalService(ContainerInterface $container, string $id): ?object {
     return $container->has($id) ? $container->get($id) : NULL;
   }
 
@@ -125,7 +126,7 @@ final class NeoLinkitResolver {
    * @return \Drupal\Core\Entity\EntityStorageInterface
    *   The Linkit profile storage.
    */
-  protected function linkitProfileStorage() {
+  protected function linkitProfileStorage(): EntityStorageInterface {
     return $this->entityTypeManager->getStorage('linkit_profile');
   }
 
@@ -145,21 +146,31 @@ final class NeoLinkitResolver {
    * @return \Drupal\linkit\ProfileInterface[]
    *   An array of Linkit profiles.
    */
-  public function getProfiles() {
-    return $this->linkitProfileStorage()->loadMultiple();
+  public function getProfiles(): array {
+    // The `linkit_profile` storage yields `Drupal\linkit\Entity\Profile`
+    // objects, every one of which is a ProfileInterface. The storage cannot
+    // say so — EntityStorageInterface is not parameterised by entity class —
+    // so the narrower type is restated here rather than left disagreeing with
+    // what this method declares.
+    /** @var \Drupal\linkit\ProfileInterface[] $profiles */
+    $profiles = $this->linkitProfileStorage()->loadMultiple();
+    return $profiles;
   }
 
   /**
    * Get a Linkit profile by its ID.
    *
-   * @param string $profile_id
+   * @param string|null $profile_id
    *   The ID of the Linkit profile.
    *
    * @return \Drupal\linkit\ProfileInterface|null
    *   The Linkit profile, or NULL if not found.
    */
-  public function getProfile($profile_id): ?ProfileInterface {
-    return $this->linkitProfileStorage()->load($profile_id);
+  public function getProfile(?string $profile_id): ?ProfileInterface {
+    // Same caveat as ::getProfiles(): the storage can only promise an entity.
+    /** @var \Drupal\linkit\ProfileInterface|null $profile */
+    $profile = $this->linkitProfileStorage()->load($profile_id);
+    return $profile;
   }
 
   /**
@@ -173,7 +184,7 @@ final class NeoLinkitResolver {
    *   The most appropriate translation of the entity that matches the given
    *   uri, or NULL if could not match any entity.
    */
-  public function getEntityFromUri($uri) {
+  public function getEntityFromUri(string $uri): ?EntityInterface {
     // Strip out potential query and fragment from the uri.
     $uri = strtok(strtok($uri, "?"), "#");
     // Strip a known on-site scheme so the remainder is a plain "type/id" path.
@@ -212,13 +223,14 @@ final class NeoLinkitResolver {
    *
    * Turns the internal links into uri strings.
    *
-   * @param string $input
-   *   The raw (or processed) input.
+   * @param string|null $input
+   *   The raw (or processed) input. NULL is a real caller input — the guard on
+   *   the first line answers it — so the parameter is nullable.
    *
    * @return string|null
    *   The uri string or null if the input is empty.
    */
-  public function getUriFromUserInput($input) {
+  public function getUriFromUserInput(?string $input): ?string {
     if (empty($input)) {
       return NULL;
     }
@@ -273,9 +285,18 @@ final class NeoLinkitResolver {
 
     // It's a relative link. If it's a file, store it as `base:`. Otherwise it's
     // most likely internal.
-    $public_files_dir = $this->streamWrapperManager
-      ->getViaScheme('public')
-      ->getDirectoryPath();
+    // A site with no public files scheme has no public stream wrapper, and
+    // getViaScheme() answers FALSE rather than one. getDirectoryPath() is not
+    // on StreamWrapperInterface either — it arrives with LocalStream, and a
+    // remote public wrapper may implement it without extending that — so the
+    // guard asks whether this wrapper can answer rather than what it is.
+    // Either way the result is "no public directory path", which is exactly
+    // what the empty() check below already intends to do with one: the `base:`
+    // branch is skipped.
+    $public_wrapper = $this->streamWrapperManager->getViaScheme('public');
+    $public_files_dir = $public_wrapper && method_exists($public_wrapper, 'getDirectoryPath')
+      ? $public_wrapper->getDirectoryPath()
+      : '';
 
     if (!empty($public_files_dir) && strpos($input, "/$public_files_dir") === 0) {
       return "base:$input";
@@ -304,7 +325,7 @@ final class NeoLinkitResolver {
    * @return \Drupal\Core\Entity\EntityInterface|null
    *   The entity if found, null otherwise.
    */
-  public function getEntityFromUserInput($input) {
+  public function getEntityFromUserInput(string $input): ?EntityInterface {
     $scheme = parse_url($input, PHP_URL_SCHEME);
 
     // Check if it's an entity URI (e.g. entity:node/1).
@@ -351,7 +372,7 @@ final class NeoLinkitResolver {
    * @return string
    *   The query and fragment parts or an empty string.
    */
-  public function getQueryAndFragment($input) {
+  public function getQueryAndFragment(string $input): string {
     $result = '';
     if ($query = parse_url($input, PHP_URL_QUERY)) {
       $result .= "?$query";
@@ -371,7 +392,7 @@ final class NeoLinkitResolver {
    * @return string
    *   The internal path if any matched. The input string otherwise.
    */
-  public function getPathByAlias($input) {
+  public function getPathByAlias(string $input): string {
     $config = $this->configFactory->get('language.negotiation');
     /** @var \Drupal\path_alias\AliasManagerInterface $path_alias_manager */
     $path_alias_manager = $this->pathAliasManager;
@@ -400,25 +421,39 @@ final class NeoLinkitResolver {
    *
    * @param \Drupal\link\LinkItemInterface $item
    *   The link item.
-   * @param string $profileId
+   * @param string|null $profileId
    *   The Linkit profile ID.
    *
    * @return \Drupal\Core\Url|\Drupal\Core\GeneratedUrl|null
    *   The substitution URL, or NULL if not able to retrieve it from the item.
    */
-  public function getSubstitutedUrl(LinkItemInterface $item, $profileId = 'default') {
+  public function getSubstitutedUrl(LinkItemInterface $item, ?string $profileId = 'default') {
+    // The stored uri, read through the item's own value accessor. `$item->uri`
+    // is a magic typed-data property that analysis cannot see, which made the
+    // is_string() guards below read as defensive against a type it believed
+    // impossible; through the accessor the value is honestly untyped and the
+    // guards mean what they were written to mean. It is the same read —
+    // FieldItemBase::__get() answers get($name)->getValue() — taken once
+    // because all three guards want the same value.
+    $uri = $item->get('uri')->getValue();
+
     // First try to derive entity information from Linkit-specific attributes.
     // This is more reliable and is required for File entities.
     $entity = NULL;
     if (!empty($item->options['data-entity-type']) && !empty($item->options['data-entity-uuid'])) {
+      // The entity type ID is a stored attribute rather than a literal, so
+      // analysis cannot resolve this load to a concrete entity class and
+      // collapses it to *NEVER*, which makes the guard below look dead.
+      // Restate what EntityRepositoryInterface itself documents it returns.
+      /** @var \Drupal\Core\Entity\EntityInterface|null $entity */
       $entity = $this->entityRepository->loadEntityByUuid($item->options['data-entity-type'], $item->options['data-entity-uuid']);
       if ($entity instanceof EntityInterface) {
         $entity = $this->entityRepository->getTranslationFromContext($entity);
       }
     }
     else {
-      if (is_string($item->uri)) {
-        $entity = $this->getEntityFromUserInput($item->uri);
+      if (is_string($uri)) {
+        $entity = $this->getEntityFromUserInput($uri);
       }
     }
     if ($entity instanceof EntityInterface) {
@@ -428,7 +463,11 @@ final class NeoLinkitResolver {
         return NULL;
       }
 
-      /** @var \Drupal\linkit\Plugin\Linkit\Matcher\EntityMatcher $matcher */
+      // Linkit's own ProfileInterface documents this as answering NULL when
+      // no matcher matches the entity type, and the fall-back to the default
+      // substitution below is what handles that. The annotation used to claim
+      // non-null, which is the only reason the ternary looked always-true.
+      /** @var \Drupal\linkit\Plugin\Linkit\Matcher\EntityMatcher|null $matcher */
       $matcher = $linkit_profile->getMatcherByEntityType($entity->getEntityTypeId());
       $substitution_type = $matcher ? $matcher->getConfiguration()['settings']['substitution_type'] : SubstitutionManagerInterface::DEFAULT_SUBSTITUTION;
       $url = $this->substitutionManager->createInstance($substitution_type)->getUrl($entity);
@@ -436,9 +475,9 @@ final class NeoLinkitResolver {
       // The substituted entity URL drops any query string present on the
       // original uri (e.g. "internal:/projects?market=1"). Re-apply it so
       // deliberate query parameters survive Linkit substitution.
-      if ($url && is_string($item->uri) && ($queryPos = strpos($item->uri, '?')) !== FALSE) {
+      if ($url && is_string($uri) && ($queryPos = strpos($uri, '?')) !== FALSE) {
         // A fragment may trail the query; keep only the query portion.
-        $queryString = substr($item->uri, $queryPos + 1);
+        $queryString = substr($uri, $queryPos + 1);
         if (($hashPos = strpos($queryString, '#')) !== FALSE) {
           $queryString = substr($queryString, 0, $hashPos);
         }
@@ -465,8 +504,8 @@ final class NeoLinkitResolver {
       // The substituted entity URL drops any fragment present on the original
       // uri (e.g. "entity:node/385#hello"). Re-apply it so in-page anchors
       // survive Linkit substitution.
-      if ($url && is_string($item->uri) && ($hashPos = strpos($item->uri, '#')) !== FALSE) {
-        $fragment = substr($item->uri, $hashPos + 1);
+      if ($url && is_string($uri) && ($hashPos = strpos($uri, '#')) !== FALSE) {
+        $fragment = substr($uri, $hashPos + 1);
         if ($fragment !== '') {
           if ($url instanceof Url) {
             $url->setOption('fragment', $fragment);
