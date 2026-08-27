@@ -8,7 +8,6 @@ use Drupal\Core\Render\RenderableInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
-use Drupal\neo\Helpers\Str;
 use Drupal\neo_icon\IconTrait;
 
 /**
@@ -100,14 +99,12 @@ class SlideMenu implements RenderableInterface {
   /**
    * Applies configuration options to this menu instance.
    *
-   * A key SlideMenuOption names is cast to that option's own type and
-   * dispatched through the typed match below — that is every key a caller
-   * passes, and none of them reaches a ReflectionClass any more. A key the
-   * enum does not name falls back to the reflection dispatch this class has
-   * always used, so a subclass that added a setter of its own keeps having its
-   * key accepted. A key neither answers is ignored in silence: the option
-   * array is assembled by other packages and by site code, so a stale key
-   * stays a no-op rather than becoming an outage.
+   * Every key a caller passes is resolved through SlideMenuOption, cast to
+   * that option's own type and dispatched by the typed match below, so the
+   * accepted set is exactly the enum's cases and no reflection is involved in
+   * reaching one. A key the enum does not name is ignored in silence: the
+   * option array is assembled by other packages and by site code, so a stale
+   * key stays a no-op rather than becoming an outage.
    *
    * @param array<string, mixed> $options
    *   Configuration options as key-value pairs.
@@ -117,50 +114,34 @@ class SlideMenu implements RenderableInterface {
       return;
     }
 
-    $class = NULL;
     foreach ($options as $key => $option) {
-      // The key is cast because a PHP array key may be an int, and the
-      // fallback below has always taken one without raising.
+      // The key is cast because a PHP array key may be an int, and an int key
+      // has always been taken without raising.
       $case = SlideMenuOption::tryFrom((string) $key);
-      if ($case) {
-        // The setters are the write side on purpose: an attribute option
-        // merges into the bag it already holds and the expand depth clamps,
-        // and both of those live there.
-        $value = $case->cast($option);
-        match ($case) {
-          SlideMenuOption::Items => $this->setItems($value),
-          SlideMenuOption::ItemAttributes => $this->setItemAttributes($value),
-          SlideMenuOption::LinkAttributes => $this->setLinkAttributes($value),
-          SlideMenuOption::ChildIcon => $this->setChildIcon($value),
-          SlideMenuOption::ChildIconAttributes => $this->setChildIconAttributes($value),
-          SlideMenuOption::BackStatus => $this->setBackStatus($value),
-          SlideMenuOption::BackIcon => $this->setBackIcon($value),
-          SlideMenuOption::BackAttributes => $this->setBackAttributes($value),
-          SlideMenuOption::BackIconAttributes => $this->setBackIconAttributes($value),
-          SlideMenuOption::BackLabel => $this->setBackLabel($value),
-          SlideMenuOption::AllStatus => $this->setAllStatus($value),
-          SlideMenuOption::AllPrefix => $this->setAllPrefix($value),
-          SlideMenuOption::AllSuffix => $this->setAllSuffix($value),
-          SlideMenuOption::ExpandDepth => $this->setExpandDepth($value),
-        };
+      if (!$case) {
         continue;
       }
 
-      $method = 'set' . ucfirst(Str::camel($key));
-      if (method_exists($this, $method)) {
-        $class ??= new \ReflectionClass($this);
-        $parameter = $class->getMethod($method)->getParameters()[0] ?? NULL;
-        if ($parameter) {
-          $type = (string) $parameter->getType();
-          $option = match ($type) {
-            'string' => (string) $option,
-            'int' => (int) $option,
-            'bool' => (bool) $option,
-            default => $option,
-          };
-        }
-        $this->$method($option);
-      }
+      // The setters are the write side on purpose: an attribute option merges
+      // into the bag it already holds and the expand depth clamps, and both of
+      // those live there.
+      $value = $case->cast($option);
+      match ($case) {
+        SlideMenuOption::Items => $this->setItems($value),
+        SlideMenuOption::ItemAttributes => $this->setItemAttributes($value),
+        SlideMenuOption::LinkAttributes => $this->setLinkAttributes($value),
+        SlideMenuOption::ChildIcon => $this->setChildIcon($value),
+        SlideMenuOption::ChildIconAttributes => $this->setChildIconAttributes($value),
+        SlideMenuOption::BackStatus => $this->setBackStatus($value),
+        SlideMenuOption::BackIcon => $this->setBackIcon($value),
+        SlideMenuOption::BackAttributes => $this->setBackAttributes($value),
+        SlideMenuOption::BackIconAttributes => $this->setBackIconAttributes($value),
+        SlideMenuOption::BackLabel => $this->setBackLabel($value),
+        SlideMenuOption::AllStatus => $this->setAllStatus($value),
+        SlideMenuOption::AllPrefix => $this->setAllPrefix($value),
+        SlideMenuOption::AllSuffix => $this->setAllSuffix($value),
+        SlideMenuOption::ExpandDepth => $this->setExpandDepth($value),
+      };
     }
   }
 
