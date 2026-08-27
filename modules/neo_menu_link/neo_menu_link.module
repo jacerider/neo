@@ -89,8 +89,18 @@ function neo_menu_link_form_node_form_alter(array &$form, FormStateInterface $fo
     ];
     foreach (array_keys($form['actions']) as $action) {
       if ($action != 'preview' && isset($form['actions'][$action]['#type']) && $form['actions'][$action]['#type'] === 'submit') {
-        if (($key = array_search('menu_ui_form_node_form_submit', $form['actions'][$action]['#submit'])) !== FALSE) {
-          $form['actions'][$action]['#submit'][$key] = 'neo_menu_link_menu_ui_form_node_form_submit';
+        // Drupal 11.4 converted menu_ui to OOP hooks, so the handler core
+        // registers became the method callable. Older supported cores still
+        // register the procedural function, so match either and replace it in
+        // place: appending would run the fork after core has already saved the
+        // link.
+        foreach ([
+          'menu_ui_form_node_form_submit',
+          'Drupal\\menu_ui\\Hook\\MenuUiHooks:formNodeFormSubmit',
+        ] as $handler) {
+          if (($key = array_search($handler, $form['actions'][$action]['#submit'])) !== FALSE) {
+            $form['actions'][$action]['#submit'][$key] = 'neo_menu_link_menu_ui_form_node_form_submit';
+          }
         }
       }
     }
