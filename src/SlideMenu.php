@@ -55,114 +55,22 @@ class SlideMenu implements RenderableInterface {
   use IconTrait;
 
   /**
-   * The menu items.
+   * The value every option holds, keyed by the option's own key.
    *
-   * This and the thirteen properties below are storage for one option apiece
-   * and nothing else. The value each starts at lives on SlideMenuOption, the
-   * constructor seeds it from there, and ::option() and ::setOption() are the
-   * only code that reaches them — nothing else in the class, the constructor
-   * and ::applyOptions() included, knows an option is stored here at all.
+   * One store rather than fourteen properties, and the only storage this class
+   * has. ::option() and ::setOption() are the only code that reaches it — the
+   * constructor and ::applyOptions() included, nothing else in the class knows
+   * an option is stored here at all — which is what makes a fifteenth option a
+   * SlideMenuOption case and two forwarders and no edit here.
    *
-   * @var array<int|string, mixed>
+   * A key is a case's backing value, so the keys are the option keys and are
+   * stated on the enum rather than written out again. Every case is seeded
+   * from its own default before ::applyOptions() runs, so the store holds all
+   * fourteen from the moment a menu exists and an option is never absent.
+   *
+   * @var array<string, mixed>
    */
-  protected array $items;
-
-  /**
-   * Attributes applied to each menu item.
-   *
-   * @var \Drupal\Core\Template\Attribute
-   */
-  protected Attribute $itemAttributes;
-
-  /**
-   * Attributes applied to each menu link.
-   *
-   * @var \Drupal\Core\Template\Attribute
-   */
-  protected Attribute $linkAttributes;
-
-  /**
-   * Icon displayed for items with children.
-   *
-   * @var string
-   */
-  protected string $childIcon;
-
-  /**
-   * Attributes applied to child indicator icons.
-   *
-   * @var \Drupal\Core\Template\Attribute
-   */
-  protected Attribute $childIconAttributes;
-
-  /**
-   * Whether to show back links in submenu levels.
-   *
-   * @var bool
-   */
-  protected bool $backStatus;
-
-  /**
-   * Icon used for back navigation.
-   *
-   * @var string
-   */
-  protected string $backIcon;
-
-  /**
-   * Label used for back navigation.
-   *
-   * @var string
-   */
-  protected string $backLabel;
-
-  /**
-   * Attributes applied to back links.
-   *
-   * @var \Drupal\Core\Template\Attribute
-   */
-  protected Attribute $backAttributes;
-
-  /**
-   * Attributes applied to back icons.
-   *
-   * @var \Drupal\Core\Template\Attribute
-   */
-  protected Attribute $backIconAttributes;
-
-  /**
-   * Whether to show "view all" links in submenus.
-   *
-   * @var bool
-   */
-  protected bool $allStatus;
-
-  /**
-   * The depth at which children render inline instead of as slide levels.
-   *
-   * 0 disables inline expansion. With a value of N, items at depth N (and
-   * deeper) render their children expanded within the current panel as a
-   * grouped list — e.g. 2 turns second-level items into group headings whose
-   * children are listed directly beneath them (a mobile mega menu) instead
-   * of triggers for a third slide level.
-   *
-   * @var int
-   */
-  protected int $expandDepth;
-
-  /**
-   * Prefix text for "view all" links.
-   *
-   * @var string
-   */
-  protected string $allPrefix;
-
-  /**
-   * Suffix text for "view all" links.
-   *
-   * @var string
-   */
-  protected string $allSuffix;
+  protected array $options = [];
 
   /**
    * Constructs a new SlideMenu.
@@ -259,10 +167,11 @@ class SlideMenu implements RenderableInterface {
   /**
    * Answers the value an option currently holds.
    *
-   * The only code in this class that knows where an option is stored, which is
-   * what makes a fifteenth option one SlideMenuOption case and two forwarders
-   * rather than a property, a constructor line, a default and two more method
-   * bodies.
+   * The only code in this class that knows where an option is stored — it and
+   * ::setOption() are one line each over ::$options, and every other method
+   * goes through them. That is what makes a fifteenth option one
+   * SlideMenuOption case and two forwarders, with nothing to add here, to the
+   * store, to the constructor or to ::applyOptions().
    *
    * It answers the menu's own value, never a copy. The five attribute bags are
    * mutable and shared on purpose: buildItemBack() clones the back bag itself
@@ -282,22 +191,7 @@ class SlideMenu implements RenderableInterface {
    *   The menu's own value for that option.
    */
   protected function option(SlideMenuOption $option): mixed {
-    return match ($option) {
-      SlideMenuOption::Items => $this->items,
-      SlideMenuOption::ItemAttributes => $this->itemAttributes,
-      SlideMenuOption::LinkAttributes => $this->linkAttributes,
-      SlideMenuOption::ChildIcon => $this->childIcon,
-      SlideMenuOption::ChildIconAttributes => $this->childIconAttributes,
-      SlideMenuOption::BackStatus => $this->backStatus,
-      SlideMenuOption::BackIcon => $this->backIcon,
-      SlideMenuOption::BackAttributes => $this->backAttributes,
-      SlideMenuOption::BackIconAttributes => $this->backIconAttributes,
-      SlideMenuOption::BackLabel => $this->backLabel,
-      SlideMenuOption::AllStatus => $this->allStatus,
-      SlideMenuOption::AllPrefix => $this->allPrefix,
-      SlideMenuOption::AllSuffix => $this->allSuffix,
-      SlideMenuOption::ExpandDepth => $this->expandDepth,
-    };
+    return $this->options[$option->value];
   }
 
   /**
@@ -308,28 +202,16 @@ class SlideMenu implements RenderableInterface {
    * construction: its setter merges into the bag ::option() answers, which is
    * what keeps calling one twice accumulating.
    *
+   * The store is keyed by the case's own backing value, so an option's storage
+   * slot is named on SlideMenuOption and nowhere else.
+   *
    * @param \Drupal\neo\SlideMenuOption $option
    *   The option to write.
    * @param mixed $value
    *   The value to store, already cast to that option's type.
    */
   protected function setOption(SlideMenuOption $option, mixed $value): void {
-    match ($option) {
-      SlideMenuOption::Items => $this->items = $value,
-      SlideMenuOption::ItemAttributes => $this->itemAttributes = $value,
-      SlideMenuOption::LinkAttributes => $this->linkAttributes = $value,
-      SlideMenuOption::ChildIcon => $this->childIcon = $value,
-      SlideMenuOption::ChildIconAttributes => $this->childIconAttributes = $value,
-      SlideMenuOption::BackStatus => $this->backStatus = $value,
-      SlideMenuOption::BackIcon => $this->backIcon = $value,
-      SlideMenuOption::BackAttributes => $this->backAttributes = $value,
-      SlideMenuOption::BackIconAttributes => $this->backIconAttributes = $value,
-      SlideMenuOption::BackLabel => $this->backLabel = $value,
-      SlideMenuOption::AllStatus => $this->allStatus = $value,
-      SlideMenuOption::AllPrefix => $this->allPrefix = $value,
-      SlideMenuOption::AllSuffix => $this->allSuffix = $value,
-      SlideMenuOption::ExpandDepth => $this->expandDepth = $value,
-    };
+    $this->options[$option->value] = $value;
   }
 
   /**
@@ -837,6 +719,12 @@ class SlideMenu implements RenderableInterface {
 
   /**
    * Sets the depth at which children render inline.
+   *
+   * 0 disables inline expansion. With a value of N, items at depth N (and
+   * deeper) render their children expanded within the current panel as a
+   * grouped list — e.g. 2 turns second-level items into group headings whose
+   * children are listed directly beneath them (a mobile mega menu) instead of
+   * triggers for a third slide level.
    *
    * @param int $depth
    *   The depth, starting at 1 for the top level; 0 disables inline
