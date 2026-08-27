@@ -62,14 +62,14 @@ function neo_menu_link_module_implements_alter(&$implementations, $hook) {
  */
 function neo_menu_link_form_node_form_alter(array &$form, FormStateInterface $form_state, $form_id) {
   if (isset($form['menu'])) {
-    /** @var \Drupal\Core\Entity\EntityFormInterface $form_object */
-    $form_object = $form_state->getFormObject();
-    $node = $form_object->getEntity();
-    $defaults = menu_ui_get_menu_link_defaults($node);
+    // The menu_ui node form alter runs first and writes the menu link's entity
+    // id into the form as a value element beside the link title and weight.
+    // Read it from there rather than deriving the menu link defaults again.
+    $entity_id = $form['menu']['link']['entity_id']['#value'] ?? NULL;
     $options = [];
-    if ($defaults['entity_id']) {
-      $menu = MenuLinkContent::load($defaults['entity_id']);
-      /** @var \Drupal\Core\Field $item */
+    if ($entity_id) {
+      $menu = MenuLinkContent::load($entity_id);
+      /** @var \Drupal\link\LinkItemInterface $item */
       $item = $menu->get('link')->first();
       $options = $item->get('options')->getValue();
     }
@@ -233,7 +233,6 @@ function neo_menu_link_form_menu_link_content_menu_link_content_form_alter(&$for
   $form_object = $form_state->getFormObject();
   /** @var \Drupal\menu_link_content\MenuLinkContentInterface $entity */
   $entity = $form_object->getEntity();
-  $account = \Drupal::currentUser();
   if ($settings->getValue('spacers')) {
     // Set fields as non-required. We will check them in validation. We do this
     // because when spacer is enabled we set these dynamically but FormValidator
