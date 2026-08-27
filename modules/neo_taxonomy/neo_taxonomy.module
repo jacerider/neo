@@ -72,7 +72,7 @@ function neo_taxonomy_form_alter(&$form, FormStateInterface $form_state, $form_i
       foreach ($form['links']['links'] as $key => &$link) {
         // If the link is a taxonomy term created by the taxonomy_menu module.
         if (str_contains($key, 'menu_plugin_id:taxonomy_menu.menu_link:taxonomy_menu.menu_link.')) {
-          [$tmid, $tid] = explode('.', str_replace('menu_plugin_id:taxonomy_menu.menu_link:taxonomy_menu.menu_link.', '', $key));
+          [, $tid] = explode('.', str_replace('menu_plugin_id:taxonomy_menu.menu_link:taxonomy_menu.menu_link.', '', $key));
           /** @var \Drupal\taxonomy\TermInterface $term */
           $term = \Drupal::entityTypeManager()->getStorage('taxonomy_term')->load($tid);
           $link['title'][] = [
@@ -122,7 +122,6 @@ function neo_taxonomy_form_alter(&$form, FormStateInterface $form_state, $form_i
   // @phpstan-ignore-next-line
   if ($form_object instanceof TaxonomyManagerTermForm) {
     $form['#neo_style'] = 'flush';
-    // @phpstan-ignore-next-line
     $term = $form_object->getEntity();
     /** @var \Drupal\taxonomy\VocabularyInterface $vocabulary */
     $vocabulary = \Drupal::entityTypeManager()->getStorage('taxonomy_vocabulary')->load($term->bundle());
