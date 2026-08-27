@@ -18,6 +18,14 @@ use Drupal\neo_icon\IconTrait;
  * and behaviors. The menu can have multiple levels of nested items, with
  * back and "view all" controls for navigation.
  *
+ * The second constructor argument is the option array. Every key it accepts is
+ * a case of \Drupal\neo\SlideMenuOption, which is where the option set is
+ * stated: each case carries the key, the value the option starts at and the
+ * type an incoming value is cast to. An attribute option merges into the
+ * default rather than replacing it, which is why the example below adds a
+ * class to the link bag instead of losing the three it already carries. A key
+ * the enum does not name is ignored in silence.
+ *
  * @example
  * $menu = new SlideMenu([
  *   [
@@ -36,6 +44,8 @@ use Drupal\neo_icon\IconTrait;
  *       ],
  *     ],
  *   ],
+ * ], [
+ *   'link_attributes' => ['class' => ['gap-2']],
  * ]);
  * $render = $menu->toRenderable();
  */
@@ -47,7 +57,13 @@ class SlideMenu implements RenderableInterface {
   /**
    * The menu items.
    *
-   * @var array
+   * This and the thirteen properties below are storage for one option apiece
+   * and nothing else. The value each starts at lives on SlideMenuOption, the
+   * constructor seeds it from there, and ::option() and ::setOption() are the
+   * only code that reaches them — nothing else in the class, the constructor
+   * and ::applyOptions() included, knows an option is stored here at all.
+   *
+   * @var array<int|string, mixed>
    */
   protected array $items;
 
@@ -70,7 +86,7 @@ class SlideMenu implements RenderableInterface {
    *
    * @var string
    */
-  protected string $childIcon = 'chevron-right';
+  protected string $childIcon;
 
   /**
    * Attributes applied to child indicator icons.
@@ -84,21 +100,21 @@ class SlideMenu implements RenderableInterface {
    *
    * @var bool
    */
-  protected bool $backStatus = TRUE;
+  protected bool $backStatus;
 
   /**
    * Icon used for back navigation.
    *
    * @var string
    */
-  protected string $backIcon = 'chevron-left';
+  protected string $backIcon;
 
   /**
    * Label used for back navigation.
    *
    * @var string
    */
-  protected string $backLabel = 'Back';
+  protected string $backLabel;
 
   /**
    * Attributes applied to back links.
@@ -119,7 +135,7 @@ class SlideMenu implements RenderableInterface {
    *
    * @var bool
    */
-  protected bool $allStatus = TRUE;
+  protected bool $allStatus;
 
   /**
    * The depth at which children render inline instead of as slide levels.
@@ -132,51 +148,42 @@ class SlideMenu implements RenderableInterface {
    *
    * @var int
    */
-  protected int $expandDepth = 0;
+  protected int $expandDepth;
 
   /**
    * Prefix text for "view all" links.
    *
    * @var string
    */
-  protected string $allPrefix = 'View all';
+  protected string $allPrefix;
 
   /**
    * Suffix text for "view all" links.
    *
    * @var string
    */
-  protected string $allSuffix = 'Right now';
+  protected string $allSuffix;
 
   /**
    * Constructs a new SlideMenu.
    *
-   * @param array $items
+   * @param array<int|string, mixed> $items
    *   The menu items to display.
-   * @param array $options
-   *   Optional configuration options. Any property of this class can be set
-   *   via these options using snake_case keys.
+   * @param array<string, mixed> $options
+   *   Optional configuration options, keyed by the option key each
+   *   \Drupal\neo\SlideMenuOption case is valued with.
    */
   public function __construct(array $items, array $options = []) {
-    $this->setItems($items);
+    // Seed every option from its case's default, which is where the fourteen
+    // defaults are stated. Seeding happens before the options are applied
+    // because an attribute option merges into what it finds: a caller passing
+    // a class to the link bag adds one to the three the default carries
+    // rather than replacing them.
+    foreach (SlideMenuOption::cases() as $option) {
+      $this->setOption($option, $option->defaultValue());
+    }
 
-    // Initialize default attributes.
-    $this->itemAttributes = new Attribute();
-    $this->linkAttributes = new Attribute([
-      'class' => [
-        'flex items-center justify-between',
-      ],
-    ]);
-    $this->backAttributes = new Attribute([
-      'class' => [
-        'flex items-center justify-between w-full',
-        'neo-slide-menu--backlink',
-        'neo-slide-menu--control',
-      ],
-      'data-action' => 'back',
-    ]);
-    $this->backIconAttributes = new Attribute();
-    $this->childIconAttributes = new Attribute();
+    $this->setItems($items);
 
     // Apply options.
     $this->applyOptions($options);
@@ -185,7 +192,16 @@ class SlideMenu implements RenderableInterface {
   /**
    * Applies configuration options to this menu instance.
    *
-   * @param array $options
+   * A key SlideMenuOption names is cast to that option's own type and
+   * dispatched through the typed match below — that is every key a caller
+   * passes, and none of them reaches a ReflectionClass any more. A key the
+   * enum does not name falls back to the reflection dispatch this class has
+   * always used, so a subclass that added a setter of its own keeps having its
+   * key accepted. A key neither answers is ignored in silence: the option
+   * array is assembled by other packages and by site code, so a stale key
+   * stays a no-op rather than becoming an outage.
+   *
+   * @param array<string, mixed> $options
    *   Configuration options as key-value pairs.
    */
   protected function applyOptions(array $options): void {
@@ -193,10 +209,38 @@ class SlideMenu implements RenderableInterface {
       return;
     }
 
-    $class = new \ReflectionClass($this);
+    $class = NULL;
     foreach ($options as $key => $option) {
+      // The key is cast because a PHP array key may be an int, and the
+      // fallback below has always taken one without raising.
+      $case = SlideMenuOption::tryFrom((string) $key);
+      if ($case) {
+        // The setters are the write side on purpose: an attribute option
+        // merges into the bag it already holds and the expand depth clamps,
+        // and both of those live there.
+        $value = $case->cast($option);
+        match ($case) {
+          SlideMenuOption::Items => $this->setItems($value),
+          SlideMenuOption::ItemAttributes => $this->setItemAttributes($value),
+          SlideMenuOption::LinkAttributes => $this->setLinkAttributes($value),
+          SlideMenuOption::ChildIcon => $this->setChildIcon($value),
+          SlideMenuOption::ChildIconAttributes => $this->setChildIconAttributes($value),
+          SlideMenuOption::BackStatus => $this->setBackStatus($value),
+          SlideMenuOption::BackIcon => $this->setBackIcon($value),
+          SlideMenuOption::BackAttributes => $this->setBackAttributes($value),
+          SlideMenuOption::BackIconAttributes => $this->setBackIconAttributes($value),
+          SlideMenuOption::BackLabel => $this->setBackLabel($value),
+          SlideMenuOption::AllStatus => $this->setAllStatus($value),
+          SlideMenuOption::AllPrefix => $this->setAllPrefix($value),
+          SlideMenuOption::AllSuffix => $this->setAllSuffix($value),
+          SlideMenuOption::ExpandDepth => $this->setExpandDepth($value),
+        };
+        continue;
+      }
+
       $method = 'set' . ucfirst(Str::camel($key));
       if (method_exists($this, $method)) {
+        $class ??= new \ReflectionClass($this);
         $parameter = $class->getMethod($method)->getParameters()[0] ?? NULL;
         if ($parameter) {
           $type = (string) $parameter->getType();
@@ -213,33 +257,109 @@ class SlideMenu implements RenderableInterface {
   }
 
   /**
+   * Answers the value an option currently holds.
+   *
+   * The only code in this class that knows where an option is stored, which is
+   * what makes a fifteenth option one SlideMenuOption case and two forwarders
+   * rather than a property, a constructor line, a default and two more method
+   * bodies.
+   *
+   * It answers the menu's own value, never a copy. The five attribute bags are
+   * mutable and shared on purpose: buildItemBack() clones the back bag itself
+   * before labelling its own row, precisely because the bag it is handed is
+   * the one every later setBackAttributes() writes to. A copy handed out here
+   * would make every one of those writes vanish.
+   *
+   * Protected, deliberately: every option is already reachable from a
+   * fixture-free unit test through the twenty-eight methods that have always
+   * been public, so publishing this would add a permanent promise to an API
+   * another package calls and change nothing about what a test has to build.
+   *
+   * @param \Drupal\neo\SlideMenuOption $option
+   *   The option to answer.
+   *
+   * @return mixed
+   *   The menu's own value for that option.
+   */
+  protected function option(SlideMenuOption $option): mixed {
+    return match ($option) {
+      SlideMenuOption::Items => $this->items,
+      SlideMenuOption::ItemAttributes => $this->itemAttributes,
+      SlideMenuOption::LinkAttributes => $this->linkAttributes,
+      SlideMenuOption::ChildIcon => $this->childIcon,
+      SlideMenuOption::ChildIconAttributes => $this->childIconAttributes,
+      SlideMenuOption::BackStatus => $this->backStatus,
+      SlideMenuOption::BackIcon => $this->backIcon,
+      SlideMenuOption::BackAttributes => $this->backAttributes,
+      SlideMenuOption::BackIconAttributes => $this->backIconAttributes,
+      SlideMenuOption::BackLabel => $this->backLabel,
+      SlideMenuOption::AllStatus => $this->allStatus,
+      SlideMenuOption::AllPrefix => $this->allPrefix,
+      SlideMenuOption::AllSuffix => $this->allSuffix,
+      SlideMenuOption::ExpandDepth => $this->expandDepth,
+    };
+  }
+
+  /**
+   * Replaces the value an option holds.
+   *
+   * The write half of ::option(), and the other half of what knows where an
+   * option is stored. An attribute option is never written through here after
+   * construction: its setter merges into the bag ::option() answers, which is
+   * what keeps calling one twice accumulating.
+   *
+   * @param \Drupal\neo\SlideMenuOption $option
+   *   The option to write.
+   * @param mixed $value
+   *   The value to store, already cast to that option's type.
+   */
+  protected function setOption(SlideMenuOption $option, mixed $value): void {
+    match ($option) {
+      SlideMenuOption::Items => $this->items = $value,
+      SlideMenuOption::ItemAttributes => $this->itemAttributes = $value,
+      SlideMenuOption::LinkAttributes => $this->linkAttributes = $value,
+      SlideMenuOption::ChildIcon => $this->childIcon = $value,
+      SlideMenuOption::ChildIconAttributes => $this->childIconAttributes = $value,
+      SlideMenuOption::BackStatus => $this->backStatus = $value,
+      SlideMenuOption::BackIcon => $this->backIcon = $value,
+      SlideMenuOption::BackAttributes => $this->backAttributes = $value,
+      SlideMenuOption::BackIconAttributes => $this->backIconAttributes = $value,
+      SlideMenuOption::BackLabel => $this->backLabel = $value,
+      SlideMenuOption::AllStatus => $this->allStatus = $value,
+      SlideMenuOption::AllPrefix => $this->allPrefix = $value,
+      SlideMenuOption::AllSuffix => $this->allSuffix = $value,
+      SlideMenuOption::ExpandDepth => $this->expandDepth = $value,
+    };
+  }
+
+  /**
    * Sets the menu items.
    *
-   * @param array $items
+   * @param array<int|string, mixed> $items
    *   The menu items.
    */
   public function setItems(array $items): void {
-    $this->items = $items;
+    $this->setOption(SlideMenuOption::Items, $items);
   }
 
   /**
    * Gets the menu items.
    *
-   * @return array
+   * @return array<int|string, mixed>
    *   The menu items.
    */
   public function getItems(): array {
-    return $this->items;
+    return $this->option(SlideMenuOption::Items);
   }
 
   /**
    * Sets attributes for menu items.
    *
-   * @param array $attributes
+   * @param array<string, mixed> $attributes
    *   The attributes to set.
    */
   public function setItemAttributes(array $attributes): void {
-    $this->itemAttributes->merge(new Attribute($attributes));
+    $this->option(SlideMenuOption::ItemAttributes)->merge(new Attribute($attributes));
   }
 
   /**
@@ -249,17 +369,17 @@ class SlideMenu implements RenderableInterface {
    *   The item attributes.
    */
   public function getItemAttributes(): Attribute {
-    return $this->itemAttributes;
+    return $this->option(SlideMenuOption::ItemAttributes);
   }
 
   /**
    * Sets attributes for menu links.
    *
-   * @param array $attributes
+   * @param array<string, mixed> $attributes
    *   The attributes to set.
    */
   public function setLinkAttributes(array $attributes): void {
-    $this->linkAttributes->merge(new Attribute($attributes));
+    $this->option(SlideMenuOption::LinkAttributes)->merge(new Attribute($attributes));
   }
 
   /**
@@ -269,7 +389,7 @@ class SlideMenu implements RenderableInterface {
    *   The link attributes.
    */
   public function getLinkAttributes(): Attribute {
-    return $this->linkAttributes;
+    return $this->option(SlideMenuOption::LinkAttributes);
   }
 
   /**
@@ -279,7 +399,7 @@ class SlideMenu implements RenderableInterface {
    *   The icon name.
    */
   public function setChildIcon(string $icon): void {
-    $this->childIcon = $icon;
+    $this->setOption(SlideMenuOption::ChildIcon, $icon);
   }
 
   /**
@@ -289,17 +409,17 @@ class SlideMenu implements RenderableInterface {
    *   The child icon.
    */
   public function getChildIcon(): string {
-    return $this->childIcon;
+    return $this->option(SlideMenuOption::ChildIcon);
   }
 
   /**
    * Sets attributes for child icons.
    *
-   * @param array $attributes
+   * @param array<string, mixed> $attributes
    *   The attributes to set.
    */
   public function setChildIconAttributes(array $attributes): void {
-    $this->childIconAttributes->merge(new Attribute($attributes));
+    $this->option(SlideMenuOption::ChildIconAttributes)->merge(new Attribute($attributes));
   }
 
   /**
@@ -309,7 +429,7 @@ class SlideMenu implements RenderableInterface {
    *   The child icon attributes.
    */
   public function getChildIconAttributes(): Attribute {
-    return $this->childIconAttributes;
+    return $this->option(SlideMenuOption::ChildIconAttributes);
   }
 
   /**
@@ -319,7 +439,7 @@ class SlideMenu implements RenderableInterface {
    *   TRUE to show back links, FALSE to hide them.
    */
   public function setBackStatus(bool $status): void {
-    $this->backStatus = $status;
+    $this->setOption(SlideMenuOption::BackStatus, $status);
   }
 
   /**
@@ -329,7 +449,7 @@ class SlideMenu implements RenderableInterface {
    *   TRUE if back links are shown, FALSE otherwise.
    */
   public function getBackStatus(): bool {
-    return $this->backStatus;
+    return $this->option(SlideMenuOption::BackStatus);
   }
 
   /**
@@ -339,7 +459,7 @@ class SlideMenu implements RenderableInterface {
    *   The icon name.
    */
   public function setBackIcon(string $icon): void {
-    $this->backIcon = $icon;
+    $this->setOption(SlideMenuOption::BackIcon, $icon);
   }
 
   /**
@@ -349,17 +469,17 @@ class SlideMenu implements RenderableInterface {
    *   The back icon.
    */
   public function getBackIcon(): string {
-    return $this->backIcon;
+    return $this->option(SlideMenuOption::BackIcon);
   }
 
   /**
    * Sets attributes for back links.
    *
-   * @param array $attributes
+   * @param array<string, mixed> $attributes
    *   The attributes to set.
    */
   public function setBackAttributes(array $attributes): void {
-    $this->backAttributes->merge(new Attribute($attributes));
+    $this->option(SlideMenuOption::BackAttributes)->merge(new Attribute($attributes));
   }
 
   /**
@@ -369,17 +489,17 @@ class SlideMenu implements RenderableInterface {
    *   The back link attributes.
    */
   public function getBackAttributes(): Attribute {
-    return $this->backAttributes;
+    return $this->option(SlideMenuOption::BackAttributes);
   }
 
   /**
    * Sets attributes for back icons.
    *
-   * @param array $attributes
+   * @param array<string, mixed> $attributes
    *   The attributes to set.
    */
   public function setBackIconAttributes(array $attributes): void {
-    $this->backIconAttributes->merge(new Attribute($attributes));
+    $this->option(SlideMenuOption::BackIconAttributes)->merge(new Attribute($attributes));
   }
 
   /**
@@ -389,7 +509,7 @@ class SlideMenu implements RenderableInterface {
    *   The back icon attributes.
    */
   public function getBackIconAttributes(): Attribute {
-    return $this->backIconAttributes;
+    return $this->option(SlideMenuOption::BackIconAttributes);
   }
 
   /**
@@ -399,7 +519,7 @@ class SlideMenu implements RenderableInterface {
    *   The label to use.
    */
   public function setBackLabel(string $label): void {
-    $this->backLabel = $label;
+    $this->setOption(SlideMenuOption::BackLabel, $label);
   }
 
   /**
@@ -409,7 +529,7 @@ class SlideMenu implements RenderableInterface {
    *   The back link label.
    */
   public function getBackLabel(): string {
-    return $this->backLabel;
+    return $this->option(SlideMenuOption::BackLabel);
   }
 
   /**
@@ -419,7 +539,7 @@ class SlideMenu implements RenderableInterface {
    *   TRUE to show "view all" links, FALSE to hide them.
    */
   public function setAllStatus(bool $status): void {
-    $this->allStatus = $status;
+    $this->setOption(SlideMenuOption::AllStatus, $status);
   }
 
   /**
@@ -429,7 +549,7 @@ class SlideMenu implements RenderableInterface {
    *   TRUE if "view all" links are shown, FALSE otherwise.
    */
   public function getAllStatus(): bool {
-    return $this->allStatus;
+    return $this->option(SlideMenuOption::AllStatus);
   }
 
   /**
@@ -439,7 +559,7 @@ class SlideMenu implements RenderableInterface {
    *   The prefix text.
    */
   public function setAllPrefix(string $prefix): void {
-    $this->allPrefix = $prefix;
+    $this->setOption(SlideMenuOption::AllPrefix, $prefix);
   }
 
   /**
@@ -449,7 +569,7 @@ class SlideMenu implements RenderableInterface {
    *   The "view all" prefix text.
    */
   public function getAllPrefix(): string {
-    return $this->allPrefix;
+    return $this->option(SlideMenuOption::AllPrefix);
   }
 
   /**
@@ -459,7 +579,7 @@ class SlideMenu implements RenderableInterface {
    *   The suffix text.
    */
   public function setAllSuffix(string $suffix): void {
-    $this->allSuffix = $suffix;
+    $this->setOption(SlideMenuOption::AllSuffix, $suffix);
   }
 
   /**
@@ -469,7 +589,7 @@ class SlideMenu implements RenderableInterface {
    *   The "view all" suffix text.
    */
   public function getAllSuffix(): string {
-    return $this->allSuffix;
+    return $this->option(SlideMenuOption::AllSuffix);
   }
 
   /**
@@ -723,7 +843,9 @@ class SlideMenu implements RenderableInterface {
    *   expansion (children always open a new slide level).
    */
   public function setExpandDepth(int $depth): void {
-    $this->expandDepth = max(0, $depth);
+    // The clamp stays on the write side of the forwarder, so a negative depth
+    // reaching the option array reads back as 0 exactly as it always has.
+    $this->setOption(SlideMenuOption::ExpandDepth, max(0, $depth));
   }
 
   /**
@@ -733,7 +855,7 @@ class SlideMenu implements RenderableInterface {
    *   The depth; 0 when inline expansion is disabled.
    */
   public function getExpandDepth(): int {
-    return $this->expandDepth;
+    return $this->option(SlideMenuOption::ExpandDepth);
   }
 
   /**
