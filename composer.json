@@ -17,7 +17,7 @@
   },
   "minimum-stability": "dev",
   "require": {
-    "drupal/core": "^10.3 || ^11",
+    "drupal/core": "^11.3",
     "drupal/linkit": "^7.0",
     "jacerider/neo_build": "^1",
     "jacerider/neo_icon": "^1",

@@ -7,6 +7,7 @@ namespace Drupal\Tests\neo\Kernel;
 use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\neo\Hook\NeoTokensHooks;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use PHPUnit\Framework\Attributes\Group;
@@ -14,10 +15,16 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * Characterises the smart token dispatcher and its two caches.
  *
- * `neo.tokens.inc` publishes one token type, `neo`, and eight tokens under it,
- * and `neo_tokens()` is the entry point every meta tag on a Neo site passes
- * through. `neo_token_info()` is built from the same `neo_tokens_definitions()`
- * list the dispatcher consults, so a declared token is a token that resolves.
+ * `NeoTokensHooks` publishes one token type, `neo`, and eight tokens under it,
+ * and its `hook_tokens()` is the entry point every meta tag on a Neo site
+ * passes through. `hook_token_info()` is built from the same definition list
+ * the dispatcher consults, so a declared token is a token that resolves.
+ *
+ * All of it was `neo.tokens.inc` when this class was written.
+ * `neo-hook-classes` ticket 05 moved the two hooks onto the class, made the two
+ * `drupal_static()` caches private properties, and deleted the file. Every pin
+ * below is the same statement made through the class: a reset is another
+ * instance, and a static read is a read of the instance's own property.
  *
  * The dispatch, in order:
  *
@@ -34,7 +41,7 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * The two caches are the part nobody can see:
  *
- * - A **static** cache — `drupal_static('neo_tokens')` — keyed
+ * - An **instance** cache — a private property on the hook class — keyed
  *   `neo_tokens:{entity_type}:{id}:{name}[:{params}]`, or
  *   `neo_tokens:no-entity:{name}[:{params}]`. Checked first, written for every
  *   computed value.
@@ -134,12 +141,22 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
   protected Node $labelless;
 
   /**
+   * The hook class the dispatcher and its resolvers now live on.
+   *
+   * Dropped wherever this class used to reset a static: the two caches are
+   * private properties, so another instance is the reset.
+   *
+   * @var \Drupal\neo\Hook\NeoTokensHooks|null
+   */
+  protected ?NeoTokensHooks $hooks = NULL;
+
+  /**
    * {@inheritdoc}
    *
    * The route object is removed from the harness's request on purpose.
    * `KernelTestBase` builds a request for `/` and hangs core's `/<none>`
    * placeholder route on it — a route with no defaults, which no real
-   * replacement ever runs against. Left in place, `neo_tokens_title()` takes
+   * replacement ever runs against. Left in place, the title resolver takes
    * its route branch, `title_resolver` answers `NULL`, and
    * `token_render_array_value(NULL)` turns that into the empty string for every
    * candidate alike, so no candidate is distinguishable from any other and the
@@ -157,10 +174,6 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
     // Updating a node deletes its access grants, which needs the table.
     $this->installSchema('node', ['node_access']);
     $this->installConfig(['system', 'node']);
-
-    // `neo_tokens()` and its resolvers live in an include the module loads on
-    // demand, so nothing has pulled it in by the time a test calls it.
-    \Drupal::moduleHandler()->loadInclude('neo', 'tokens.inc');
 
     \Drupal::request()->attributes->remove(RouteObjectInterface::ROUTE_OBJECT);
 
@@ -197,13 +210,13 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
    * never the key it tests. They populate the token browser and nothing else.
    */
   public function testDeclaresOneTokenTypeCarryingTheEightDefinedTokens(): void {
-    $info = neo_token_info();
+    $info = $this->tokensHooks()->tokenInfo();
 
     $this->assertSame(['neo'], array_keys($info['types']));
     $this->assertSame('Neo', (string) $info['types']['neo']['name']);
     $this->assertSame(['neo'], array_keys($info['tokens']));
 
-    $definitions = neo_tokens_definitions();
+    $definitions = $this->definitions();
     $this->assertSame([
       'title',
       'description',
@@ -251,7 +264,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
    * nothing would leave one holding `NULL`.
    */
   public function testReturnsNothingForForeignTypesAndSkipsAnUndefinedName(): void {
-    $this->assertSame([], neo_tokens(
+    $this->assertSame([], $this->tokensHooks()->tokens(
       'node',
       ['title' => '[node:title]'],
       ['node' => $this->node],
@@ -259,8 +272,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
       new BubbleableMetadata()
     ));
     $this->assertNull(\Drupal::state()->get('neo_test.token_title_alter_seen'));
-    $static = &drupal_static('neo_tokens');
-    $this->assertSame([], (array) $static);
+    $this->assertSame([], $this->dispatchCache());
 
     // A name with no definition is skipped entirely: the raw token is left in
     // place for whoever asked, the parameters are never examined, and no cache
@@ -270,7 +282,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
       'nope:width' => '[neo:nope:width]',
     ], ['node' => $this->node]));
     $this->assertNull(\Drupal::state()->get('neo_test.token_title_alter_seen'));
-    $this->assertSame([], (array) $static);
+    $this->assertSame([], $this->dispatchCache());
 
     // `[neo:logo:width]` resolves because `logo` has a definition, not because
     // the compound key `logo:width` does — it computes, and leaves a key.
@@ -280,7 +292,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
     ));
     $this->assertSame(
       ['neo_tokens:node:' . $this->node->id() . ':logo:width'],
-      array_keys((array) $static)
+      array_keys($this->dispatchCache())
     );
 
     // The compound definition key is not what makes `[neo:logo:width]`
@@ -324,11 +336,10 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
 
     // The parameters are appended to the cache key, so the two calls above
     // cached separately rather than colliding on `title`.
-    $static = &drupal_static('neo_tokens');
     $this->assertSame([
       'neo_tokens:node:1:title:crop:1200:630',
       'neo_tokens:node:1:title',
-    ], array_keys($static));
+    ], array_keys($this->dispatchCache()));
   }
 
   /**
@@ -440,7 +451,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
       'a' => $this->node,
       'b' => $this->otherNode,
     ]));
-    $static = &drupal_static('neo_tokens');
+    $static = $this->dispatchCache();
     $this->assertSame('', $static['neo_tokens:node:' . $this->node->id() . ':title']);
   }
 
@@ -465,7 +476,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
     );
 
     $key = 'neo_tokens:node:' . $this->node->id() . ':title';
-    $static = &drupal_static('neo_tokens');
+    $static = $this->dispatchCache();
     $this->assertSame('First value', $static[$key]);
 
     \Drupal::cache()->delete($key);
@@ -524,7 +535,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
     $this->resetCaches();
     \Drupal::state()->set('neo_test.token_title_alter', 'Not persisted');
     $this->dispatch(['title:a:b' => '[neo:title:a:b]'], []);
-    $static = &drupal_static('neo_tokens');
+    $static = $this->dispatchCache();
     $this->assertSame('Not persisted', $static['neo_tokens:no-entity:title:a:b']);
     $this->assertFalse(\Drupal::cache()->get('neo_tokens:no-entity:title:a:b'));
 
@@ -532,7 +543,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
     // render array holding the resolved value depends on nothing.
     $this->resetCaches();
     $bubbleable = new BubbleableMetadata();
-    neo_tokens(
+    $this->tokensHooks()->tokens(
       'neo',
       ['title' => '[neo:title]'],
       ['node' => $this->node],
@@ -574,7 +585,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
 
     // The static cache holds the key with a NULL against it, and the isset()
     // that reads it cannot see it.
-    $static = &drupal_static('neo_tokens');
+    $static = $this->dispatchCache();
     $this->assertArrayHasKey($key, $static);
     $this->assertNull($static[$key]);
     $this->assertFalse(isset($static[$key]));
@@ -603,7 +614,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
     $this->assertNotFalse($item);
     $this->assertNull($item->data);
 
-    drupal_static_reset('neo_tokens');
+    $this->hooks = NULL;
     \Drupal::state()->delete('neo_test.token_title_alter_seen');
     $replacements = $this->dispatch(['title' => '[neo:title]'], ['alias' => $this->labelless]);
     $this->assertSame(['[neo:title]' => NULL], $replacements);
@@ -611,7 +622,7 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
   }
 
   /**
-   * Dispatches a `neo` token set through `neo_tokens()`.
+   * Dispatches a `neo` token set through the class's own `hook_tokens()`.
    *
    * @param array $tokens
    *   The requested tokens, keyed by name-with-parameters.
@@ -622,15 +633,65 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
    *   The replacement set, keyed by the raw token.
    */
   private function dispatch(array $tokens, array $data = []): array {
-    return neo_tokens('neo', $tokens, $data, [], new BubbleableMetadata());
+    return $this->tokensHooks()->tokens('neo', $tokens, $data, [], new BubbleableMetadata());
+  }
+
+  /**
+   * The definition list the dispatcher consults, off the hook class.
+   *
+   * @return array
+   *   The eight token definitions.
+   */
+  private function definitions(): array {
+    $hooks = $this->tokensHooks();
+    return (new \ReflectionMethod($hooks, 'definitions'))->invoke($hooks);
+  }
+
+  /**
+   * The dispatcher's own per-request cache, read off the instance.
+   *
+   * It was `drupal_static('neo_tokens')`; it is a private property now, so a
+   * test reads it by reflection rather than by reference.
+   *
+   * @return array
+   *   The cache, keyed as the dispatcher keys it.
+   */
+  private function dispatchCache(): array {
+    $hooks = $this->tokensHooks();
+    return (array) (new \ReflectionProperty($hooks, 'dispatchCache'))->getValue($hooks);
+  }
+
+  /**
+   * The instance under test, built from the container's own services.
+   *
+   * It is built rather than fetched because core registers a hook class as a
+   * private autowired service.
+   *
+   * @return \Drupal\neo\Hook\NeoTokensHooks
+   *   The instance, memoised until something invalidates it.
+   */
+  private function tokensHooks(): NeoTokensHooks {
+    $this->hooks ??= new NeoTokensHooks(
+      $this->container->get('cache.default'),
+      $this->container->get('module_handler'),
+      $this->container->get('path.matcher'),
+      $this->container->get('config.factory'),
+      $this->container->get('request_stack'),
+      $this->container->get('title_resolver'),
+      $this->container->get('file_url_generator'),
+    );
+    return $this->hooks;
   }
 
   /**
    * Empties both caches and the fixture's record of its own invocations.
+   *
+   * Both of the dispatcher's per-request caches are private properties on the
+   * hook class rather than `drupal_static()` caches, so emptying them is asking
+   * for another instance.
    */
   private function resetCaches(): void {
-    drupal_static_reset('neo_tokens');
-    drupal_static_reset('neo_tokens_image_fetch');
+    $this->hooks = NULL;
     \Drupal::cache()->deleteAll();
     \Drupal::state()->delete('neo_test.token_title_alter_seen');
   }

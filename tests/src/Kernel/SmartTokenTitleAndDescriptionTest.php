@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\neo\Kernel;
 
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Path\PathMatcher;
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\neo\Hook\NeoTokensHooks;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\taxonomy\Entity\Term;
@@ -19,9 +21,15 @@ use Symfony\Component\Routing\Route;
 /**
  * Characterises the two text resolvers behind `[neo:title]` and `[neo:*]`.
  *
- * `neo_tokens_title()` and `neo_tokens_description()` are what every page title
- * and every meta description on a Neo site ultimately comes from. Both are
- * short, both have four fallbacks, and neither has ever been asserted.
+ * `NeoTokensHooks::title()` and `NeoTokensHooks::description()` are what every
+ * page title and every meta description on a Neo site ultimately comes from.
+ * Both are short, both have four fallbacks, and neither has ever been asserted.
+ *
+ * They were `$this->title()` and `$this->description()` in
+ * `neo.tokens.inc` when this class was written. `neo-hook-classes` ticket 05
+ * moved them onto the hook class as private methods and deleted the file, so
+ * every pin below is the same statement made through the class instead of
+ * through a global. Nothing about any assertion changed with them.
  *
  * **The title**, in the order it actually runs:
  *
@@ -45,13 +53,13 @@ use Symfony\Component\Routing\Route;
  * short-circuit at step 1 and the fallback at step 4 — which is why both have
  * their own test method: a refactor that collapsed them would still pass one.
  *
- * The resolvers are called directly rather than through `neo_tokens()`. The
+ * The resolvers are called directly rather than through the dispatcher. The
  * dispatcher and its two caches are ticket 11's subject and are pinned in
  * `SmartTokenDispatcherTest`; driving these two through it would only put a
  * memoisation layer between the assertion and the branch it is about.
  *
  * **The contrib `token` module is installed deliberately.**
- * `neo_tokens_title()` calls `token_render_array_value()`, a global function
+ * The title resolver calls `token_render_array_value()`, a global function
  * that contrib `token` provides. `neo.info.yml` declares no dependency on
  * `token` and `composer.json` requires no such package, so on a site without it
  * this token is a fatal error on any non-front-page route that has a route
@@ -68,7 +76,7 @@ use Symfony\Component\Routing\Route;
  *    `token_render_array_value(NULL)` casts `NULL` to `''` and that is the end
  *    of the function. Only the *absence* of a route object reaches the entity.
  *    Pinned in testResolvesTheTitleFromTheRouteAndFallsBackToTheEntityLabel.
- * 2. **`neo_tokens_title()`'s own docblock is wrong.** It documents three steps
+ * 2. **The title resolver's own docblock is wrong.** It documents three steps
  *    — the alter hook, the route, the entity — and does not mention the
  *    front-page short-circuit that runs before all three and that no hook can
  *    reach. Pinned in
@@ -138,6 +146,16 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
   protected Term $emptyTerm;
 
   /**
+   * The hook class the two resolvers now live on.
+   *
+   * Rebuilt whenever the request context changes, because the instance holds
+   * the path matcher it was constructed with.
+   *
+   * @var \Drupal\neo\Hook\NeoTokensHooks|null
+   */
+  protected ?NeoTokensHooks $hooks = NULL;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -150,9 +168,6 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
     $this->installSchema('node', ['node_access']);
     $this->installConfig(['system', 'filter', 'node']);
 
-    // `neo_tokens_title()` and `neo_tokens_description()` live in an include
-    // the module loads on demand, so nothing has pulled it in yet.
-    \Drupal::moduleHandler()->loadInclude('neo', 'tokens.inc');
     // The front-page comparison turns the current route into a path through the
     // URL generator, so the fixture routes have to be in the route provider.
     \Drupal::service('router.builder')->rebuild();
@@ -213,23 +228,23 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
       \Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_OBJECT)
     ));
 
-    $this->assertSame('Fixture site name', neo_tokens_title([], $this->node));
+    $this->assertSame('Fixture site name', $this->title([], $this->node));
     $this->assertNull(\Drupal::state()->get('neo_test.token_title_alter_seen'));
 
     // The parameters are not consulted either, and neither is the absence of an
     // entity: the front page answers the same way for every caller.
-    $this->assertSame('Fixture site name', neo_tokens_title(['crop', '1200'], NULL));
+    $this->assertSame('Fixture site name', $this->title(['crop', '1200'], NULL));
     $this->assertNull(\Drupal::state()->get('neo_test.token_title_alter_seen'));
 
     // Quirk 2: the function's own docblock lists the three branches this test
     // just proved unreachable, and never mentions the front page at all.
-    $docblock = (new \ReflectionFunction('neo_tokens_title'))->getDocComment();
+    $docblock = (new \ReflectionMethod(NeoTokensHooks::class, 'title'))->getDocComment();
     $this->assertStringContainsString('hook_neo_token_title_alter()', (string) $docblock);
     $this->assertStringNotContainsString('front', (string) $docblock);
 
     // Quirk 4: an unset site name is the empty string, not a fallback.
     $this->config('system.site')->set('name', '')->save();
-    $this->assertSame('', neo_tokens_title([], $this->node));
+    $this->assertSame('', $this->title([], $this->node));
     $this->assertNull(\Drupal::state()->get('neo_test.token_title_alter_seen'));
   }
 
@@ -253,7 +268,7 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
     $this->assertFalse(\Drupal::service('path.matcher')->isFrontPage());
 
     \Drupal::state()->set('neo_test.token_title_alter', 'The hook title');
-    $this->assertSame('The hook title', neo_tokens_title(['a', 'b'], $this->node));
+    $this->assertSame('The hook title', $this->title(['a', 'b'], $this->node));
 
     $seen = \Drupal::state()->get('neo_test.token_title_alter_seen');
     $this->assertNull($seen['title']);
@@ -262,18 +277,18 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
 
     // With no entity at all the hook is still the first thing consulted, and
     // still beats the route.
-    $this->assertSame('The hook title', neo_tokens_title([], NULL));
+    $this->assertSame('The hook title', $this->title([], NULL));
     $this->assertNull(\Drupal::state()->get('neo_test.token_title_alter_seen')['entity']);
 
     // Switched off, the branches behind it answer, which is what makes the two
     // assertions above a preference rather than the only available value.
     \Drupal::state()->delete('neo_test.token_title_alter');
-    $this->assertSame('Neo test open', neo_tokens_title([], $this->node));
+    $this->assertSame('Neo test open', $this->title([], $this->node));
 
     // Quirk 3: `'0'` is a legitimate title and is discarded as though the hook
     // had contributed nothing.
     \Drupal::state()->set('neo_test.token_title_alter', '0');
-    $this->assertSame('Neo test open', neo_tokens_title([], $this->node));
+    $this->assertSame('Neo test open', $this->title([], $this->node));
     $this->assertSame('0', \Drupal::state()->get('neo_test.token_title_alter'));
   }
 
@@ -302,7 +317,7 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
 
     // The route wins over the entity, and the value is a rendered string rather
     // than the `TranslatableMarkup` the title resolver returns.
-    $title = neo_tokens_title([], $this->node);
+    $title = $this->title([], $this->node);
     $this->assertSame('Neo test open', $title);
     $this->assertIsString($title);
     // The hook did run and did decline; the route is the second branch, not the
@@ -313,7 +328,7 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
     );
 
     // The route answers with no entity present at all.
-    $this->assertSame('Neo test open', neo_tokens_title([], NULL));
+    $this->assertSame('Neo test open', $this->title([], NULL));
 
     // Quirk 1: a route object that resolves no title short-circuits the entity
     // label, because the two branches are `if`/`elseif` and
@@ -323,15 +338,15 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
       \Drupal::request(),
       \Drupal::request()->attributes->get(RouteObjectInterface::ROUTE_OBJECT)
     ));
-    $this->assertSame('', neo_tokens_title([], $this->node));
+    $this->assertSame('', $this->title([], $this->node));
 
     // With no route object on the request the entity's label is the answer.
     $this->enterRequest(NULL);
-    $this->assertSame('The node label', neo_tokens_title([], $this->node));
-    $this->assertSame('The term label', neo_tokens_title([], $this->term));
+    $this->assertSame('The node label', $this->title([], $this->node));
+    $this->assertSame('The term label', $this->title([], $this->term));
 
     // And with neither a route object nor an entity, nothing resolves.
-    $this->assertNull(neo_tokens_title([], NULL));
+    $this->assertNull($this->title([], NULL));
   }
 
   /**
@@ -357,17 +372,17 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
     // The term would answer with its own description off the front page.
     $this->assertSame('The term description', $this->term->get('description')->value);
 
-    $this->assertSame('Fixture site slogan', neo_tokens_description([], $this->term));
+    $this->assertSame('Fixture site slogan', $this->description([], $this->term));
     $this->assertNull(\Drupal::state()->get('neo_test.token_description_alter_seen'));
 
     // The parameters are not consulted, and neither is the absence of an
     // entity.
-    $this->assertSame('Fixture site slogan', neo_tokens_description(['crop'], NULL));
+    $this->assertSame('Fixture site slogan', $this->description(['crop'], NULL));
     $this->assertNull(\Drupal::state()->get('neo_test.token_description_alter_seen'));
 
     // Quirk 4: an unset slogan is the empty string, not a fallback.
     $this->config('system.site')->set('slogan', '')->save();
-    $this->assertSame('', neo_tokens_description([], $this->term));
+    $this->assertSame('', $this->description([], $this->term));
     $this->assertNull(\Drupal::state()->get('neo_test.token_description_alter_seen'));
   }
 
@@ -386,7 +401,7 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
     $this->assertFalse(\Drupal::service('path.matcher')->isFrontPage());
 
     \Drupal::state()->set('neo_test.token_description_alter', 'The hook description');
-    $this->assertSame('The hook description', neo_tokens_description(['x'], $this->term));
+    $this->assertSame('The hook description', $this->description(['x'], $this->term));
 
     $seen = \Drupal::state()->get('neo_test.token_description_alter_seen');
     $this->assertNull($seen['description']);
@@ -394,14 +409,14 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
     $this->assertSame('taxonomy_term:' . $this->term->id(), $seen['entity']);
 
     // It beats the slogan with no entity in scope at all.
-    $this->assertSame('The hook description', neo_tokens_description([], NULL));
+    $this->assertSame('The hook description', $this->description([], NULL));
     $this->assertNull(\Drupal::state()->get('neo_test.token_description_alter_seen')['entity']);
 
     // Switched off, both branches behind it answer, which is what makes the
     // above a preference.
     \Drupal::state()->delete('neo_test.token_description_alter');
-    $this->assertSame('The term description', neo_tokens_description([], $this->term));
-    $this->assertSame('Fixture site slogan', neo_tokens_description([], $this->node));
+    $this->assertSame('The term description', $this->description([], $this->term));
+    $this->assertSame('Fixture site slogan', $this->description([], $this->node));
   }
 
   /**
@@ -422,19 +437,19 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
     $this->assertFalse(\Drupal::service('path.matcher')->isFrontPage());
     \Drupal::state()->delete('neo_test.token_description_alter');
 
-    $this->assertSame('The term description', neo_tokens_description([], $this->term));
+    $this->assertSame('The term description', $this->description([], $this->term));
 
     // With the slogan out of the way, what the entity contributes is all that
     // is left — and for anything but a term that is nothing.
     $this->config('system.site')->set('slogan', '')->save();
-    $this->assertSame('The term description', neo_tokens_description([], $this->term));
+    $this->assertSame('The term description', $this->description([], $this->term));
 
-    $this->assertSame('', neo_tokens_description([], $this->node));
+    $this->assertSame('', $this->description([], $this->node));
     $this->assertSame('The node label', $this->node->label());
 
     $user = User::create(['name' => 'describable']);
     $user->save();
-    $this->assertSame('', neo_tokens_description([], $user));
+    $this->assertSame('', $this->description([], $user));
 
     // The hook still saw every one of them; the entity branch is what declined.
     $this->assertSame(
@@ -465,20 +480,20 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
 
     // A term whose description was never set.
     $this->assertNull($this->emptyTerm->get('description')->value);
-    $this->assertSame('Fixture site slogan', neo_tokens_description([], $this->emptyTerm));
+    $this->assertSame('Fixture site slogan', $this->description([], $this->emptyTerm));
 
     // An entity type the match has no arm for.
-    $this->assertSame('Fixture site slogan', neo_tokens_description([], $this->node));
+    $this->assertSame('Fixture site slogan', $this->description([], $this->node));
 
     // No entity at all — the fallback is reached without the entity branch
     // running.
-    $this->assertSame('Fixture site slogan', neo_tokens_description([], NULL));
+    $this->assertSame('Fixture site slogan', $this->description([], NULL));
     $this->assertNull(\Drupal::state()->get('neo_test.token_description_alter_seen')['entity']);
 
     // Quirk 3: `'0'` is a description and is discarded as though it were not.
     $this->term->set('description', ['value' => '0', 'format' => 'plain_text']);
     $this->assertSame('0', $this->term->get('description')->value);
-    $this->assertSame('Fixture site slogan', neo_tokens_description([], $this->term));
+    $this->assertSame('Fixture site slogan', $this->description([], $this->term));
   }
 
   /**
@@ -540,8 +555,83 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
       $this->container->get('config.factory'),
       $this->container->get('current_route_match')
     ));
+    // The instance holds the path matcher it was constructed with, so it is
+    // dropped with the request that made a new one necessary.
+    $this->hooks = NULL;
     \Drupal::state()->delete('neo_test.token_title_alter_seen');
     \Drupal::state()->delete('neo_test.token_description_alter_seen');
+  }
+
+  /**
+   * Calls the title resolver, which is a private method on the hook class.
+   *
+   * @param array $params
+   *   The token's parameters.
+   * @param \Drupal\Core\Entity\ContentEntityInterface|null $entity
+   *   The entity being processed.
+   *
+   * @return mixed
+   *   Whatever the resolver answered.
+   */
+  protected function title(array $params = [], ?ContentEntityInterface $entity = NULL): mixed {
+    return $this->invoke('title', [$params, $entity]);
+  }
+
+  /**
+   * Calls the description resolver, a private method on the hook class.
+   *
+   * @param array $params
+   *   The token's parameters.
+   * @param \Drupal\Core\Entity\ContentEntityInterface|null $entity
+   *   The entity being processed.
+   *
+   * @return mixed
+   *   Whatever the resolver answered.
+   */
+  protected function description(array $params = [], ?ContentEntityInterface $entity = NULL): mixed {
+    return $this->invoke('description', [$params, $entity]);
+  }
+
+  /**
+   * Calls one of the hook class's private resolvers.
+   *
+   * The nine helpers behind the two hooks are private, because nothing outside
+   * the class calls them — which is exactly why a test that wants one has to
+   * ask for it by name.
+   *
+   * @param string $method
+   *   The method name.
+   * @param array $arguments
+   *   The positional arguments.
+   *
+   * @return mixed
+   *   Whatever the method answered.
+   */
+  protected function invoke(string $method, array $arguments): mixed {
+    $hooks = $this->tokensHooks();
+    return (new \ReflectionMethod($hooks, $method))->invokeArgs($hooks, $arguments);
+  }
+
+  /**
+   * The instance under test, built from the container's own services.
+   *
+   * It is built rather than fetched because core registers a hook class as a
+   * private autowired service.
+   *
+   * @return \Drupal\neo\Hook\NeoTokensHooks
+   *   The instance, memoised until a new request invalidates it.
+   */
+  protected function tokensHooks(): NeoTokensHooks {
+    $this->hooks ??= new NeoTokensHooks(
+      $this->container->get('cache.default'),
+      $this->container->get('module_handler'),
+      $this->container->get('path.matcher'),
+      $this->container->get('config.factory'),
+      $this->container->get('request_stack'),
+      $this->container->get('title_resolver'),
+      $this->container->get('file_url_generator'),
+    );
+    return $this->hooks;
   }
 
 }

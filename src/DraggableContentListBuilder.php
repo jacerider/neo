@@ -6,10 +6,10 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\DraggableListBuilderTrait;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\EntityListBuilder;
-use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Form\FormInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Defines a class to build a draggable listing of content entities.
@@ -21,17 +21,18 @@ abstract class DraggableContentListBuilder extends EntityListBuilder implements 
   /**
    * {@inheritdoc}
    */
-  public function __construct(EntityTypeInterface $entity_type, EntityStorageInterface $storage) {
-    parent::__construct($entity_type, $storage);
-
-    // Do not inject the form builder for backwards-compatibility.
-    $this->formBuilder = \Drupal::formBuilder();
+  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type) {
+    $instance = parent::createInstance($container, $entity_type);
+    $instance->formBuilder = $container->get('form_builder');
 
     // Check if the entity type supports weighting.
-    if ($this->entityType->hasKey('weight')) {
-      $this->weightKey = $this->entityType->getKey('weight');
+    if ($instance->entityType->hasKey('weight')) {
+      $instance->weightKey = $instance->entityType->getKey('weight');
     }
-    $this->limit = FALSE;
+    // List every entity, because a draggable table cannot be paged.
+    $instance->limit = FALSE;
+
+    return $instance;
   }
 
   /**

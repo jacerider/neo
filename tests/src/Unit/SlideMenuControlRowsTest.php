@@ -17,8 +17,8 @@ use PHPUnit\Framework\Attributes\Group;
  * The other half of the slide menu value object, beside ticket 05's item
  * builder: the two control rows `buildItem()` injects into every submenu, the
  * **expand depth** mode that turns a sliding level into an inline group, the
- * reflection-dispatched option setter every caller configures the menu
- * through, and `toRenderable()`'s outer wrapper.
+ * enum-dispatched option setter every caller configures the menu through, and
+ * `toRenderable()`'s outer wrapper.
  *
  * **The harness is the one ticket 05 established** — a stub translation
  * service and nothing else. The object reaches `$this->t()` and
@@ -53,10 +53,11 @@ use PHPUnit\Framework\Attributes\Group;
  *    Stringable, so it is a `string`; the view-all row's is written straight
  *    into a PHP array and stays a `TranslatableMarkup`. A consumer reading
  *    either one gets a different thing.
- * 4. **An unknown option key is silently ignored.** `applyOptions()` checks
- *    `method_exists()` and moves on, so a typo in an option array raises
- *    nothing and changes nothing — the option surface has no valid key set to
- *    check against, anywhere in the class.
+ * 4. **An unknown option key is silently ignored.** `applyOptions()` resolves
+ *    a key with `SlideMenuOption::tryFrom()` and moves on when the enum does
+ *    not name it, so a typo in an option array raises nothing and changes
+ *    nothing. There is a valid key set now — the enum's fourteen cases — but
+ *    nothing checks a key against it on the caller's behalf.
  * 5. **A `0` option reaching a string setter becomes the string `'0'`, which
  *    is falsy.** `child_icon => 0` is stored as `'0'` and then never builds an
  *    icon, because the builder tests the icon name for truthiness.
@@ -516,13 +517,13 @@ final class SlideMenuControlRowsTest extends UnitTestCase {
    * Covers: "it casts an option to the setter's declared parameter type and
    * ignores an unknown option key without raising".
    *
-   * The setter is reflection-driven: the key is camel-cased, prefixed with
-   * `set`, checked with `method_exists()` and the value cast to the setter's
-   * own declared parameter type before the call. `SlideMenu.php` declares
-   * `strict_types=1`, so the cast is not a convenience — without it the
-   * dispatched call raises a `TypeError`.
+   * The setter is enum-driven: the key is resolved with
+   * `SlideMenuOption::tryFrom()` and the value cast by that case's own
+   * `cast()` before the call. `SlideMenu.php` declares `strict_types=1`, so
+   * the cast is not a convenience — without it the dispatched call raises a
+   * `TypeError`.
    *
-   * Pins quirks 4 and 5 from the class docblock: a key with no matching setter
+   * Pins quirks 4 and 5 from the class docblock: a key the enum does not name
    * is silently ignored, which is why a typo in an option array is invisible
    * today, and a `0` reaching a string setter becomes the string `'0'`, which
    * is falsy and therefore disables the very thing it was setting.
@@ -552,9 +553,10 @@ final class SlideMenuControlRowsTest extends UnitTestCase {
       $this->menu(['item_attributes' => ['class' => ['x']]])->getItemAttributes()->toArray()
     );
 
-    // The key is camel-cased and prefixed, so a camelCase key hits the same
-    // setter a snake_case one does.
-    $this->assertSame(2, $this->menu(['expandDepth' => 2])->getExpandDepth());
+    // The accepted set is now exactly SlideMenuOption's cases, so a camelCase
+    // spelling of a real key is ignored like any other unknown key and the
+    // depth stays at its default.
+    $this->assertSame(0, $this->menu(['expandDepth' => 2])->getExpandDepth());
 
     // A key with no matching setter is silently ignored — no exception, no
     // warning, and nothing else disturbed. This is why a typo in an option
@@ -568,22 +570,23 @@ final class SlideMenuControlRowsTest extends UnitTestCase {
     $this->assertSame(2, $typo->getExpandDepth());
     $this->assertSame('Back', $typo->getBackLabel());
 
-    // There is no valid key set to check against: the dispatcher reaches any
-    // setter on the object, including ones no caller would think of as menu
-    // options.
-    $translation = $this->getStringTranslationStub();
+    // An option key that names a real setter on the object but is not an enum
+    // case is ignored too. `string_translation` camel-cases to
+    // `setStringTranslation()`, which the dispatcher used to reach; it no
+    // longer does, so the trait's property is still unset while the real key
+    // beside it applies. Read straight off the property rather than through
+    // `t()`, which would ask for a container this test does not build.
     $reached = new SlideMenu([], [
-      'string_translation' => $translation,
+      'string_translation' => $this->getStringTranslationStub(),
       'items' => [['title' => 'Products']],
     ]);
     $this->assertSame([['title' => 'Products']], $reached->getItems());
-    $this->assertSame(
-      'Hi there',
-      (string) (new \ReflectionMethod($reached, 't'))->invoke($reached, 'Hi @a', ['@a' => 'there'])
+    $this->assertNull(
+      (new \ReflectionProperty($reached, 'stringTranslation'))->getValue($reached)
     );
 
-    // And the option keys themselves appear nowhere in the class — the only
-    // record of what an option may be called is the setter names.
+    // And the option keys themselves appear nowhere in the class — the record
+    // of what an option may be called is SlideMenuOption, not this file.
     $source = file_get_contents((new \ReflectionClass(SlideMenu::class))->getFileName());
     $this->assertIsString($source);
     foreach ([

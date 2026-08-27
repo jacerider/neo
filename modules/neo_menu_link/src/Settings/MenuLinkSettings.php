@@ -6,6 +6,7 @@ use Drupal\Core\Field\FieldFilteredMarkup;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\neo\Helpers\ClassList;
 use Drupal\neo_settings\Plugin\SettingsBase;
 
 /**
@@ -114,50 +115,15 @@ class MenuLinkSettings extends SettingsBase {
   /**
    * Extracts the allowed values array from the allowed_values element.
    *
-   * @return array|null
-   *   The array of extracted key/value pairs, or NULL if the string is invalid.
+   * @return array<array-key, string>
+   *   The array of extracted key/value pairs, empty when the class list is
+   *   empty or invalid.
    *
    * @see \Drupal\options\Plugin\Field\FieldType\ListItemBase::allowedValuesString()
    */
   public function getClassList() {
     $string = $this->getValue('class_list');
-    if (empty($string)) {
-      return [];
-    }
-    $values = [];
-
-    $list = explode("\n", $string);
-    $list = array_map('trim', $list);
-    $list = array_filter($list, 'strlen');
-
-    $generated_keys = $explicit_keys = FALSE;
-    foreach ($list as $position => $text) {
-      // Check for an explicit key.
-      $matches = [];
-      if (preg_match('/(.*)\|(.*)/', $text, $matches)) {
-        // Trim key and value to avoid unwanted spaces issues.
-        $key = trim($matches[1]);
-        $value = trim($matches[2]);
-        $explicit_keys = TRUE;
-      }
-      // Otherwise see if we can use the value as the key.
-      elseif (!$this->validateClassListValue($text)) {
-        $key = $value = $text;
-        $explicit_keys = TRUE;
-      }
-      else {
-        return;
-      }
-
-      $values[$key] = $value;
-    }
-
-    // We generate keys only if the list contains no explicit key at all.
-    if ($explicit_keys && $generated_keys) {
-      return;
-    }
-
-    return $values;
+    return ClassList::parse($string, \Closure::fromCallable([$this, 'validateClassListValue']));
   }
 
   /**

@@ -1,4 +1,29 @@
+parameters:
+  # Every hook this module implements is now a method on a class under
+  # `src/Hook`, so there is nothing procedural left for core's hook collector
+  # to find and `neo_menu_link.module` is gone. This is the parameter core
+  # provides for exactly that statement. It is not cosmetic: it skips the whole
+  # module directory, and without it the collector reads the four form
+  # callbacks — plain functions that are not hooks at all — as implementations
+  # of hooks that do not exist, and registers them as such.
+  neo_menu_link.skip_procedural_hook_scan: true
+
 services:
   neo_menu_link.settings:
     parent: neo_settings.repository
     arguments: ['neo_menu_link']
+
+  Drupal\neo_menu_link\Hook\NeoMenuLinkHooks:
+    # The hook collector registers a hook class as an autowired service under
+    # its own class name when the container has no definition for it. This one
+    # is written out instead, because its collaborator is a named service
+    # rather than an autowirable type.
+    class: Drupal\neo_menu_link\Hook\NeoMenuLinkHooks
+    arguments: ['@neo_menu_link.settings']
+
+  Drupal\neo_menu_link\Hook\NeoMenuLinkFormHooks:
+    # Written out for the same reason: the settings repository is a named
+    # service. The current user would autowire, but a definition is all or
+    # nothing, so it is named here too.
+    class: Drupal\neo_menu_link\Hook\NeoMenuLinkFormHooks
+    arguments: ['@neo_menu_link.settings', '@current_user']

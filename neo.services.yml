@@ -1,3 +1,14 @@
+parameters:
+  # Every hook this module implements is a method on a class under `src/Hook`,
+  # so there is nothing procedural left for core's hook collector to find. This
+  # is the parameter core provides for exactly that statement, set by a dozen
+  # core modules. It is not cosmetic: without it the collector reads
+  # `neo_table_props()` — a global function that is not a hook at all — as an
+  # implementation of a `hook_table_props` that does not exist, and registers it
+  # as one. Extension loading is unaffected, so `neo.module` is still included
+  # and the table props shim, `ksm()` and `kint()` are all still defined.
+  neo.skip_procedural_hook_scan: true
+
 services:
   neo.linkit_resolver:
     class: Drupal\neo\Linkit\NeoLinkitResolver

@@ -102,7 +102,8 @@ class NeoEntityAttributeFormatter extends FormatterBase {
    * {@inheritdoc}
    */
   public function viewElements(FieldItemListInterface $items, $langcode) {
-    // The magic happens in neo_entity_view_alter().
+    // The magic happens in
+    // \Drupal\neo\Hook\NeoHooks::entityViewAlter().
     return [];
   }
 
