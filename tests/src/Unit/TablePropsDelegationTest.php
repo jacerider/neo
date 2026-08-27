@@ -86,48 +86,52 @@ class TablePropsDelegationTest extends UnitTestCase {
     $this->assertSame([], $callers, 'Nothing in the package calls neo_table_props().');
 
     // The four that were calling it are named rather than counted, because a
-    // count would be satisfied by three calls in the wrong three places.
+    // count would be satisfied by three calls in the wrong three places. All
+    // four now live on a hook class: the two table preprocessors are
+    // `NeoThemeHooks::preprocessViewsUiStylePluginTable()` and
+    // `NeoThemeHooks::preprocessViewsViewTable()`, the config schema alter is
+    // `NeoHooks::configSchemaInfoAlter()`, and the form alter never left
+    // `FormAlterHook`. Each is followed to its new home rather than dropped:
+    // what this pins is that every call site inside the package reaches the
+    // static, not which file happens to hold it.
+    $hooks = dirname(__DIR__, 3) . '/src/Hook/';
     foreach ([
-      'neo_preprocess_views_ui_style_plugin_table',
-      'neo_preprocess_views_view_table',
-    ] as $function) {
+      'preprocessViewsUiStylePluginTable' => 'NeoThemeHooks.php',
+      'preprocessViewsViewTable' => 'NeoThemeHooks.php',
+    ] as $method => $file) {
       $this->assertStringContainsString(
         'TableProps::get()',
-        $this->functionBody($this->module(), $function),
-        "$function() reaches the static.",
+        $this->methodBody(file_get_contents($hooks . $file), $method),
+        "$method() reaches the static.",
       );
     }
-    // The third `.module` caller was the config schema alter, which is now
-    // `NeoHooks::configSchemaInfoAlter()`. It is followed to its new home
-    // rather than dropped: what this pins is that every call site inside the
-    // package reaches the static, not which file happens to hold it.
     $this->assertStringContainsString(
       'TableProps::get()',
-      file_get_contents(dirname(__DIR__, 3) . '/src/Hook/NeoHooks.php'),
+      file_get_contents($hooks . 'NeoHooks.php'),
       "The config schema alter's call site reaches the static.",
     );
     $this->assertStringContainsString(
       'TableProps::get()',
-      file_get_contents(dirname(__DIR__, 3) . '/src/Hook/FormAlterHook.php'),
+      file_get_contents($hooks . 'FormAlterHook.php'),
       "FormAlterHook's call site reaches the static.",
     );
   }
 
   /**
-   * Reads one global function's body out of a source file.
+   * Reads one method's body out of a source file.
    *
    * @param string $source
    *   The file, as written.
-   * @param string $function
-   *   The function to read.
+   * @param string $method
+   *   The method to read.
    *
    * @return string
    *   The declaration and body, as written.
    */
-  private function functionBody(string $source, string $function): string {
-    $start = strpos($source, 'function ' . $function . '(');
-    $this->assertNotFalse($start, "$function() is still declared.");
-    return substr($source, $start, strpos($source, "\n}\n", $start) - $start);
+  private function methodBody(string $source, string $method): string {
+    $start = strpos($source, 'function ' . $method . '(');
+    $this->assertNotFalse($start, "$method() is still declared.");
+    return substr($source, $start, strpos($source, "\n  }\n", $start) - $start);
   }
 
   /**
