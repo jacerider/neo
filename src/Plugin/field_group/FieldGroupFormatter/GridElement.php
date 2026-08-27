@@ -132,7 +132,7 @@ class GridElement extends HtmlElement {
   public static function defaultContextSettings($context) {
     return [
       'cols' => '2',
-    ] + parent::defaultSettings($context);
+    ] + parent::defaultSettings();
 
   }
 
