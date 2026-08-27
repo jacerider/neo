@@ -1,0 +1,137 @@
+<?php
+
+/**
+ * @file
+ * Install, update, and uninstall functions for Neo.
+ *
+ * @ingroup neo
+ */
+
+declare(strict_types=1);
+
+use Drupal\Core\Utility\UpdateException;
+
+/**
+ * Finds entity form displays still configured to use the moved widget.
+ *
+ * QuantityPlusMinusWidget moved from neo to neo_commerce. The plugin id did not
+ * change, so a display that references it resolves again the moment
+ * neo_commerce is enabled -- but until then nothing reports the problem.
+ * EntityFormDisplay::getRenderer() swallows PluginNotFoundException, so the
+ * field is simply absent from the form: the add to cart form renders, returns
+ * 200, and quietly has no quantity input.
+ *
+ * @return list<array{display: string, field: string}>
+ *   One entry per affected field, naming the form display config and the
+ *   field on it. Empty when nothing references the widget.
+ */
+function _neo_moved_quantity_widget_displays(): array {
+  $found = [];
+  $configFactory = \Drupal::configFactory();
+  foreach ($configFactory->listAll('core.entity_form_display.') as $name) {
+    $content = $configFactory->get($name)->get('content');
+    if (!is_array($content)) {
+      continue;
+    }
+    foreach ($content as $field => $settings) {
+      if (is_array($settings) && ($settings['type'] ?? NULL) === 'quantity_plus_minus') {
+        $found[] = ['display' => (string) $name, 'field' => (string) $field];
+      }
+    }
+  }
+  return $found;
+}
+
+/**
+ * Whether the moved widget still needs a home on this site.
+ *
+ * Only the widget's absence matters, not neo_commerce's: once that module is
+ * enabled the plugin resolves and there is nothing left to report.
+ *
+ * @return list<array{display: string, field: string}>
+ *   The affected fields, or empty when neo_commerce already provides the
+ *   widget.
+ */
+function _neo_moved_quantity_widget_unresolved(): array {
+  if (\Drupal::moduleHandler()->moduleExists('neo_commerce')) {
+    return [];
+  }
+  return _neo_moved_quantity_widget_displays();
+}
+
+/**
+ * Implements hook_requirements().
+ *
+ * Reports form displays left pointing at the quantity_plus_minus widget after
+ * it moved to neo_commerce. See _neo_moved_quantity_widget_displays() for why
+ * nothing else surfaces this.
+ *
+ * hook_requirements() is deprecated in favour of hook_runtime_requirements(),
+ * which is Drupal 11.2+. Neo supports ^10.3 || ^11, so this stays procedural
+ * until the 10.3 support is dropped.
+ */
+function neo_requirements(string $phase): array {
+  if ($phase !== 'runtime') {
+    return [];
+  }
+  $affected = _neo_moved_quantity_widget_unresolved();
+  if (!$affected) {
+    return [];
+  }
+
+  $items = [];
+  foreach ($affected as $item) {
+    $items[] = t('@display — field %field', [
+      '@display' => $item['display'],
+      '%field' => $item['field'],
+    ]);
+  }
+
+  return [
+    'neo_moved_quantity_widget' => [
+      'title' => t('Neo quantity plus/minus widget'),
+      'value' => t('@count field(s) use a widget this module no longer provides', [
+        '@count' => count($affected),
+      ]),
+      'description' => [
+        'intro' => [
+          '#markup' => t('The <code>quantity_plus_minus</code> widget moved from Neo to Neo | Commerce. These fields render nothing and report no error until that module is enabled: <code>composer require jacerider/neo_commerce:^1.0</code> then <code>drush en neo_commerce</code>.'),
+        ],
+        'list' => [
+          '#theme' => 'item_list',
+          '#items' => $items,
+        ],
+      ],
+      'severity' => REQUIREMENT_ERROR,
+    ],
+  ];
+}
+
+/**
+ * Check for form displays using the quantity widget that moved to neo_commerce.
+ *
+ * QuantityPlusMinusWidget extended a commerce_order class from a module that
+ * declares no Commerce dependency, so it now ships in neo_commerce under the
+ * same plugin id. A display that still points at it loses its field silently,
+ * so fail the update rather than let the site come up missing an input.
+ *
+ * Nothing is installed automatically: neo does not require neo_commerce in
+ * composer, so on most sites the code is not on disk and the install would
+ * fail part way through the update anyway.
+ */
+function neo_update_11001(): void {
+  $affected = _neo_moved_quantity_widget_unresolved();
+  if (!$affected) {
+    return;
+  }
+
+  $lines = [];
+  foreach ($affected as $item) {
+    $lines[] = $item['display'] . ' (field: ' . $item['field'] . ')';
+  }
+
+  throw new UpdateException(sprintf(
+    "The quantity_plus_minus widget moved from neo to neo_commerce. These form displays still use it and will lose the field until neo_commerce is enabled:\n  - %s\nRun: composer require jacerider/neo_commerce:^1.0 && drush en neo_commerce",
+    implode("\n  - ", $lines)
+  ));
+}
