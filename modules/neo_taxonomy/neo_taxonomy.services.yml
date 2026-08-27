@@ -1,0 +1,10 @@
+parameters:
+  # Every hook this module implements is now a method on a class under
+  # `src/Hook`, so there is nothing procedural left for core's hook collector
+  # to find and `neo_taxonomy.module` is gone. This is the parameter core
+  # provides for exactly that statement. It is not cosmetic: it skips the whole
+  # module directory, and without it the collector reads the two form callbacks
+  # and the vocabulary settings helper — plain functions that are not hooks at
+  # all — as implementations of hooks that do not exist, and registers them as
+  # such.
+  neo_taxonomy.skip_procedural_hook_scan: true
