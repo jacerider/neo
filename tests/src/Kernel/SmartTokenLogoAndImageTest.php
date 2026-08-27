@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\neo\Kernel;
 
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Path\PathMatcher;
 use Drupal\Core\Routing\RouteObjectInterface;
@@ -12,6 +13,7 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
 use Drupal\media\Entity\Media;
+use Drupal\neo\Hook\NeoTokensHooks;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\Tests\media\Traits\MediaTypeCreationTrait;
@@ -21,39 +23,46 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Characterises the image half of the smart tokens, entry point to file.
  *
- * Six functions in `neo.tokens.inc` stand between `[neo:logo]` / `[neo:image]`
+ * Six methods on `NeoTokensHooks` stand between `[neo:logo]` / `[neo:image]`
  * and a file on disk, and none of them has ever been asserted. They divide into
  * two entry points, a fetcher, a crawl, a dimension read and a url build.
  *
- * **The two entry points.** `neo_tokens_logo()` never crawls the entity: it
- * asks `neo_tokens_image_fetch()` with `$crawlEntity = FALSE`, so on a site
+ * They were six functions in `neo.tokens.inc` when this class was written.
+ * `neo-hook-classes` ticket 05 moved them onto the hook class as private
+ * methods and deleted the file, so every pin below is the same statement made
+ * through the class. One assertion could not survive the move verbatim and says
+ * so where it stands: quirk 7's undocumented `$params`, which is a phpcs error
+ * on a file under `src/` and is therefore documented now.
+ *
+ * **The two entry points.** The logo resolver never crawls the entity: it
+ * asks the image fetch with `$crawlEntity = FALSE`, so on a site
  * where nothing implements `hook_neo_token_logo_alter()` the logo token is
- * `NULL` on every page. `neo_tokens_image()` short-circuits on the front
+ * `NULL` on every page. The image resolver short-circuits on the front
  * page by handing its parameters straight to the logo, and everywhere else
  * asks the same fetcher with crawling on and the `neo_token_image` hook. Both
  * accept a leading `width` or `height` parameter, strip it from the list
  * before passing the rest along, and use it to choose between the resolved url
  * and a dimension read off the file.
  *
- * **The fetcher.** `neo_tokens_image_fetch()` memoises in
- * `drupal_static(__FUNCTION__)` under `{entity_type}:{id}:{hook}`, or
+ * **The fetcher.** The image fetch memoises on the instance
+ * under `{entity_type}:{id}:{hook}`, or
  * `no-entity:{hook}`. It crawls only when told to, then invokes the named alter
  * hook, which can supply a uri where the crawl found none or replace one it
  * found. What is memoised is the **uri**, before the url is built.
  *
- * **The crawl.** `neo_tokens_entity_to_media_image_uri()` filters the entity's
+ * **The crawl.** The media crawl filters the entity's
  * fields down to entity-reference fields that target `media`, are not empty,
  * and whose `handler_settings.target_bundles` literally contains `image`. It
  * then walks the referenced media, skipping anything that is not an
  * image-bundle media item with a thumbnail file, and `break 2`s out on the
  * first uri it finds.
  *
- * **The dimension read.** `neo_tokens_image_dimension()` guards on
+ * **The dimension read.** The dimension reader guards on
  * `empty($uri) || !file_exists($uri)` — the guard the *"add file_exists check"*
  * fix added, and the reason this ticket exists — then memoises `getimagesize()`
  * per uri, so width and height cost one read between them.
  *
- * **The url build.** `neo_tokens_image_data()` returns the uri as given and its
+ * **The url build.** The url build returns the uri as given and its
  * absolute file url. Its other branch, behind `moduleExists('neo_image')`, is
  * **not covered here**: it would pull `neo_settings` and `breakpoint` into a
  * `neo` test to assert one module-existence check, and `neo_image` is its own
@@ -68,7 +77,7 @@ use Symfony\Component\HttpFoundation\Request;
  *    `docs/improvements/neo.md`; the test pins the `NULL`. Pinned in
  *    testReturnsNullFromBothEntryPointsWhenNothingResolves.
  * 2. **The guard both entry points use is inert, and the `return NULL;`
- *    behind it is dead code.** `if ($data = neo_tokens_image_fetch(...))` tests
+ *    behind it is dead code.** `if ($data = $this->imageFetch(...))` tests
  *    an array that always carries two keys, so it is true even when nothing
  *    resolved: the `NULL` every caller sees is `$data['url']`, and the
  *    function's own final `return NULL;` has never executed. Pinned in
@@ -91,9 +100,10 @@ use Symfony\Component\HttpFoundation\Request;
  * 6. **Any dimension that is not `width` reads the height slot.** The read is
  *    `$dimension === 'width' ? 0 : 1`, so `'depth'` answers with the height.
  *    Pinned in the same method.
- * 7. **`neo_tokens_image_data()` takes a `$params` argument it never uses in
- *    this branch and never documents.** Its docblock has one `@param`, for
- *    `$uri`. Pinned in testBuildsTheAbsoluteFileUrlWhenNeoImageIsNotInstalled.
+ * 7. **The url build takes a `$params` argument it never uses in this
+ *    branch.** Its docblock had one `@param`, for `$uri`, until the move made
+ *    the omission a phpcs error; the argument is still accepted and still
+ *    unread. Pinned in testBuildsTheAbsoluteFileUrlWhenNeoImageIsNotInstalled.
  * 8. **The `file_exists()` fix no longer changes any answer.** A later refactor
  *    put `@` in front of `getimagesize()` and `?: NULL` behind it, so a missing
  *    file resolves to `NULL` with or without the clause the fix added; today it
@@ -102,7 +112,7 @@ use Symfony\Component\HttpFoundation\Request;
  *    criterion restores the pre-fix reader instead. Pinned in
  *    testReturnsNullForMissingAndUnsizeableFilesAndReadsTheFileOnce.
  *
- * The six functions are called directly rather than through `neo_tokens()`. The
+ * The six methods are called directly rather than through the dispatcher. The
  * dispatcher and its two caches are ticket 11's subject and are pinned in
  * `SmartTokenDispatcherTest`; driving these through it would only put a second
  * memoisation layer between the assertion and the branch it is about.
@@ -123,7 +133,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
    * `media`, `image` and `file` are what the crawl walks and what the dimension
    * read reads; `node` supplies the entities that carry the reference fields.
    * `token` is installed for the same undeclared-dependency reason as ticket 12
-   * — `neo_tokens_title()` calls `token_render_array_value()` from a module
+   * — the title resolver calls `token_render_array_value()` from a module
    * `neo.info.yml` does not declare — so that this class boots the same include
    * a real site boots, not a subset of it.
    */
@@ -257,6 +267,17 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
   protected Node $onlyBNode;
 
   /**
+   * The hook class the six methods now live on.
+   *
+   * Rebuilt whenever the request context changes, and dropped wherever this
+   * class used to reset a static: the two memos are private properties, so
+   * another instance is the reset.
+   *
+   * @var \Drupal\neo\Hook\NeoTokensHooks|null
+   */
+  protected ?NeoTokensHooks $hooks = NULL;
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {
@@ -279,9 +300,6 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
       'media',
     ]);
 
-    // The six functions under test live in an include the module loads on
-    // demand, so nothing has pulled it in yet.
-    \Drupal::moduleHandler()->loadInclude('neo', 'tokens.inc');
     // The front-page comparison turns the current route into a path through the
     // URL generator, so the fixture routes have to be in the route provider.
     \Drupal::service('router.builder')->rebuild();
@@ -409,12 +427,12 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     $this->assertFalse(\Drupal::service('path.matcher')->isFrontPage());
 
     // The crawl would find image A on this entity, on demand.
-    $this->assertSame($this->uriA, neo_tokens_entity_to_media_image_uri($this->node));
+    $this->assertSame($this->uriA, $this->entityToMediaImageUri($this->node));
 
     // The logo does not ask it. With the hook contributing nothing there is
     // nothing left for the logo to resolve.
     \Drupal::state()->delete('neo_test.token_logo_alter');
-    $this->assertNull(neo_tokens_logo([], $this->node));
+    $this->assertNull($this->logo([], $this->node));
     $seen = \Drupal::state()->get('neo_test.token_logo_alter_seen');
     $this->assertNull($seen['uri']);
     $this->assertSame('node:' . $this->node->id(), $seen['entity']);
@@ -422,13 +440,13 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     // Switched on, the hook is the whole of the logo's answer.
     $this->resetTokenStatics();
     \Drupal::state()->set('neo_test.token_logo_alter', $this->uriB);
-    $this->assertSame($this->absoluteUrl($this->uriB), neo_tokens_logo([], $this->node));
+    $this->assertSame($this->absoluteUrl($this->uriB), $this->logo([], $this->node));
 
     // Off the front page the image token crawls and answers with image A, so
     // the two entry points genuinely differ on the same entity.
     $this->resetTokenStatics();
     \Drupal::state()->delete('neo_test.token_image_alter');
-    $this->assertSame($this->absoluteUrl($this->uriA), neo_tokens_image([], $this->node));
+    $this->assertSame($this->absoluteUrl($this->uriA), $this->image([], $this->node));
 
     // On the front page the image token is the logo. The image hook is armed
     // with a uri that would beat the crawl, and is never invoked.
@@ -438,7 +456,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     $this->enterRequest('neo_test.open');
     $this->assertTrue(\Drupal::service('path.matcher')->isFrontPage());
 
-    $this->assertSame($this->absoluteUrl($this->uriB), neo_tokens_image([], $this->node));
+    $this->assertSame($this->absoluteUrl($this->uriB), $this->image([], $this->node));
     $this->assertNull(\Drupal::state()->get('neo_test.token_image_alter_seen'));
     $this->assertSame(
       'node:' . $this->node->id(),
@@ -448,12 +466,12 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     // The parameters travel into the delegate intact, so a dimension asked of
     // the image token on the front page is a dimension of the logo's file.
     $this->resetTokenStatics();
-    $this->assertSame('30', neo_tokens_image(['height'], $this->node));
+    $this->assertSame('30', $this->image(['height'], $this->node));
 
     // And with no entity at all the front page still answers, because the logo
     // never needed one.
     $this->resetTokenStatics();
-    $this->assertSame($this->absoluteUrl($this->uriB), neo_tokens_image([], NULL));
+    $this->assertSame($this->absoluteUrl($this->uriB), $this->image([], NULL));
   }
 
   /**
@@ -477,20 +495,20 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     \Drupal::state()->set('neo_test.token_logo_alter', $this->uriA);
 
     $this->resetTokenStatics();
-    $width = neo_tokens_logo(['width'], $this->node);
+    $width = $this->logo(['width'], $this->node);
     $this->assertSame('120', $width);
     $this->assertIsString($width);
 
     $this->resetTokenStatics();
-    $this->assertSame('45', neo_tokens_logo(['height'], $this->node));
+    $this->assertSame('45', $this->logo(['height'], $this->node));
 
     // With no leading dimension the same call is the url.
     $this->resetTokenStatics();
-    $this->assertSame($this->absoluteUrl($this->uriA), neo_tokens_logo([], $this->node));
+    $this->assertSame($this->absoluteUrl($this->uriA), $this->logo([], $this->node));
 
     // The stripped parameter does not reach the hook; the rest do.
     $this->resetTokenStatics();
-    $this->assertSame('120', neo_tokens_logo(['width', 'crop', '10'], $this->node));
+    $this->assertSame('120', $this->logo(['width', 'crop', '10'], $this->node));
     $this->assertSame(
       ['crop', '10'],
       \Drupal::state()->get('neo_test.token_logo_alter_seen')['params']
@@ -500,7 +518,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     $this->resetTokenStatics();
     $this->assertSame(
       $this->absoluteUrl($this->uriA),
-      neo_tokens_logo(['crop', 'width'], $this->node)
+      $this->logo(['crop', 'width'], $this->node)
     );
     $this->assertSame(
       ['crop', 'width'],
@@ -511,13 +529,13 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     // rather than one a hook handed it.
     $this->resetTokenStatics();
     \Drupal::state()->delete('neo_test.token_image_alter');
-    $this->assertSame('120', neo_tokens_image(['width'], $this->node));
+    $this->assertSame('120', $this->image(['width'], $this->node));
 
     $this->resetTokenStatics();
-    $this->assertSame('45', neo_tokens_image(['height'], $this->node));
+    $this->assertSame('45', $this->image(['height'], $this->node));
 
     $this->resetTokenStatics();
-    $this->assertSame('45', neo_tokens_image(['height', 'exact'], $this->node));
+    $this->assertSame('45', $this->image(['height', 'exact'], $this->node));
     $this->assertSame(
       ['exact'],
       \Drupal::state()->get('neo_test.token_image_alter_seen')['params']
@@ -526,7 +544,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     $this->resetTokenStatics();
     $this->assertSame(
       $this->absoluteUrl($this->uriA),
-      neo_tokens_image(['exact', 'height'], $this->node)
+      $this->image(['exact', 'height'], $this->node)
     );
   }
 
@@ -557,41 +575,41 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     \Drupal::state()->delete('neo_test.token_image_alter');
 
     // The logo, with an entity that has an image and a hook that declines.
-    $this->assertNull(neo_tokens_logo([], $this->node));
+    $this->assertNull($this->logo([], $this->node));
     $this->resetTokenStatics();
-    $this->assertNull(neo_tokens_logo([], NULL));
+    $this->assertNull($this->logo([], NULL));
     $this->resetTokenStatics();
-    $this->assertNull(neo_tokens_logo(['width'], $this->node));
+    $this->assertNull($this->logo(['width'], $this->node));
     $this->resetTokenStatics();
-    $this->assertNull(neo_tokens_logo(['height'], NULL));
+    $this->assertNull($this->logo(['height'], NULL));
 
     // The image, with an entity there is nothing to crawl on.
     $this->resetTokenStatics();
-    $this->assertNull(neo_tokens_image([], $this->plainNode));
+    $this->assertNull($this->image([], $this->plainNode));
     $this->resetTokenStatics();
-    $this->assertNull(neo_tokens_image(['width'], $this->plainNode));
+    $this->assertNull($this->image(['width'], $this->plainNode));
     $this->resetTokenStatics();
-    $this->assertNull(neo_tokens_image([], NULL));
+    $this->assertNull($this->image([], NULL));
 
     // And on the front page, where the image token's NULL is the logo's.
     $this->resetTokenStatics();
     $this->config('system.site')->set('page.front', '/neo-test/open')->save();
     $this->enterRequest('neo_test.open');
     $this->assertTrue(\Drupal::service('path.matcher')->isFrontPage());
-    $this->assertNull(neo_tokens_image([], $this->node));
+    $this->assertNull($this->image([], $this->node));
 
     // Quirk 2, second half: every NULL above came through `$data['url']`,
     // because the guard in front of it is an array that is never empty. The
     // `return NULL;` closing each function is dead code.
     $this->resetTokenStatics();
     $this->assertNotEmpty(
-      neo_tokens_image_fetch([], 'neo_token_logo', $this->node, FALSE)
+      $this->imageFetch([], 'neo_token_logo', $this->node, FALSE)
     );
 
     // Quirk 1: no declared return type, `@return string` in prose, and a
     // promise of the string `'image'` that no branch can keep.
-    foreach (['neo_tokens_logo', 'neo_tokens_image'] as $function) {
-      $reflection = new \ReflectionFunction($function);
+    foreach (['logo', 'image'] as $method) {
+      $reflection = new \ReflectionMethod(NeoTokensHooks::class, $method);
       $this->assertNull($reflection->getReturnType());
       $docblock = (string) $reflection->getDocComment();
       $this->assertStringContainsString('@return string', $docblock);
@@ -625,7 +643,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     \Drupal::state()->delete('neo_test.token_logo_alter');
     $this->resetTokenStatics();
 
-    $first = neo_tokens_image_fetch([], 'neo_token_image', $this->node, TRUE);
+    $first = $this->imageFetch([], 'neo_token_image', $this->node, TRUE);
     $this->assertSame($this->uriA, $first['uri']);
     $this->assertSame($this->absoluteUrl($this->uriA), $first['url']);
     $this->assertSame(
@@ -638,17 +656,17 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     // with another uri and its record stays untouched.
     \Drupal::state()->delete('neo_test.token_image_alter_seen');
     \Drupal::state()->set('neo_test.token_image_alter', $this->uriC);
-    $second = neo_tokens_image_fetch(['crop', '100'], 'neo_token_image', $this->node, TRUE);
+    $second = $this->imageFetch(['crop', '100'], 'neo_token_image', $this->node, TRUE);
     $this->assertSame($first, $second);
     $this->assertNull(\Drupal::state()->get('neo_test.token_image_alter_seen'));
 
     // Even switching crawling off is outside the key.
-    $third = neo_tokens_image_fetch([], 'neo_token_image', $this->node, FALSE);
+    $third = $this->imageFetch([], 'neo_token_image', $this->node, FALSE);
     $this->assertSame($first, $third);
 
     // Per hook: the same entity under `neo_token_logo` is a different key, and
     // it is the logo hook that runs.
-    $logo = neo_tokens_image_fetch([], 'neo_token_logo', $this->node, FALSE);
+    $logo = $this->imageFetch([], 'neo_token_logo', $this->node, FALSE);
     $this->assertSame(['uri' => NULL, 'url' => NULL], $logo);
     $this->assertSame(
       'node:' . $this->node->id(),
@@ -657,7 +675,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
 
     // Per entity: a different entity is a different key, and the armed image
     // hook finally gets to answer.
-    $other = neo_tokens_image_fetch([], 'neo_token_image', $this->plainNode, TRUE);
+    $other = $this->imageFetch([], 'neo_token_image', $this->plainNode, TRUE);
     $this->assertSame($this->uriC, $other['uri']);
     $this->assertSame(
       'node:' . $this->plainNode->id(),
@@ -665,7 +683,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     );
 
     // And no entity at all is a third key of its own.
-    $none = neo_tokens_image_fetch([], 'neo_token_image', NULL, TRUE);
+    $none = $this->imageFetch([], 'neo_token_image', NULL, TRUE);
     $this->assertSame($this->uriC, $none['uri']);
     $this->assertNull(\Drupal::state()->get('neo_test.token_image_alter_seen')['entity']);
 
@@ -673,7 +691,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     // guard both entry points put in front of it is always true.
     \Drupal::state()->delete('neo_test.token_image_alter');
     $this->resetTokenStatics();
-    $empty = neo_tokens_image_fetch([], 'neo_token_image', $this->plainNode, TRUE);
+    $empty = $this->imageFetch([], 'neo_token_image', $this->plainNode, TRUE);
     $this->assertSame(['uri' => NULL, 'url' => NULL], $empty);
     $this->assertNotEmpty($empty);
     $this->assertCount(2, $empty);
@@ -702,11 +720,11 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
   public function testTakesTheFirstImageBundleThumbnailAndSkipsEverythingElse(): void {
     // The crawl's own answer, against a node carrying every skip in front of a
     // match and one more match behind it.
-    $this->assertSame($this->uriA, neo_tokens_entity_to_media_image_uri($this->node));
+    $this->assertSame($this->uriA, $this->entityToMediaImageUri($this->node));
 
     // Nothing to look at.
-    $this->assertNull(neo_tokens_entity_to_media_image_uri($this->plainNode));
-    $this->assertNull(neo_tokens_entity_to_media_image_uri($this->emptyFieldNode));
+    $this->assertNull($this->entityToMediaImageUri($this->plainNode));
+    $this->assertNull($this->entityToMediaImageUri($this->emptyFieldNode));
 
     // A reference field that does not target media.
     $this->assertSame(
@@ -714,7 +732,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
       $this->nodeRefNode->get('field_node_ref')
         ->getFieldDefinition()->getSetting('target_type')
     );
-    $this->assertNull(neo_tokens_entity_to_media_image_uri($this->nodeRefNode));
+    $this->assertNull($this->entityToMediaImageUri($this->nodeRefNode));
 
     // A media field whose handler settings do not name the image bundle — the
     // media it holds is image A itself, so only the field is disqualifying.
@@ -723,7 +741,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
       $this->otherMediaNode->get('field_other_media')
         ->referencedEntities()[0]->get('thumbnail')->entity->getFileUri()
     );
-    $this->assertNull(neo_tokens_entity_to_media_image_uri($this->otherMediaNode));
+    $this->assertNull($this->entityToMediaImageUri($this->otherMediaNode));
 
     // Quirk 4: and neither does a field with no bundle restriction at all.
     $this->assertSame(
@@ -731,14 +749,14 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
       $this->anyMediaNode->get('field_any_media')
         ->getFieldDefinition()->getSetting('handler_settings')
     );
-    $this->assertNull(neo_tokens_entity_to_media_image_uri($this->anyMediaNode));
+    $this->assertNull($this->entityToMediaImageUri($this->anyMediaNode));
 
     // A media item of the wrong bundle inside a field that does name `image`.
     $this->assertSame(
       'document',
       $this->documentNode->get('field_media')->referencedEntities()[0]->bundle()
     );
-    $this->assertNull(neo_tokens_entity_to_media_image_uri($this->documentNode));
+    $this->assertNull($this->entityToMediaImageUri($this->documentNode));
 
     // An image-bundle media item with no thumbnail at all. The crawl sees the
     // object this test emptied, which is what the identity assertion is for.
@@ -746,19 +764,19 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     $this->assertSame($this->thumblessMedia, $referenced[0]);
     $this->assertSame('image', $referenced[0]->bundle());
     $this->assertTrue($referenced[0]->get('thumbnail')->isEmpty());
-    $this->assertNull(neo_tokens_entity_to_media_image_uri($this->thumblessNode));
+    $this->assertNull($this->entityToMediaImageUri($this->thumblessNode));
 
     // And one whose thumbnail still points at a file that no longer exists.
     $dangling = $this->danglingNode->get('field_media')->referencedEntities()[0];
     $this->assertFalse($dangling->get('thumbnail')->isEmpty());
     $this->assertNull($dangling->get('thumbnail')->entity);
-    $this->assertNull(neo_tokens_entity_to_media_image_uri($this->danglingNode));
+    $this->assertNull($this->entityToMediaImageUri($this->danglingNode));
 
     // The first match wins and the walk stops: image B sits one delta behind
     // image A on `$this->node`, and resolves perfectly well on its own.
     $this->assertNotSame($this->uriA, $this->uriB);
-    $this->assertSame($this->uriB, neo_tokens_entity_to_media_image_uri($this->onlyBNode));
-    $this->assertSame($this->uriA, neo_tokens_entity_to_media_image_uri($this->node));
+    $this->assertSame($this->uriB, $this->entityToMediaImageUri($this->onlyBNode));
+    $this->assertSame($this->uriA, $this->entityToMediaImageUri($this->node));
   }
 
   /**
@@ -784,14 +802,14 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
    */
   public function testReturnsNullForMissingAndUnsizeableFilesAndReadsTheFileOnce(): void {
     // The empty half of the guard.
-    $this->assertNull(neo_tokens_image_dimension(NULL, 'width'));
-    $this->assertNull(neo_tokens_image_dimension('', 'height'));
+    $this->assertNull($this->imageDimension(NULL, 'width'));
+    $this->assertNull($this->imageDimension('', 'height'));
 
     // The file-existence half — the fix.
     $missing = 'public://neo-token-missing.png';
     $this->assertFalse(file_exists($missing));
-    $this->assertNull(neo_tokens_image_dimension($missing, 'width'));
-    $this->assertNull(neo_tokens_image_dimension($missing, 'height'));
+    $this->assertNull($this->imageDimension($missing, 'width'));
+    $this->assertNull($this->imageDimension($missing, 'height'));
 
     // Quirk 8: the read behind the guard would answer NULL for that uri on its
     // own, because `@` swallows the warning and `?: NULL` turns FALSE into
@@ -804,19 +822,19 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     file_put_contents($text, 'not an image');
     clearstatcache();
     $this->assertTrue(file_exists($text));
-    $this->assertNull(neo_tokens_image_dimension($text, 'width'));
+    $this->assertNull($this->imageDimension($text, 'width'));
 
     // Quirk 5, the failed read: that answer is memoised, so the same uri now
     // holding a real image still answers NULL until the static is reset.
     $this->writeImage($text, 8, 9);
     $this->assertSame([8, 9], array_slice((array) getimagesize($text), 0, 2));
-    $this->assertNull(neo_tokens_image_dimension($text, 'width'));
-    drupal_static_reset('neo_tokens_image_dimension');
-    $this->assertSame('8', neo_tokens_image_dimension($text, 'width'));
+    $this->assertNull($this->imageDimension($text, 'width'));
+    $this->resetTokenStatics();
+    $this->assertSame('8', $this->imageDimension($text, 'width'));
 
     // A real image, both dimensions, as strings.
-    drupal_static_reset('neo_tokens_image_dimension');
-    $width = neo_tokens_image_dimension($this->uriA, 'width');
+    $this->resetTokenStatics();
+    $width = $this->imageDimension($this->uriA, 'width');
     $this->assertSame('120', $width);
     $this->assertIsString($width);
 
@@ -825,16 +843,16 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     // what a second read would say and changes nothing about the answer.
     $this->writeImage($this->uriA, 33, 77);
     $this->assertSame([33, 77], array_slice((array) getimagesize($this->uriA), 0, 2));
-    $this->assertSame('45', neo_tokens_image_dimension($this->uriA, 'height'));
+    $this->assertSame('45', $this->imageDimension($this->uriA, 'height'));
 
-    drupal_static_reset('neo_tokens_image_dimension');
-    $this->assertSame('77', neo_tokens_image_dimension($this->uriA, 'height'));
-    $this->assertSame('33', neo_tokens_image_dimension($this->uriA, 'width'));
+    $this->resetTokenStatics();
+    $this->assertSame('77', $this->imageDimension($this->uriA, 'height'));
+    $this->assertSame('33', $this->imageDimension($this->uriA, 'width'));
 
     // Quirk 6: the read is `$dimension === 'width' ? 0 : 1`, so anything that
     // is not `width` is the height.
-    $this->assertSame('77', neo_tokens_image_dimension($this->uriA, 'depth'));
-    $this->assertSame('77', neo_tokens_image_dimension($this->uriA, ''));
+    $this->assertSame('77', $this->imageDimension($this->uriA, 'depth'));
+    $this->assertSame('77', $this->imageDimension($this->uriA, ''));
   }
 
   /**
@@ -860,7 +878,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     $this->enterRequest(NULL);
     $this->assertFalse(\Drupal::moduleHandler()->moduleExists('neo_image'));
 
-    $data = neo_tokens_image_data($this->uriA);
+    $data = $this->imageData($this->uriA);
     $this->assertSame(['uri', 'url'], array_keys($data));
 
     // The uri travels through untouched — it is the style-derived value that
@@ -881,15 +899,22 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
 
     // Quirk 7: the parameters this branch is handed are never read, and the
     // function's own docblock never mentions them.
-    $this->assertSame($data, neo_tokens_image_data($this->uriA, ['exact', '1200', '630']));
-    $this->assertSame($data, neo_tokens_image_data($this->uriA, ['nonsense']));
-    $docblock = (string) (new \ReflectionFunction('neo_tokens_image_data'))->getDocComment();
+    $this->assertSame($data, $this->imageData($this->uriA, ['exact', '1200', '630']));
+    $this->assertSame($data, $this->imageData($this->uriA, ['nonsense']));
+    $reflection = new \ReflectionMethod(NeoTokensHooks::class, 'imageData');
+    $docblock = (string) $reflection->getDocComment();
     $this->assertStringContainsString('@param string $uri', $docblock);
-    $this->assertStringNotContainsString('$params', $docblock);
+    // The documentation half of this quirk could not survive the move: an
+    // undocumented parameter is a phpcs error on a file under `src/`, so
+    // `$params` is described now. What it is described as is what the two
+    // assertions above have just demonstrated — accepted, optional, and never
+    // read by this branch.
+    $this->assertStringContainsString('@param array $params', $docblock);
+    $this->assertTrue($reflection->getParameters()[1]->isOptional());
 
     // The url build never touches the filesystem, so a uri naming no file
     // still produces one — the dimension read is where that is caught.
-    $missing = neo_tokens_image_data('public://neo-token-missing.png');
+    $missing = $this->imageData('public://neo-token-missing.png');
     $this->assertFalse(file_exists('public://neo-token-missing.png'));
     $this->assertStringEndsWith('/neo-token-missing.png', $missing['url']);
   }
@@ -908,16 +933,16 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
   }
 
   /**
-   * Resets the two statics the image chain memoises in.
+   * Empties the two memos the image chain caches in.
    *
-   * Both are `drupal_static()` caches named after their own function, and both
-   * live for the whole request. A test method exercising more than one arm of
-   * the same entry point has to clear them between arms or it is asserting the
-   * first arm twice.
+   * Both are private properties on the hook class rather than `drupal_static()`
+   * caches, and both live for as long as the instance does. A test method
+   * exercising more than one arm of the same entry point has to clear them
+   * between arms or it is asserting the first arm twice — which, now that they
+   * are instance state, means asking for another instance.
    */
   private function resetTokenStatics(): void {
-    drupal_static_reset('neo_tokens_image_fetch');
-    drupal_static_reset('neo_tokens_image_dimension');
+    $this->hooks = NULL;
   }
 
   /**
@@ -1100,8 +1125,145 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
       $this->container->get('config.factory'),
       $this->container->get('current_route_match')
     ));
+    // The instance holds the path matcher it was constructed with, so it is
+    // dropped with the request that made a new one necessary.
+    $this->hooks = NULL;
     \Drupal::state()->delete('neo_test.token_logo_alter_seen');
     \Drupal::state()->delete('neo_test.token_image_alter_seen');
+  }
+
+  /**
+   * Calls the logo resolver, a private method on the hook class.
+   *
+   * @param array $params
+   *   The token's parameters.
+   * @param \Drupal\Core\Entity\ContentEntityInterface|null $entity
+   *   The entity being processed.
+   *
+   * @return mixed
+   *   Whatever the resolver answered.
+   */
+  private function logo(array $params = [], ?ContentEntityInterface $entity = NULL): mixed {
+    return $this->invoke('logo', [$params, $entity]);
+  }
+
+  /**
+   * Calls the image resolver, a private method on the hook class.
+   *
+   * @param array $params
+   *   The token's parameters.
+   * @param \Drupal\Core\Entity\ContentEntityInterface|null $entity
+   *   The entity being processed.
+   *
+   * @return mixed
+   *   Whatever the resolver answered.
+   */
+  private function image(array $params = [], ?ContentEntityInterface $entity = NULL): mixed {
+    return $this->invoke('image', [$params, $entity]);
+  }
+
+  /**
+   * Calls the image fetch, a private method on the hook class.
+   *
+   * @param array $params
+   *   The token's parameters.
+   * @param string $hook
+   *   The alter hook name.
+   * @param \Drupal\Core\Entity\ContentEntityInterface|null $entity
+   *   The entity being processed.
+   * @param bool $crawlEntity
+   *   Whether to crawl the entity for media images.
+   *
+   * @return array
+   *   The uri and url pair.
+   */
+  private function imageFetch(array $params, string $hook, ?ContentEntityInterface $entity = NULL, bool $crawlEntity = TRUE): array {
+    return $this->invoke('imageFetch', [$params, $hook, $entity, $crawlEntity]);
+  }
+
+  /**
+   * Calls the dimension reader, a private method on the hook class.
+   *
+   * @param string|null $uri
+   *   The file uri.
+   * @param string $dimension
+   *   The dimension to read.
+   *
+   * @return string|null
+   *   The dimension, or NULL.
+   */
+  private function imageDimension(?string $uri, string $dimension): ?string {
+    return $this->invoke('imageDimension', [$uri, $dimension]);
+  }
+
+  /**
+   * Calls the url build, a private method on the hook class.
+   *
+   * @param string $uri
+   *   The file uri.
+   * @param array $params
+   *   The token's parameters.
+   *
+   * @return array
+   *   The uri and url pair.
+   */
+  private function imageData(string $uri, array $params = []): array {
+    return $this->invoke('imageData', [$uri, $params]);
+  }
+
+  /**
+   * Calls the media crawl, a private method on the hook class.
+   *
+   * @param \Drupal\Core\Entity\ContentEntityInterface $entity
+   *   The entity to crawl.
+   *
+   * @return string|null
+   *   The uri, or NULL.
+   */
+  private function entityToMediaImageUri(ContentEntityInterface $entity): ?string {
+    return $this->invoke('entityToMediaImageUri', [$entity]);
+  }
+
+  /**
+   * Calls one of the hook class's private helpers.
+   *
+   * The nine helpers behind the two hooks are private, because nothing outside
+   * the class calls them — which is exactly why a test that wants one has to
+   * ask for it by name.
+   *
+   * @param string $method
+   *   The method name.
+   * @param array $arguments
+   *   The positional arguments.
+   *
+   * @return mixed
+   *   Whatever the method answered.
+   */
+  private function invoke(string $method, array $arguments): mixed {
+    $hooks = $this->tokensHooks();
+    return (new \ReflectionMethod($hooks, $method))->invokeArgs($hooks, $arguments);
+  }
+
+  /**
+   * The instance under test, built from the container's own services.
+   *
+   * It is built rather than fetched because core registers a hook class as a
+   * private autowired service.
+   *
+   * @return \Drupal\neo\Hook\NeoTokensHooks
+   *   The instance, memoised until something invalidates it.
+   */
+  private function tokensHooks(): NeoTokensHooks {
+    $this->hooks ??= new NeoTokensHooks(
+      $this->container->get('cache.default'),
+      $this->container->get('module_handler'),
+      $this->container->get('path.matcher'),
+      $this->container->get('config.factory'),
+      $this->container->get('request_stack'),
+      $this->container->get('title_resolver'),
+      $this->container->get('file_url_generator'),
+    );
+    return $this->hooks;
   }
 
 }
