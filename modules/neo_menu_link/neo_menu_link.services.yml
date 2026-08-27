@@ -2,3 +2,11 @@ services:
   neo_menu_link.settings:
     parent: neo_settings.repository
     arguments: ['neo_menu_link']
+
+  Drupal\neo_menu_link\Hook\NeoMenuLinkHooks:
+    # The hook collector registers a hook class as an autowired service under
+    # its own class name when the container has no definition for it. This one
+    # is written out instead, because its collaborator is a named service
+    # rather than an autowirable type.
+    class: Drupal\neo_menu_link\Hook\NeoMenuLinkHooks
+    arguments: ['@neo_menu_link.settings']

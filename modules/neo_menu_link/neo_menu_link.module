@@ -8,43 +8,14 @@
 declare(strict_types=1);
 
 use Drupal\Component\Utility\Html;
-use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Menu\MenuLinkTreeElement;
 use Drupal\Core\Render\Element;
-use Drupal\neo_icon\IconElement;
 use Drupal\menu_link_content\Entity\MenuLinkContent;
 use Drupal\menu_link_content\Plugin\Menu\MenuLinkContent as MenuMenuLinkContent;
 use Drupal\neo_menu_link\NeoMenuLinkDefault;
 use Drupal\neo_menu_link\NeoMenuLinkLoginLogoutMenuLink;
 use Drupal\node\NodeInterface;
-
-/**
- * Implements hook_entity_base_field_info_alter().
- */
-function neo_menu_link_entity_base_field_info_alter(&$fields, EntityTypeInterface $entity_type) {
-  if ($entity_type->id() === 'menu_link_content') {
-    /** @var \Drupal\neo_menu_link\Settings\MenuLinkSettings $settings */
-    $settings = \Drupal::service('neo_menu_link.settings')->getActive();
-    $fields['link']->setDisplayOptions('form', [
-      'type' => 'neo_link',
-      'weight' => -2,
-      'settings' => [
-        'icon_libraries' => $settings->getValue('icon_libraries') ?? [],
-        'target' => !empty($settings->getValue('target')),
-        'class' => !empty($settings->getValue('class')),
-        'class_list' => $settings->getClassList() ?? [],
-      ],
-    ]);
-  }
-}
-
-/**
- * Implements hook_menu_links_discovered_alter().
- */
-function neo_menu_link_menu_links_discovered_alter(&$links) {
-  $links['user.logout']['class'] = 'Drupal\neo_menu_link\NeoMenuLinkLoginLogoutMenuLink';
-}
 
 /**
  * Implements hook_module_implements_alter().
@@ -189,48 +160,6 @@ function neo_menu_link_menu_ui_node_save(NodeInterface $node, array $values) {
   $entity->parent->value = $values['parent'];
   $entity->weight->value = $values['weight'] ?? 0;
   $entity->save();
-}
-
-/**
- * Implements hook_preprocess_menu().
- */
-function neo_menu_link_preprocess_menu(&$variables) {
-  $variables['items'] = neo_menu_link_preprocess_menu_items($variables['items']);
-}
-
-/**
- * Helper function to iterate over each menu item and utilize icon.
- */
-function neo_menu_link_preprocess_menu_items($items) {
-  foreach ($items as &$item) {
-    $options = $item['url']->getOptions();
-    if (!empty($options['attributes']['data-icon']) && !empty($item['title'])) {
-      $position = $options['attributes']['data-icon-position'] ?? 'before';
-      $icon = new IconElement($item['title'], $options['attributes']['data-icon']);
-      $icon->iconPosition($position);
-      $item['title'] = $icon->render();
-      $item['url']->setOptions($options);
-    }
-    unset($options['attributes']['data-icon']);
-    if (!empty($options['attributes']['data-class'])) {
-      $options['attributes'] += ['class' => []];
-      $classes = explode(' ', $options['attributes']['data-class']);
-      $options['attributes']['class'] = array_merge($options['attributes']['class'], $classes);
-      foreach ($classes as $class) {
-        $item['attributes']->addClass($class . '-wrapper');
-      }
-    }
-    unset($options['attributes']['data-class']);
-    if (!empty($options['attributes']['data-target'])) {
-      $options['attributes']['target'] = $options['attributes']['data-target'];
-    }
-    unset($options['attributes']['data-target']);
-    if (!empty($item['below'])) {
-      $item['below'] = neo_menu_link_preprocess_menu_items($item['below']);
-    }
-    $item['url']->setOptions($options);
-  }
-  return $items;
 }
 
 /**
@@ -414,44 +343,5 @@ function neo_menu_link_form_menu_edit_form_alter(array &$form, FormStateInterfac
         $element['title'] = neo_icon($element['title'], $icon);
       }
     }
-  }
-}
-
-/**
- * Implements hook_config_schema_info_alter().
- */
-function neo_menu_link_config_schema_info_alter(&$definitions) {
-  if (isset($definitions['core.menu.static_menu_link_overrides'])) {
-    $schema = [
-      'options' => [
-        'type' => 'mapping',
-        'label' => 'Options',
-        'mapping' => [
-          'attributes' => [
-            'type' => 'mapping',
-            'title' => 'Attributes',
-            'mapping' => [
-              'data-icon' => [
-                'type' => 'string',
-                'label' => 'Icon',
-              ],
-              'data-target' => [
-                'type' => 'boolean',
-                'label' => 'Target',
-              ],
-              'data-class' => [
-                'type' => 'string',
-                'label' => 'Class',
-              ],
-              'title' => [
-                'type' => 'string',
-                'label' => 'Title',
-              ],
-            ],
-          ],
-        ],
-      ],
-    ];
-    $definitions['core.menu.static_menu_link_overrides']['mapping']['definitions']['sequence']['mapping'] += $schema;
   }
 }
