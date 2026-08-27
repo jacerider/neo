@@ -458,12 +458,12 @@ class SlideMenu implements RenderableInterface {
   /**
    * Builds render arrays for a collection of menu items.
    *
-   * @param array $items
+   * @param array<int|string, mixed> $items
    *   The menu items to build.
    * @param int $depth
    *   The depth of the items, starting at 1 for the top level.
    *
-   * @return array
+   * @return array<string, mixed>
    *   A render array representing the items.
    */
   protected function buildItems(array $items, int $depth = 1): array {
@@ -482,12 +482,12 @@ class SlideMenu implements RenderableInterface {
   /**
    * Builds a render array for a single menu item.
    *
-   * @param array $item
+   * @param array<string, mixed> $item
    *   The menu item to build.
    * @param int $depth
    *   The depth of the item, starting at 1 for the top level.
    *
-   * @return array
+   * @return array<string, mixed>
    *   A render array representing the item.
    */
   protected function buildItem(array $item, int $depth = 1): array {
@@ -615,10 +615,10 @@ class SlideMenu implements RenderableInterface {
   /**
    * Builds a back link for navigating up in the menu hierarchy.
    *
-   * @param array $item
+   * @param array<string, mixed> $item
    *   The parent menu item.
    *
-   * @return array
+   * @return array<string, mixed>
    *   A render array for the back link.
    */
   protected function buildItemBack(array $item): array {
@@ -627,7 +627,12 @@ class SlideMenu implements RenderableInterface {
     ]);
 
     $backAttributes = clone $this->getBackAttributes();
-    $backAttributes->setAttribute('aria-label', $title);
+    // A TranslatableMarkup satisfies neither setAttribute()'s string|array
+    // docblock nor the AttributeValueBase an offset write on the bag is typed
+    // to accept. Merging a one-key bag reaches the identical offsetSet(), so
+    // the label is still converted by createAttributeValue() rather than cast
+    // here — a cast would skip core's plain-text pass over the translation.
+    $backAttributes->merge(new Attribute(['aria-label' => $title]));
     $backAttributes->addClass('neo-slide-menu--backlink');
 
     $back = $this->buildItem([
@@ -654,10 +659,10 @@ class SlideMenu implements RenderableInterface {
   /**
    * Builds a "view all" link for a submenu.
    *
-   * @param array $item
+   * @param array<string, mixed> $item
    *   The parent menu item.
    *
-   * @return array
+   * @return array<string, mixed>
    *   A render array for the "view all" link.
    */
   protected function buildItemAll(array $item): array {
@@ -688,7 +693,7 @@ class SlideMenu implements RenderableInterface {
           'suffix' => $this->getAllSuffix(),
         ],
       ],
-      'url' => isset($item['url']) ? clone $item['url'] : NULL,
+      'url' => clone $item['url'],
       'link_attributes' => $allAttributes,
     ]);
 
@@ -745,6 +750,9 @@ class SlideMenu implements RenderableInterface {
 
   /**
    * {@inheritDoc}
+   *
+   * @return array<string, mixed>
+   *   A render array for the whole slide menu.
    */
   public function toRenderable(): array {
     return [
