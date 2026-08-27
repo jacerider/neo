@@ -7,18 +7,12 @@
 
 declare(strict_types=1);
 
-use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\NestedArray;
-use Drupal\Core\Entity\ContentEntityInterface;
-use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 use Drupal\devel\Render\FilteredMarkup;
 use Drupal\neo\Helpers\Str;
 use Drupal\neo\Helpers\TableProps;
-use Drupal\neo\NeoPreRender;
-use Drupal\neo\NeoProcess;
 use Kint\Kint;
 
 /**
@@ -68,15 +62,6 @@ function neo_theme() {
 }
 
 /**
- * Implements hook_library_info_alter().
- */
-function neo_library_info_alter(&$libraries, $extension) {
-  if ($extension == 'core') {
-    $libraries['drupal.autocomplete']['dependencies'][] = 'neo/autocomplete';
-  }
-}
-
-/**
  * Implements hook_theme_suggestions_HOOK() for theme().
  */
 function neo_theme_suggestions_views_view(array $variables) {
@@ -87,40 +72,6 @@ function neo_theme_suggestions_views_view(array $variables) {
     $suggestions[] = 'views_view__neo_clean';
   }
   return $suggestions;
-}
-
-/**
- * Implements hook_entity_view_alter().
- */
-function neo_entity_view_alter(array &$build, EntityInterface $entity, EntityViewDisplayInterface $display) {
-  if ($entity instanceof ContentEntityInterface) {
-    foreach ($display->getComponents() as $field_name => $component) {
-      if (!isset($component['type'])) {
-        continue;
-      }
-      if ($component['type'] == 'neo_entity_attribute') {
-        if ($entity->hasField($field_name) && !$entity->get($field_name)->isEmpty()) {
-          $field = $entity->get($field_name);
-          $type = $component['settings']['type'] ?? 'class';
-          if ($type === 'class') {
-            foreach ($field->getValue() as $item) {
-              $value = $item['value'] ?? $item['target_id'];
-              $build['#attributes']['class'][] = Html::getClass($component['settings']['prefix'] . $value . $component['settings']['suffix']);
-            }
-          }
-          elseif ($type === 'data') {
-            $name = Html::getClass($component['settings']['prefix'] . str_replace('field_', '', $field_name) . $component['settings']['suffix']);
-            if ($field->getFieldDefinition()->getFieldStorageDefinition()->getCardinality() === 1) {
-              $build['#attributes']['data-' . $name] = $field->value ?? $field->target_id;
-            }
-            else {
-              $build['#attributes']['data-' . $name] = json_encode($field->value);
-            }
-          }
-        }
-      }
-    }
-  }
 }
 
 /**
@@ -306,36 +257,6 @@ function template_preprocess_slide_list(&$variables) {
 }
 
 /**
- * Implements hook_element_info_alter().
- */
-function neo_element_info_alter(&$info) {
-  if (isset($info['details'])) {
-    $processes = !empty($info['details']['#process']) ? $info['details']['#process'] : [];
-    array_unshift($processes, [NeoProcess::class, 'details']);
-    $info['details']['#process'] = $processes;
-  }
-  if (isset($info['view'])) {
-    $info['view']['#pre_render'][] = [NeoPreRender::class, 'view'];
-  }
-  $info['entity_autocomplete']['#process'] = array_merge([[NeoProcess::class, 'entityAutocomplete']], $info['entity_autocomplete']['#process']);
-  foreach ([
-    'link',
-    'button',
-    'submit',
-    'neo_modal_link',
-  ] as $type) {
-    $info[$type]['#pre_render'] = array_merge(
-      [[NeoPreRender::class, 'disable']],
-      $info[$type]['#pre_render'] ?? []
-    );
-  }
-  if (isset($info['entity_autocomplete'])) {
-    // Remove maxlength restriction for entity_autocomplete fields.
-    $info['entity_autocomplete']['#maxlength'] = NULL;
-  }
-}
-
-/**
  * Get table props.
  *
  * @return array
@@ -408,27 +329,6 @@ function neo_preprocess_views_view_table(&$variables) {
       }
     }
   }
-}
-
-/**
- * Implements hook_config_schema_info_alter().
- */
-function neo_config_schema_info_alter(&$definitions) {
-  if (isset($definitions['views.style.table'])) {
-    foreach (TableProps::get() as $key => $prop) {
-      $definitions['views.style.table']['mapping']['info']['sequence']['mapping'][$key] = [
-        'type' => 'string',
-        'label' => $prop['label'],
-      ];
-    }
-  }
-}
-
-/**
- * Implements hook_views_plugins_area_alter().
- */
-function neo_views_plugins_area_alter(array &$plugins) {
-  $plugins['result']['class'] = 'Drupal\neo\Plugin\views\area\NeoResult';
 }
 
 /**

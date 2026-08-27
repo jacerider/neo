@@ -90,7 +90,6 @@ class TablePropsDelegationTest extends UnitTestCase {
     foreach ([
       'neo_preprocess_views_ui_style_plugin_table',
       'neo_preprocess_views_view_table',
-      'neo_config_schema_info_alter',
     ] as $function) {
       $this->assertStringContainsString(
         'TableProps::get()',
@@ -98,6 +97,15 @@ class TablePropsDelegationTest extends UnitTestCase {
         "$function() reaches the static.",
       );
     }
+    // The third `.module` caller was the config schema alter, which is now
+    // `NeoHooks::configSchemaInfoAlter()`. It is followed to its new home
+    // rather than dropped: what this pins is that every call site inside the
+    // package reaches the static, not which file happens to hold it.
+    $this->assertStringContainsString(
+      'TableProps::get()',
+      file_get_contents(dirname(__DIR__, 3) . '/src/Hook/NeoHooks.php'),
+      "The config schema alter's call site reaches the static.",
+    );
     $this->assertStringContainsString(
       'TableProps::get()',
       file_get_contents(dirname(__DIR__, 3) . '/src/Hook/FormAlterHook.php'),
