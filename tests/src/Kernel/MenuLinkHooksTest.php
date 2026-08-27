@@ -21,9 +21,10 @@ use PHPUnit\Framework\Attributes\Group;
  * swaps the menu link's link field onto Neo's widget, the discovered links
  * alter that points core's logout link at Neo's class, the menu preprocessor
  * and the recursive helper behind it, and the config schema alter that extends
- * core's static menu link overrides. The five form alters are still procedural
- * in the `.module`, which is why this ticket does not set the module's hook
- * scan skip parameter — that would stop the collector reading them.
+ * core's static menu link overrides. The four form alters moved onto
+ * `Drupal\neo_menu_link\Hook\NeoMenuLinkFormHooks` in the ticket after this
+ * one, which is what emptied the `.module` and let the module set its hook
+ * scan skip parameter; `MenuLinkFormHooksTest` owns that half.
  *
  * The bodies moved unchanged, with one substitution: the base field alter's
  * `\Drupal::service('neo_menu_link.settings')` became a constructor argument.
@@ -143,11 +144,12 @@ final class MenuLinkHooksTest extends KernelTestBase {
       'neo_menu_link_preprocess_menu_items() no longer exists.'
     );
 
-    // The five form alters are deliberately still procedural, which is why the
-    // module's hook scan skip parameter is not set by this ticket.
-    $this->assertTrue(
+    // The form alters have since moved onto NeoMenuLinkFormHooks and the
+    // `.module` is gone with them, which is what lets the module set its hook
+    // scan skip parameter. MenuLinkFormHooksTest owns that half.
+    $this->assertFalse(
       function_exists('neo_menu_link_form_node_form_alter'),
-      'The form alters are still procedural and still found.'
+      'The form alters are no longer procedural either.'
     );
   }
 

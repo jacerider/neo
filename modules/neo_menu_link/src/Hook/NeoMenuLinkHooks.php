@@ -18,9 +18,11 @@ use Drupal\neo_settings\SettingsRepositoryInterface;
  * login/logout menu link class, the menu preprocessor that turns a row's
  * `data-icon`, `data-class` and `data-target` options into an icon element,
  * wrapper classes and a target attribute, and the config schema alter that
- * extends core's static menu link overrides. The five form alters stay in the
- * `.module` and move in their own ticket, which is why this module does not
- * set the hook scan skip parameter — the collector still has to read them.
+ * extends core's static menu link overrides. The four form alters and the
+ * callbacks they carry are on
+ * \Drupal\neo_menu_link\Hook\NeoMenuLinkFormHooks, which is core's
+ * `…Hooks` / `…FormHooks` split; between the two classes nothing procedural is
+ * left, which is what lets the module set the hook scan skip parameter.
  *
  * Every body below is what stood in `neo_menu_link.module`, with one
  * substitution: the base field alter's `\Drupal::service()` reach for this
