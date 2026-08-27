@@ -4,7 +4,7 @@ description: 'A UI and UX framework providing a number of features, utiilities a
 package: Neo
 neo: true
 version: 1.0.138
-core_version_requirement: ^10.3 || ^11
+core_version_requirement: ^11.3
 dependencies:
   - neo_build:neo_build
   - neo_color:neo_color
