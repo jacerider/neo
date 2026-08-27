@@ -16,6 +16,7 @@ use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 use Drupal\devel\Render\FilteredMarkup;
 use Drupal\neo\Helpers\Str;
+use Drupal\neo\Helpers\TableProps;
 use Drupal\neo\NeoPreRender;
 use Drupal\neo\NeoProcess;
 use Kint\Kint;
@@ -339,45 +340,14 @@ function neo_element_info_alter(&$info) {
  *
  * @return array
  *   The table props.
+ *
+ * @deprecated in neo:1.1.0 and is removed from neo:2.0.0. Use
+ *   \Drupal\neo\Helpers\TableProps::get() instead.
+ *
+ * @see \Drupal\neo\Helpers\TableProps::get()
  */
 function neo_table_props(): array {
-  return [
-    'neo_style' => [
-      'label' => t('Neo Style'),
-      'options' => [
-        'default' => t('Default'),
-        'heading' => t('Heading'),
-        'sm' => t('Small'),
-        'xs' => t('Extra Small'),
-      ],
-    ],
-    'neo_size' => [
-      'label' => t('Neo Size'),
-      'options' => [
-        'default' => t('Default'),
-        'min' => t('Minimum'),
-      ],
-    ],
-    'neo_align' => [
-      'label' => t('Neo Align'),
-      'options' => [],
-    ],
-    'neo_sticky' => [
-      'label' => t('Neo Sticky'),
-      'options' => [
-        'none' => t('None'),
-        'left' => t('Left'),
-        'right' => t('Right'),
-      ],
-      // Unlike the other props, sticky is structural, not presentational:
-      // pinning one column implies pinning everything between it and the
-      // edge, and each pinned column needs an offset derived from its
-      // neighbours. That normalization has to see every column at once, so
-      // this prop is persisted and exposed in the UI here while the class
-      // itself is computed downstream by \Drupal\neo_base\NeoBasePreRender.
-      'apply' => FALSE,
-    ],
-  ];
+  return TableProps::get();
 }
 
 /**
@@ -397,7 +367,7 @@ function neo_preprocess_views_ui_style_plugin_table(&$variables) {
   foreach ($form['#neo_header'] as $key => $label) {
     $variables['table']['#header'][$key] = $label;
   }
-  $props = array_filter(neo_table_props(), fn ($prop) => !empty($prop['options']));
+  $props = array_filter(TableProps::get(), fn ($prop) => !empty($prop['options']));
   $delta = 0;
   foreach (Element::children($form['neo']) as $id) {
     foreach ($props as $key => $prop) {
@@ -424,7 +394,7 @@ function neo_preprocess_views_view_table(&$variables) {
   // Props flagged 'apply' => FALSE are persisted and exposed in the Views UI
   // but their class is worked out further down the render pipeline, so
   // stamping one here would only have to be undone later.
-  $props = array_filter(neo_table_props(), fn ($prop) => ($prop['apply'] ?? TRUE) !== FALSE);
+  $props = array_filter(TableProps::get(), fn ($prop) => ($prop['apply'] ?? TRUE) !== FALSE);
   foreach ($variables['rows'] as $row_id => $row) {
     foreach ($row['columns'] as $column_id => $column) {
       foreach ($props as $key => $prop) {
@@ -445,7 +415,7 @@ function neo_preprocess_views_view_table(&$variables) {
  */
 function neo_config_schema_info_alter(&$definitions) {
   if (isset($definitions['views.style.table'])) {
-    foreach (neo_table_props() as $key => $prop) {
+    foreach (TableProps::get() as $key => $prop) {
       $definitions['views.style.table']['mapping']['info']['sequence']['mapping'][$key] = [
         'type' => 'string',
         'label' => $prop['label'],
