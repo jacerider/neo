@@ -2,7 +2,7 @@
 
 **Status:** accepted · **Date:** 2026-08-26
 **Context:** `neo` — **table props**, the **table props shim** that answers them, and its one caller
-**Issue:** jacerider/neo#8  ·  **Plan:** `neo-hook-classes` on wps
+**Issue:** jacerider/neo#8
 
 **Decision.** `neo_table_props()`'s body moves to `Helpers\TableProps`, a static beside the **Neo
 helpers** under `src/Helpers/`; the global stays in `neo.module` as a one-line **table props shim**
@@ -36,5 +36,5 @@ site's `phpstan.neon` covers `neo_theme/neo_base` with deprecation rules on — 
 that no longer calls it; dropping it sooner breaks roughly thirty sites. On 2026-08-27 `neo_theme`
 did migrate (`821053d` on `develop`, unreleased, requiring `jacerider/neo: ^1.0.139`): the call sat
 at `:144` and `:357`, not `:273`, so two findings, both cleared; the ordering objection dissolved
-since `Helpers\TableProps` had shipped in `neo` 1.0.139, which this site runs. The docblock says
+since `Helpers\TableProps` had already shipped in `neo` 1.0.139. The docblock says
 `neo:1.1.0`; both shipped in 1.0.139, left as is. Contract waits on a `neo_theme` release.

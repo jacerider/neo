@@ -2,7 +2,7 @@
 
 **Status:** accepted · **Date:** 2026-08-26
 **Context:** `neo` — the **core floor**, and the **hook classes** its twenty-seven hooks move into
-**Issue:** jacerider/neo#8  ·  **Plan:** `neo-hook-classes` on wps
+**Issue:** jacerider/neo#8
 
 **Decision.** `neo`, `neo_menu_link` and `neo_taxonomy` declare `core_version_requirement:
 ^10.3 || ^11`, as does `neo`'s composer metadata for `drupal/core`; all four narrow to `^11.3`. No

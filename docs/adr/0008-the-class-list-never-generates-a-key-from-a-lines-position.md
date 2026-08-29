@@ -2,7 +2,7 @@
 
 **Status:** accepted · **Date:** 2026-08-25
 **Context:** `neo` — the **class list parser** and the **class key rule** it is handed
-**Issue:** jacerider/neo#5  ·  **Plan:** `neo-class-list-parser` on wps
+**Issue:** jacerider/neo#5
 
 **Decision.** The **class list parser** accepts a list that mixes `class|Label` lines with bare
 `class` lines, and it never generates a key from a line's position in the list. The guard that would

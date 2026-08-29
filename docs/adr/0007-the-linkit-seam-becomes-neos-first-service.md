@@ -2,7 +2,7 @@
 
 **Status:** accepted · **Date:** 2026-08-25
 **Context:** `neo` — the **Linkit seam**, in a module with no services file, only static helpers
-**Issue:** jacerider/neo#2  ·  **Plan:** `neo-linkit-seam` on wps
+**Issue:** jacerider/neo#2
 
 **Decision.** `neo` has never had a `neo.services.yml`; shared logic lives in statics under
 `src/Helpers/` (`Str`, `NestedArray`, `Utilities`). The **Linkit seam** breaks that pattern: it
