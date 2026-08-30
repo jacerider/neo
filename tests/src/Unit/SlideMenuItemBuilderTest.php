@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * `SlideMenu::buildItems()` and `SlideMenu::buildItem()` are the array-in,
  * array-out half of the slide menu seam: they turn a tree of slide menu items
- * into the render array every mobile menu on thirty sites is built from.
+ * into the render array every mobile menu on every site is built from.
  * `Element\SlideMenu` walks a real menu tree and hands the result here,
  * `neo_alchemist_menu` alters the items on the way, and `neo.api.php`
  * publishes the item contract. Nothing had ever asserted the output.

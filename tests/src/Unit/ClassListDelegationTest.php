@@ -13,7 +13,7 @@ use PHPUnit\Framework\Attributes\Group;
 /**
  * Pins the two class list surfaces to a frozen shape over one parser.
  *
- * `neo` ships to roughly thirty sites, so getClassList() keeps its name, its
+ * `neo` ships to every installing site, so getClassList() keeps its name, its
  * public visibility and its declared absence of a return type, and
  * validateClassListValue() keeps its name and its protected visibility. What
  * changes is what sits between them: each method used to carry its own

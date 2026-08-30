@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\Group;
  *
  * - The shim carries a `@deprecated` tag and **no** `@trigger_error`, because
  *   `neo_theme` is the one caller outside this package and an operator on any
- *   of roughly thirty sites did not ask for a notice on every admin table.
+ *   of every installing site did not ask for a notice on every admin table.
  *   `docs/adr/0010` is the reasoning.
  * - Nothing inside this package calls the shim any more. That is not style: a
  *   `@deprecated` function called from its own package is a

@@ -105,7 +105,7 @@ class ClassListHelperTest extends UnitTestCase {
    *
    * This is the half of the invalid-list semantics that did NOT change. A
    * defensible parser would drop the bad line and keep the good ones, but that
-   * is a behaviour change on thirty sites with no bug behind it, so the list is
+   * is a behaviour change on every site with no bug behind it, so the list is
    * still abandoned wholesale -- it just comes back empty rather than NULL.
    */
   public function testAnOffendingLineDiscardsTheWholeListNotOnlyItself(): void {
