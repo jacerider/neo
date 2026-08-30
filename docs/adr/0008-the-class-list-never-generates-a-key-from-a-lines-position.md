@@ -27,7 +27,7 @@ behaviour that makes no sense here.
 **Rejected.**
 - Make the guard fire — set `$generated_keys` in the bare-value branch so `primary|Primary` mixed
   with a bare `secondary` is rejected. Not core's rule: core sets `$explicit_keys` there too, so it
-  accepts the mix. And it changes what roughly thirty sites render: any list authored with both
+  accepts the mix. And it changes what every installing site renders: any list authored with both
   forms would silently stop producing a select, the whole list dropped rather than one line, after
   working for the life of this code and being a reasonable thing for an editor to have done.
 

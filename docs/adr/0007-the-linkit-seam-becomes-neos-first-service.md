@@ -34,7 +34,7 @@ test. Constructing it with stubs is what lets this plan's first ticket write `ne
   class is swapped by service override, and removing `final` later breaks nothing, adding it does.
 
 **Cost.** `neo.linkit_resolver` is public permanently: renaming or removing it is a breaking release
-for roughly thirty sites, and a service id invites dependence as a static helper does not.
+for every installing site, and a service id invites dependence as a static helper does not.
 `neo.services.yml` will not stay at one entry — the backlog's hook-migration candidate names making
 this file and now inherits its shape. While the traits exist the seam has two doors: each method
 keeps a container fallback for callers that cannot inject — one `\Drupal::` call each, but not zero.

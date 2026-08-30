@@ -22,7 +22,7 @@ docblock is the smallest signal that reaches a tool and not an operator.
 
 **Rejected.**
 - A runtime `@trigger_error`, as Drupal's policy asks — once per Views table pre-render, on every
-  admin listing, on thirty sites, for a move nobody asked for; the one beneficiary reads the source.
+  admin listing, on every site, for a move nobody asked for; the one beneficiary reads the source.
 - No deprecation, matching the **gate forwarder** — leaves `neo_theme` no reason to ever stop, and
   the backlog candidate asked for a deprecated shim; a second permanent path to the same data.
 - Edit `neo_theme` now and delete the global — its `jacerider/neo: ^1` has no minimum and the `neo`
@@ -33,7 +33,7 @@ docblock is the smallest signal that reaches a tool and not an operator.
 **Cost.** A `function.deprecated` finding planted in a repository this plan does not open — the
 site's `phpstan.neon` covers `neo_theme/neo_base` with deprecation rules on — that no ticket's
 `lint` gate sees, nor any operator. `neo` carries the global until every site runs a `neo_theme` tag
-that no longer calls it; dropping it sooner breaks roughly thirty sites. On 2026-08-27 `neo_theme`
+that no longer calls it; dropping it sooner breaks every installing site. On 2026-08-27 `neo_theme`
 did migrate (`821053d` on `develop`, unreleased, requiring `jacerider/neo: ^1.0.139`): the call sat
 at `:144` and `:357`, not `:273`, so two findings, both cleared; the ordering objection dissolved
 since `Helpers\TableProps` had already shipped in `neo` 1.0.139. The docblock says
