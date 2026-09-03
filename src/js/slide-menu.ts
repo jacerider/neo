@@ -48,6 +48,7 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
   const CLASS_NAMES = {
     active: `${NAMESPACE}--active`,
     focus: `${NAMESPACE}--focus`,
+    inline: `${NAMESPACE}--inline`,
     activeLi: 'is-active',
     backlink: `${NAMESPACE}--backlink`,
     control: `${NAMESPACE}--control`,
@@ -176,7 +177,17 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
         activeElem.classList.remove(CLASS_NAMES.active);
       });
 
-      const parentUl = parents(target, 'ul');
+      // An inline group is rendered INSIDE its parent panel (position: static,
+      // visibility: inherit) rather than as a slide of its own, so it must not
+      // count toward the slide depth -- the same rule `openSubmenu()` and
+      // `initMenu()` already apply via `ul:not(.neo-slide-menu--inline)`.
+      // Counting it moved the slider one panel too far and left the menu
+      // showing empty space on every page whose active trail runs through an
+      // expanded group. Inline lists also need no visibility/active marking:
+      // they inherit both from the panel that contains them.
+      const parentUl = parents(target, 'ul').filter(
+        (ul: HTMLElement) => !ul.classList.contains(CLASS_NAMES.inline),
+      );
       const level = parentUl.length - 1;
 
       parentUl.forEach((ul: HTMLElement) => {
