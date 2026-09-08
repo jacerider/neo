@@ -156,11 +156,17 @@ trait VisibilityEntityAccessControlTrait {
   /**
    * Default access when no conditions have prevented access.
    *
+   * EntityAccessControlHandler::checkAccess() takes exactly three parameters
+   * and returns an AccessResult either way. A fourth argument used to be
+   * passed here, read as the $return_as_object flag of the *public* access()
+   * method — a different method with a different signature. PHP discarded it
+   * silently, so removing it decides nothing it was not already deciding.
+   *
    * @return \Drupal\Core\Access\AccessResult
    *   An access result object.
    */
   protected function getDefaultVisibilityAccess(EntityInterface $entity, $operation, AccountInterface $account) {
-    return parent::checkAccess($entity, $operation, $account, TRUE);
+    return parent::checkAccess($entity, $operation, $account);
   }
 
   /**

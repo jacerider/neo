@@ -53,17 +53,19 @@ use PHPUnit\Framework\Attributes\Group;
  * `TestNeoForeignPluginVisibility`, which exists for that arm alone.
  *
  * **Characterised, not repaired.** Five answers pinned here are worth a backlog
- * entry, and none is touched:
+ * entry, and only the first has since been repaired:
  *
- * 1. **`getDefaultVisibilityAccess()` passes a fourth argument to a
- *    three-parameter signature.** It calls
+ * 1. **REPAIRED — `getDefaultVisibilityAccess()` passed a fourth argument to a
+ *    three-parameter signature.** It called
  *    `parent::checkAccess($entity, $operation, $account, TRUE)`, and
  *    `EntityAccessControlHandler::checkAccess()` takes exactly three
- *    parameters. PHP discards the extra argument silently. The `TRUE` reads as
+ *    parameters. PHP discarded the extra argument silently. The `TRUE` read as
  *    the `$return_as_object` flag of the *public* `access()` method, which is a
- *    different method with a different signature; it decides nothing, and the
- *    parent returns an `AccessResult` object either way. Pinned in
- *    testReturnsTheUnoverriddenDefaultForTheConsumerThatDoesNotOverrideIt.
+ *    different method with a different signature; it decided nothing, and the
+ *    parent returns an `AccessResult` object either way. The argument is gone;
+ *    the parent's arity is still asserted in
+ *    testReturnsTheUnoverriddenDefaultForTheConsumerThatDoesNotOverrideIt so a
+ *    fourth one cannot come back unnoticed.
  * 2. **The unoverridden default is an admin-permission check, so it answers
  *    `neutral` — not `forbidden` and not `allowed` — for everyone who does not
  *    hold the entity type's admin permission.** A consumer that adopts this
@@ -489,18 +491,18 @@ final class VisibilityEscapeHatchesTest extends KernelTestBase {
    * visible: a consumer that forgets to override it shows the entity to
    * administrators and expresses no opinion at all about anyone else.
    *
-   * Finding 1 is asserted structurally rather than by its effect, because it
-   * has none: `EntityAccessControlHandler::checkAccess()` declares three
-   * parameters, the trait passes four, and PHP discards the extra one without a
-   * notice. The `TRUE` reads as `$return_as_object` — a parameter of the
-   * *public* `access()`, which is a different method. Whatever it was meant to
-   * do, the parent returns an `AccessResult` object regardless, and it is
-   * asserted here that it does.
+   * Finding 1 was asserted structurally rather than by its effect, because it
+   * had none: `EntityAccessControlHandler::checkAccess()` declares three
+   * parameters, the trait passed four, and PHP discarded the extra one without
+   * a notice. The `TRUE` read as `$return_as_object` — a parameter of the
+   * *public* `access()`, which is a different method. It has been removed; the
+   * parent's arity is still asserted below, so a fourth argument cannot be
+   * reintroduced without this test noticing.
    */
   public function testReturnsTheUnoverriddenDefaultForTheConsumerThatDoesNotOverrideIt(): void {
     $handler = $this->accessHandler('neo_test_visibility');
 
-    // Finding 1: the argument the trait passes has nowhere to land.
+    // Finding 1: three parameters, and nowhere for a fourth to land.
     $parent = new \ReflectionMethod(EntityAccessControlHandler::class, 'checkAccess');
     $this->assertSame(3, $parent->getNumberOfParameters());
     $this->assertSame(
