@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.142 — 2026-09-08
+
+- 🐛 fix(access): drop the stray fourth argument to parent::checkAccess()
+- 📝 docs(changelog): record the 1.0.141 release
+- 📝 docs(changelog): record the 1.0.139 release
+- 📝 docs(changelog): record the 1.0.125–1.0.138 releases
+- 📝 docs: add CHANGELOG.md and link it from the README
+
 ## Inline groups no longer count as a slide level
 
 _Released in 1.0.141 — 2026-09-03._
