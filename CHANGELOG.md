@@ -1,5 +1,93 @@
 # Changelog
 
+## The Linkit seam is a service, and the read path resolves through neo's fork
+
+_Released in 1.0.139 — 2026-08-27._
+
+**The Linkit seam is a service, and the read path resolves through neo's
+fork.** `neo.linkit_resolver` is declared in `neo.services.yml` with nine
+arguments. `NeoLinkitTrait` and `NeoLinkitFormatterTrait` delegate to it
+without a signature change. The **link read path** now resolves a stored
+uri through neo's fork rather than upstream `LinkitHelper`, so a uri
+whose first segment glues a colon to a host no longer resolves to an
+entity. `drupal/linkit` became a hard Composer requirement and the inert
+module guards came out. The same **link read path** first learned the
+`internal:` and `base:` schemes in `1.0.130` — 2026-07-23. See
+`docs/adr/0007-the-linkit-seam-becomes-neos-first-service.md`.
+
+`NeoLinkitForkDivergenceTest`, `NeoLinkitFormatterUrlTest`,
+`NeoLinkitUserInputTest`, `NeoLinkitEntityFromUriTest` and
+`NeoLinkitEntityAttributesTest` are the kernel coverage under `tests/`.
+`NeoLinkitUriStringTest` is the unit coverage.
+
+## The quantity plus/minus widget lives in `neo_commerce` now
+
+_Released in 1.0.139 — 2026-08-27._
+
+**The quantity plus/minus widget lives in `neo_commerce` now.** A form
+display still pointing at `quantity_plus_minus` loses its field
+silently: the add to cart form renders, returns 200, and quietly has no
+quantity input. `neo_update_11001()` throws an `UpdateException` naming
+every affected display, with the remedy
+`composer require jacerider/neo_commerce:^1.0 && drush en neo_commerce`.
+A site that never runs the update still sees a `REQUIREMENT_ERROR` from
+`neo_requirements()`, listing the same displays. Nothing is installed
+automatically.
+
+## Drupal 11.3 is the floor, and the menu-link submit fork survives 11.4
+
+_Released in 1.0.139 — 2026-08-27._
+
+**Drupal 11.3 is the floor, and the menu-link submit fork survives 11.4.**
+`core_version_requirement: ^11.3` in `neo.info.yml`. The fork now
+installs on `MenuUiHooks::formNodeFormSubmit` rather than the procedural
+hook 11.4 removed, which is why the icon stopped being saved. See
+`docs/adr/0009-neo-requires-drupal-11-3-and-so-does-the-stack.md`.
+
+`MenuLinkFormHooksTest` pins the fork on both handler names.
+
+## An invalid class list yields no options
+
+_Released in 1.0.139 — 2026-08-27._
+
+**An invalid class list yields no options.** One parser under
+`src/Helpers/` sits behind both `getClassList()` methods. A list whose
+only line breaks the class key rule still discards the whole list;
+callers now receive `[]` instead of NULL, so the link widget's Style
+select renders its placeholder instead of fataling the node form. The
+class key rule stays overridable per surface. A saved CSS class is
+cast to an array before the widget implodes it, so re-opening a link
+with the class setting on no longer white-screens either branch. See
+`docs/adr/0008-the-class-list-never-generates-a-key-from-a-lines-position.md`.
+
+`ClassListHelperTest` pins the empty return. `ClassListDelegationTest`
+pins that each surface still hands in its own rule.
+
+## `neo_table_props()` is deprecated, and still called
+
+_Released in 1.0.139 — 2026-08-27._
+
+**`neo_table_props()` is deprecated, and still called.** The body moved
+to `Helpers\TableProps::get()`. The global in `neo.module` is one line
+of delegation, deprecated by docblock alone so no notice fires. Removal
+waits on a `neo_theme` release. See
+`docs/adr/0010-the-table-props-global-is-deprecated-but-never-fires.md`.
+
+`TablePropsDelegationTest` pins the silent deprecation.
+`TablePropsShimTest` pins that the global still answers the static.
+
+## Every hook is a class, and the collector stops mistaking a helper for one
+
+_Released in 1.0.139 — 2026-08-27._
+
+**Every hook is a class, and the collector stops mistaking a helper for
+one.** The observable half is `neo.skip_procedural_hook_scan: true`.
+Without it, core's collector reads `neo_table_props()` as an
+implementation of a `hook_table_props` that does not exist. Extension
+loading is unaffected, so `neo.module` is still included.
+
+`TokensHooksTest` pins the skip parameter.
+
 ## A table column can be pinned to an edge
 
 _Released in 1.0.138 — 2026-08-25._
