@@ -1,5 +1,20 @@
 # Changelog
 
+## Inline groups no longer count as a slide level
+
+_Released in 1.0.141 — 2026-09-03._
+
+**Inline groups no longer count as a slide level.** A slide menu whose
+active trail ran through an expanded group used to open onto a blank
+panel. `navigateTo()` counted every ancestor `<ul>` toward slide depth,
+including `.neo-slide-menu--inline` lists that render inside their
+parent panel rather than as a slide of their own, so the slider moved
+one panel too far and the clipped viewport showed empty space. Expand
+depth has rendered those children as grouped headings since `1.0.127`;
+`openSubmenu()` and `initMenu()` already skipped the inline lists.
+`navigateTo()` now does too, and no longer marks them visible or
+`--active` — both are inherited from the panel that contains them.
+
 ## The Linkit seam is a service, and the read path resolves through neo's fork
 
 _Released in 1.0.139 — 2026-08-27._
@@ -165,6 +180,16 @@ build it fixed that markup for every later viewer.
 `SlideMenuElementTreeWalkTest` pins the skip, the collection and the
 merge.
 
+## Three libraries declare the dependencies they were relying on
+
+_Released in 1.0.128 — 2026-07-16._
+
+**`jquery`, `drupal` and `once` are now declared on the libraries that
+were already calling them.** The `disable` library gains `once`. The
+`autocomplete` library gains all three; it previously only pulled in
+Popper, despite the chunk being invoked with `(jQuery, Drupal, once,
+Popper)`.
+
 ## Slide menus gain an item alter hook and inline mega-menu expansion
 
 _Released in 1.0.127 — 2026-07-15._
@@ -210,16 +235,6 @@ fatal the entity type manager.
 `NeoLinkitFormatterUrlTest` pins the uri tail on a substituted URL.
 `NeoLinkitUriStringTest` pins extracting it. `NeoLinkitEntityFromUriTest`
 pins the three on-site schemes and the external-URL refusal.
-
-## Three libraries declare the dependencies they were relying on
-
-_Released in 1.0.128 — 2026-07-16._
-
-**`jquery`, `drupal` and `once` are now declared on the libraries that
-were already calling them.** The `disable` library gains `once`. The
-`autocomplete` library gains all three; it previously only pulled in
-Popper, despite the chunk being invoked with `(jQuery, Drupal, once,
-Popper)`.
 
 ## Releases before 1.0.125 are not recorded
 
