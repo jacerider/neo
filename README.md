@@ -20,3 +20,7 @@ https://www.drupal.org/node/1897420 for further information.
 Current maintainers for Drupal 10:
 
 - Cyle Carlson (jacerider) - https://www.drupal.org/u/jacerider
+
+## CONTRIBUTING
+
+See [CHANGELOG.md](CHANGELOG.md) for notable changes.
