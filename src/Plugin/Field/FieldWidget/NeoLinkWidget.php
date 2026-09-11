@@ -338,11 +338,28 @@ class NeoLinkWidget extends LinkWidget {
       ];
 
       // If cardinality is 1, ensure a proper label is output for the field.
-      if (!empty($element['options']) && $this->fieldDefinition->getFieldStorageDefinition()->getCardinality() == 1) {
-        $element += [
-          '#type' => 'fieldset',
-        ];
-        $element['uri']['#title'] = $this->t('URL');
+      if ($this->fieldDefinition->getFieldStorageDefinition()->getCardinality() == 1) {
+        // Title visibility values: 0 = Disabled, 1 = Optional, 2 = Required.
+        // Use integers for compatibility with Drupal 10 (LinkTitleVisibility
+        // enum was added in 11.1).
+        //
+        // With the link text disabled there is no second input to tell the uri
+        // apart from, so the field's own label belongs on it — matching core's
+        // LinkWidget and ::formElementLinkit() below. Overwriting it with a
+        // generic "URL" is how an authored label (e.g. a neo_alchemist prop
+        // titled "Heading link") was being lost: the wrapper is a container
+        // for those, so #title had nowhere else to render. When link text IS
+        // shown, the wrapper carries the field label as its legend and "URL"
+        // is the right sub-label.
+        if ((int) $this->getFieldSetting('title') === 0) {
+          $element['uri']['#title'] = $element['#title'];
+        }
+        else {
+          $element += [
+            '#type' => 'fieldset',
+          ];
+          $element['uri']['#title'] = $this->t('URL');
+        }
       }
     }
 
