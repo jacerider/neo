@@ -118,6 +118,20 @@
   box-sizing: border-box;
 }
 
+/* The vendor sheet hard-codes `.ts-control { background-color: #fff }`, and it
+   is imported unlayered at the top of this file, so it beats the `form-item-bg`
+   utility the JS puts on the control. That is invisible while the surrounding
+   form is white and wrong everywhere else: on a scheme, and on an invalid
+   select, where the wrapper carries the state's fill and the control painted
+   plain white straight over it.
+
+   Transparent rather than the token, so the control shows whatever the wrapper
+   is painting — the wrapper already carries `form-item-bg`, and this way the
+   two cannot disagree. */
+.ts-control {
+  background-color: transparent;
+}
+
 .ts-dropdown {
   position: fixed;
   top: 0;
