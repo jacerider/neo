@@ -88,8 +88,16 @@
 
   <div{{ content_attributes.addClass('grid text-sm text-base-600 transition-all duration-300 ease-in-out') }} role="region" x-show="{{ alpine_id }}" x-cloak x-collapse>
     <div class="p-form-item">
+      {#
+        The id is the one FormBuilder already pointed `aria-describedby` at on
+        the wrapper: it stamps that attribute on any element carrying a
+        #description, but nothing renders the matching id, so without this the
+        reference dangles and the description is never announced. Same fix core
+        applies in its own details.html.twig.
+      #}
       {% if description %}
-        <div class="pb-2 mb-2 text-xs text-base-600 border-b">{{ description }}</div>
+        {% set description_attributes = create_attribute({ id: attributes['aria-describedby'] }) %}
+        <div{{ description_attributes.addClass('pb-2 mb-2 text-xs text-base-600 border-b') }}>{{ description }}</div>
       {% endif %}
       {{ children }}
       {{ value }}
