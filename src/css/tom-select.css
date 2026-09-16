@@ -54,15 +54,35 @@
       overflow: hidden;
       margin: 0;
 
+      /* No vertical padding, and stretch rather than `height: 100%`.
+
+         The chip has to end up exactly as tall as the bare text input, or the
+         control changes height the moment the first item is chosen — a 2px jump
+         on `md`, because this button was 22px (a 16px line box plus 2px and 4px
+         of padding) against the input's 20px, and being the tallest child it
+         set the chip's height and the chip set the control's.
+
+         `height: 100%` could not fix that: a percentage height against an
+         auto-height parent resolves to auto, so the button still sized itself
+         and the dependency ran the wrong way. With no block padding its content
+         box is smaller than the chip's text at every `neo_size`, so the text
+         sets the height and `align-self: stretch` fills the button back out to
+         it. The height is no longer this button's to decide.
+
+         That costs the target 2px, 22 down to 20. It cannot be won back with a
+         padded pseudo-element: `.item` above clips to `overflow: hidden` for
+         its rounded corners, so anything drawn outside the chip is clipped for
+         hit-testing too. Growing it for real would put the jump back. */
       .remove {
         display: flex;
         align-items: center;
+        align-self: stretch;
         line-height: 1;
         background: rgb(var(--color-alert-500));
         color: rgb(var(--color-alert-500-content));
         border: 0;
-        height: 100%;
-        padding: 2px 4px 4px;
+        padding-block: 0;
+        padding-inline: 4px;
       }
     }
   }
