@@ -136,6 +136,13 @@ class SlideMenu extends RenderElementBase {
         $cacheability->addCacheableDependency($element->link);
       }
 
+      // A disabled link is never rendered, as in core's
+      // MenuLinkTree::buildItems(): menu tree parameters do not filter them
+      // out, and no manipulator does either.
+      if (!$element->link->isEnabled()) {
+        continue;
+      }
+
       // Only render accessible links. checkAccess() deliberately KEEPS
       // inaccessible top-level links in the tree so their cacheability can
       // bubble, swapping in an InaccessibleMenuLink whose getTitle() returns

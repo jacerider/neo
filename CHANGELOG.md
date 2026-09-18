@@ -1,5 +1,14 @@
 # Changelog
 
+## Slide menus leave out disabled links
+
+**A slide menu built from a Drupal menu no longer shows disabled links.** The
+element walked the loaded tree and rendered every accessible link, but menu
+tree parameters and core's manipulators leave disabled links in, and only
+core's own renderer (`MenuLinkTree::buildItems()`) skips them. So a mobile
+menu over a menu with disabled items showed them to every visitor. The walk
+now skips them the same way.
+
 ## A config import no longer replaces a site's metatag defaults
 
 **`neo_metatag_install()` skips its writes while syncing.** The install hook

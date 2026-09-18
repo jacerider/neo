@@ -33,6 +33,8 @@ use PHPUnit\Framework\Attributes\Group;
  *   deliberately keeps a forbidden top-level link in the tree so exactly this
  *   can happen; without it the menu render-caches with no user variance and the
  *   first request to build it fixes the markup for everyone.
+ * - It skips a disabled link, as core's `MenuLinkTree::buildItems()` does:
+ *   neither the tree parameters nor the manipulators remove one.
  * - It then skips any element whose access result is not allowed. Core has
  *   already swapped the link for an `InaccessibleMenuLink` whose title is the
  *   literal string "Inaccessible", so rendering one leaks a placeholder row.
@@ -47,7 +49,7 @@ use PHPUnit\Framework\Attributes\Group;
  * The tree is real. `neo_test` ships `neo_test.open` with the accessible child
  * `neo_test.child`, and `neo_test.gated` on a permission-gated route, all three
  * in `main`, so the forbidden element is produced by core's own access checking
- * rather than simulated. Its slide-menu alter hook is switchable from state, so
+ * rather than simulated; `neo_test.disabled` sits alone in `footer`. Its slide-menu alter hook is switchable from state, so
  * both the enrich and the veto outcomes are this test's to choose.
  *
  * Assertions are against the pre-rendered element array and the cacheability it
@@ -133,6 +135,27 @@ final class SlideMenuElementTreeWalkTest extends KernelTestBase {
       $built['#items']
     );
     $this->assertSame(['Neo test open'], array_values($titles));
+  }
+
+  /**
+   * Skips a disabled link, as core's menu rendering does.
+   *
+   * Covers: "it skips a disabled link".
+   *
+   * The first assertions establish that the loaded tree still carries the
+   * disabled element, accessible and with its real title: tree parameters and
+   * core's manipulators leave disabled links in, so only the walk's own check
+   * keeps one out of the menu.
+   */
+  public function testSkipsDisabledLinks(): void {
+    $tree = $this->loadTransformedTree('footer');
+    $disabled = $tree[$this->treeKey($tree, 'neo_test.disabled')];
+    $this->assertFalse($disabled->link->isEnabled());
+    $this->assertTrue($disabled->access->isAllowed());
+    $this->assertSame('Neo test disabled', (string) $disabled->link->getTitle());
+
+    $built = SlideMenuElement::preRenderSlideMenu($this->element(['#menu_ids' => ['footer']]));
+    $this->assertSame([], $built['#items']);
   }
 
   /**

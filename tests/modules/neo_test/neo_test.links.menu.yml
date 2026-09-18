@@ -1,8 +1,11 @@
-# A three-link fixture tree in the main menu.
+# A three-link fixture tree in the main menu, and a disabled link in the footer
+# menu.
 #
 # `neo_test.open` carries an accessible child, so a tree walk has a branch to
 # recurse into; `neo_test.gated` sits on a permission-gated route, so the same
 # tree also carries an element whose access result is not allowed.
+# `neo_test.disabled` is accessible but disabled, on its own menu so the main
+# menu's fixtures stay as they are.
 neo_test.open:
   title: 'Neo test open'
   description: 'An accessible link carrying an accessible child.'
@@ -24,3 +27,10 @@ neo_test.gated:
   route_name: neo_test.gated
   menu_name: main
   weight: -9
+
+neo_test.disabled:
+  title: 'Neo test disabled'
+  description: 'An accessible link that is disabled.'
+  route_name: neo_test.open
+  menu_name: footer
+  enabled: false
