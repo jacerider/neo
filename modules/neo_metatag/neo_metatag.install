@@ -9,8 +9,15 @@ use Drupal\Core\Config\FileStorage;
 
 /**
  * Implements hook_install().
+ *
+ * Writes the bundled metatag defaults over whatever the site has, which is
+ * the point on a fresh install. During a config import the site's own
+ * defaults are being imported alongside this module, so they are left alone.
  */
-function neo_metatag_install() {
+function neo_metatag_install($is_syncing = FALSE) {
+  if ($is_syncing) {
+    return;
+  }
   $config_path = \Drupal::service('extension.list.module')->getPath('neo_metatag') . '/config/optional';
   $source = new FileStorage($config_path);
   $config_storage = \Drupal::service('config.storage');

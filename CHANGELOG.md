@@ -1,5 +1,15 @@
 # Changelog
 
+## A config import no longer replaces a site's metatag defaults
+
+**`neo_metatag_install()` skips its writes while syncing.** The install hook
+writes every bundled metatag default straight into active config storage,
+which is what a fresh install wants. It did the same when neo_metatag arrived
+through a config import, where the site's own defaults are being imported in
+the same run, so a site that enabled the module that way ended up with the
+bundled defaults in place of its own. The hook now returns early when
+`$is_syncing` is set; a fresh install behaves exactly as before.
+
 ## 1.0.142 — 2026-09-08
 
 - 🐛 fix(access): drop the stray fourth argument to parent::checkAccess()
