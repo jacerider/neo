@@ -1,5 +1,16 @@
 # Changelog
 
+## Share images keep their format
+
+**`[neo:image]` and `[neo:logo]` are now built with the `neo_social` image
+style**, which fits the image within 1200×630 in its own format. They were built
+with neo_image's styles, which all convert to AVIF — a format Facebook, LinkedIn
+and X do not show in link previews, so og:image and twitter:image produced no
+preview on any Neo site. The style ships as optional config, and update 11002
+adds it to existing sites (export it with the rest of the site's config). A
+token with explicit sizing parameters still goes through neo_image; no site uses
+one. Without the style, the tokens fall back as before.
+
 ## A front page without a slogan is described like any other page
 
 **`[neo:description]` returns the slogan on the front page only when the site

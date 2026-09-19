@@ -7,6 +7,7 @@ namespace Drupal\Tests\neo\Kernel;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\TitleResolverInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Path\PathMatcher;
@@ -585,6 +586,7 @@ final class TokensHooksTest extends KernelTestBase {
       'requestStack' => RequestStack::class,
       'titleResolver' => TitleResolverInterface::class,
       'fileUrlGenerator' => FileUrlGeneratorInterface::class,
+      'entityTypeManager' => EntityTypeManagerInterface::class,
     ], $types);
 
     // Each one is the container's own service, not something constructed here.
@@ -596,6 +598,7 @@ final class TokensHooksTest extends KernelTestBase {
       'requestStack' => 'request_stack',
       'titleResolver' => 'title_resolver',
       'fileUrlGenerator' => 'file_url_generator',
+      'entityTypeManager' => 'entity_type.manager',
     ] as $property => $service) {
       $this->assertSame(
         $this->container->get($service),
@@ -721,6 +724,7 @@ final class TokensHooksTest extends KernelTestBase {
       $this->container->get('request_stack'),
       $this->container->get('title_resolver'),
       $this->container->get('file_url_generator'),
+      $this->container->get('entity_type.manager'),
     );
   }
 

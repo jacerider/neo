@@ -9,6 +9,7 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Config\FileStorage;
 use Drupal\Core\Utility\UpdateException;
 
 /**
@@ -134,4 +135,27 @@ function neo_update_11001(): void {
     "The quantity_plus_minus widget moved from neo to neo_commerce. These form displays still use it and will lose the field until neo_commerce is enabled:\n  - %s\nRun: composer require jacerider/neo_commerce:^1.0 && drush en neo_commerce",
     implode("\n  - ", $lines)
   ));
+}
+
+/**
+ * Adds the neo_social image style the share image tokens are built with.
+ *
+ * [neo:image] and [neo:logo] used neo_image's styles, which all convert to
+ * AVIF — a format the social networks do not show in link previews. They now
+ * fit the image within 1200×630 in its own format through this core style,
+ * shipped as optional config for new sites and added here for existing ones.
+ * A site without the image module needs none; one that already has the style
+ * keeps its own.
+ */
+function neo_update_11002(): string {
+  if (!\Drupal::moduleHandler()->moduleExists('image')) {
+    return (string) t('The image module is not installed: no share image style needed.');
+  }
+  $storage = \Drupal::entityTypeManager()->getStorage('image_style');
+  if ($storage->load('neo_social')) {
+    return (string) t('The neo_social image style already exists.');
+  }
+  $config = new FileStorage(\Drupal::service('extension.list.module')->getPath('neo') . '/config/optional');
+  $storage->createFromStorageRecord($config->read('image.style.neo_social'))->save();
+  return (string) t('Added the neo_social image style: share images are now fitted within 1200×630 in their own format instead of AVIF.');
 }

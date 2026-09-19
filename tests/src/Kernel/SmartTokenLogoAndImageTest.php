@@ -12,6 +12,7 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\file\Entity\File;
+use Drupal\image\Entity\ImageStyle;
 use Drupal\media\Entity\Media;
 use Drupal\neo\Hook\NeoTokensHooks;
 use Drupal\node\Entity\Node;
@@ -305,6 +306,11 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     \Drupal::service('router.builder')->rebuild();
 
     $this->config('system.site')->set('name', 'Fixture site name')->save();
+
+    // Installing the image module's config also installs neo's optional
+    // neo_social image style, which a parameterless image token prefers. This
+    // class pins the paths without it; SocialShareImageTest pins that one.
+    ImageStyle::load('neo_social')?->delete();
 
     $imageType = $this->createMediaType('image', [
       'id' => 'image',
@@ -1262,6 +1268,7 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
       $this->container->get('request_stack'),
       $this->container->get('title_resolver'),
       $this->container->get('file_url_generator'),
+      $this->container->get('entity_type.manager'),
     );
     return $this->hooks;
   }

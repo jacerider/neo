@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\TitleResolverInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Hook\Attribute\Hook;
@@ -16,6 +17,7 @@ use Drupal\Core\Render\BubbleableMetadata;
 use Drupal\Core\Routing\RouteObjectInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\file\FileInterface;
+use Drupal\image\ImageStyleInterface;
 use Drupal\media\MediaInterface;
 use Drupal\neo_image\NeoImageStyle;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -119,6 +121,7 @@ class NeoTokensHooks {
     protected readonly RequestStack $requestStack,
     protected readonly TitleResolverInterface $titleResolver,
     protected readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    protected readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -509,6 +512,20 @@ class NeoTokensHooks {
    *   An array containing the uri and url.
    */
   private function imageData(string $uri, array $params = []): array {
+    // Without parameters the token is the page's share image: fitted within
+    // 1200×630 by the neo_social style, in the source file's own format.
+    // neo_image's styles all convert to AVIF, which the social networks do not
+    // show in link previews. The derivative is made now so the width and
+    // height tokens can read it.
+    if (!$params && file_exists($uri) && ($style = $this->socialImageStyle()) && $style->supportsUri($uri)) {
+      $derivative = $style->buildUri($uri);
+      if (file_exists($derivative) || $style->createDerivative($uri, $derivative)) {
+        return [
+          'uri' => $derivative,
+          'url' => $style->buildUrl($uri),
+        ];
+      }
+    }
     if ($this->moduleHandler->moduleExists('neo_image')) {
       // Provide default parameters if none are given. These defaults are ideal
       // for meta tags and social media sharing.
@@ -532,6 +549,23 @@ class NeoTokensHooks {
       'uri' => $uri,
       'url' => $this->fileUrlGenerator->generateAbsoluteString($uri),
     ];
+  }
+
+  /**
+   * The image style the share image is built with, when the site has it.
+   *
+   * Shipped as optional config (image.style.neo_social), so it exists wherever
+   * the image module does; a site may edit or delete it.
+   *
+   * @return \Drupal\image\ImageStyleInterface|null
+   *   The style, or NULL.
+   */
+  private function socialImageStyle(): ?ImageStyleInterface {
+    if (!$this->moduleHandler->moduleExists('image')) {
+      return NULL;
+    }
+    $style = $this->entityTypeManager->getStorage('image_style')->load('neo_social');
+    return $style instanceof ImageStyleInterface ? $style : NULL;
   }
 
   /**

@@ -637,6 +637,7 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
       $this->container->get('request_stack'),
       $this->container->get('title_resolver'),
       $this->container->get('file_url_generator'),
+      $this->container->get('entity_type.manager'),
     );
     return $this->hooks;
   }
