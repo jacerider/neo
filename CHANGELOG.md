@@ -1,5 +1,14 @@
 # Changelog
 
+## A front page without a slogan is described like any other page
+
+**`[neo:description]` returns the slogan on the front page only when the site
+has one.** An empty slogan used to be returned as it was, so a site without one
+had no description on its front page even when a module could describe it. It
+now carries on to the alter hook (neo_alchemist describes a page by its first
+rich text) and the entity, as on every other page. Sites with a slogan are
+unchanged.
+
 ## Slide menus leave out disabled links
 
 **A slide menu built from a Drupal menu no longer shows disabled links.** The

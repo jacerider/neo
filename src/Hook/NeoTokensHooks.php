@@ -330,8 +330,10 @@ class NeoTokensHooks {
   private function description(array $params = [], ?ContentEntityInterface $entity = NULL) {
     $description = NULL;
 
-    if ($this->pathMatcher->isFrontPage()) {
-      return $this->configFactory->get('system.site')->get('slogan');
+    // A site's slogan describes its front page. Without one, the front page is
+    // described like any other page rather than not at all.
+    if ($this->pathMatcher->isFrontPage() && ($slogan = $this->configFactory->get('system.site')->get('slogan'))) {
+      return $slogan;
     }
 
     // Allow modules to alter the description before using.

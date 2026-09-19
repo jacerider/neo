@@ -43,7 +43,8 @@ use Symfony\Component\Routing\Route;
  *
  * **The description**, in the same shape:
  *
- * 1. Front page — return `system.site:slogan` and stop.
+ * 1. Front page with a slogan — return `system.site:slogan` and stop. A front
+ *    page on a site without a slogan carries on through the steps below.
  * 2. `hook_neo_token_description_alter()` runs, and a value it sets wins.
  * 3. Otherwise, a `taxonomy_term` contributes its own `description` value and
  *    every other entity type contributes nothing at all.
@@ -87,10 +88,12 @@ use Symfony\Component\Routing\Route;
  *    description — is discarded and the branches behind it run anyway. Pinned
  *    in testTakesTheTitleAnAlterHookSetsInPreferenceToTheRouteAndTheEntity and
  *    testFallsBackToTheSiteSloganWhenTheEntityYieldsNoDescription.
- * 4. **Neither front-page short-circuit checks that it found anything.** An
- *    unset site name or an unset slogan is returned as the empty string, and
- *    nothing below is consulted to make up for it. Pinned in the two front-page
- *    methods.
+ * 4. **The title's front-page short-circuit does not check that it found
+ *    anything.** An unset site name is returned as the empty string, and
+ *    nothing below is consulted to make up for it. The description's did the
+ *    same until an unset slogan left every such front page with no
+ *    description; it now falls through to the steps below. Pinned in the two
+ *    front-page methods.
  */
 #[Group('neo')]
 final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
@@ -360,8 +363,9 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
    * the other route takes — and the alter hook is switched on and never
    * invoked, exactly as the title's short-circuit leaves it.
    *
-   * The last block pins quirk 4: an unset slogan is the empty string, and
-   * nothing below is consulted to make up for it.
+   * The last block: without a slogan the front page is described like any
+   * other page — the alter hook first, then the entity — rather than not at
+   * all.
    */
   public function testReturnsTheSiteSloganForTheDescriptionOnTheFrontPage(): void {
     $this->config('system.site')->set('page.front', '/neo-test/open')->save();
@@ -380,10 +384,13 @@ final class SmartTokenTitleAndDescriptionTest extends KernelTestBase {
     $this->assertSame('Fixture site slogan', $this->description(['crop'], NULL));
     $this->assertNull(\Drupal::state()->get('neo_test.token_description_alter_seen'));
 
-    // Quirk 4: an unset slogan is the empty string, not a fallback.
+    // Without a slogan the front page carries on: the alter hook answers, and
+    // without it the entity does.
     $this->config('system.site')->set('slogan', '')->save();
-    $this->assertSame('', $this->description([], $this->term));
-    $this->assertNull(\Drupal::state()->get('neo_test.token_description_alter_seen'));
+    $this->assertSame('The hook description', $this->description([], $this->term));
+    $this->assertSame('taxonomy_term:' . $this->term->id(), \Drupal::state()->get('neo_test.token_description_alter_seen')['entity']);
+    \Drupal::state()->delete('neo_test.token_description_alter');
+    $this->assertSame('The term description', $this->description([], $this->term));
   }
 
   /**
