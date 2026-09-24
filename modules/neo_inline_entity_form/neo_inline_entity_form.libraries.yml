@@ -1,0 +1,12 @@
+widget:
+  version: VERSION
+  neo: true
+  css:
+    component:
+      src/css/shelf.css: {}
+  js:
+    src/js/shelf.ts: {}
+  dependencies:
+    - core/jquery
+    - core/drupal
+    - core/once

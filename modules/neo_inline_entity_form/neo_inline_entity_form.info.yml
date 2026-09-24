@@ -1,0 +1,10 @@
+name: 'Neo | Inline Entity Form'
+type: module
+description: 'Opens Inline Entity Form edit and add forms in stacked side panels, marks unsaved rows and gives each type its own add button.'
+package: Neo
+neo: true
+version: 1.0.146
+core_version_requirement: ^11.3
+dependencies:
+  - neo:neo
+  - inline_entity_form:inline_entity_form

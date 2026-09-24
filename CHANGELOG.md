@@ -1,5 +1,24 @@
 # Changelog
 
+## Inline entity forms open in side panels
+
+**The new `neo_inline_entity_form` submodule adds a "Neo | Inline entity form -
+Complex" widget that opens each edit and add form in a side panel.** Inline
+Entity Form opens a form in a table row under its entity and lets any number be
+open at once, at every level, so nested forms became hard to follow. The panel
+sits over a dimmed page with a trail of where it belongs ("Menu sections ›
+Antipasti › Menu entries"), and a nested form stacks a narrower panel on top.
+Done and Cancel stay in the panel's footer. Esc, the close button or a click on
+the backdrop cancels, and asks first when something changed. Enter in a text
+field presses Done. The panel is presentation only: the form stays where IEF
+builds it, inside the parent form, so saving works exactly as before.
+
+The widget also marks rows that are changed but not yet saved, notes that
+changes are saved with the parent form, and can give each addable type its own
+add button in place of the type select list. Cancelling a new entity now
+forgets the entries added inside it; IEF showed them again in the next add form
+and saved them. Enable the submodule and switch a field's form widget to use it.
+
 ## Share images keep their format
 
 **`[neo:image]` and `[neo:logo]` are now built with the `neo_social` image
