@@ -202,12 +202,12 @@ class NeoInlineEntityFormComplex extends InlineEntityFormComplex {
       if (isset($element['actions'])) {
         foreach (Element::children($element['actions']) as $name) {
           $button = &$element['actions'][$name];
+          // No size class here: neo_base draws every widget's add button as
+          // btn-xs, which also keeps a nested widget's buttons, sitting in
+          // the parent's table cell, from being drawn as a row's outline
+          // buttons. See markShelfButton().
           if (($button['#type'] ?? NULL) === 'submit') {
             $button['#ajax']['disable-refocus'] = TRUE;
-            // A nested widget's add buttons sit in the parent's table cell,
-            // where they would be drawn as a row's small outline buttons.
-            // See markShelfButton().
-            $button['#attributes']['class'][] = 'btn-md';
           }
           unset($button);
         }
