@@ -198,6 +198,9 @@ html.neo-ief-shelf-open {
 
 .neo-ief-shelf__actions {
   @apply ml-auto flex flex-wrap items-center gap-2;
+  /* It is a `form--item` too, and that margin above it would sit on top of the
+     footer's own padding and push the row off centre. */
+  margin-block: 0;
 
   > * {
     margin: 0;
