@@ -354,6 +354,16 @@ final class ThemeHooksTest extends KernelTestBase {
     $this->invokePreprocess('select', $variables);
     $this->assertSame($optionless, $variables, 'An option-less element is untouched.');
 
+    // And one whose options are empty: TomSelect would inject an empty option
+    // that the form then rejects.
+    $empty = [
+      'element' => ['#options' => [], '#title' => 'Plugin'],
+      'attributes' => ['class' => ['form-select']],
+    ];
+    $variables = $empty;
+    $this->invokePreprocess('select', $variables);
+    $this->assertSame($empty, $variables, 'An empty select is untouched.');
+
     $this->assertContains(
       'neo: ' . NeoThemeHooks::class . '::preprocessSelect',
       $this->hookImplementations('preprocess_select')
