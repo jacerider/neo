@@ -20,8 +20,11 @@ use Symfony\Component\HttpFoundation\Request;
  * show in link previews. Without parameters they are now built with the
  * neo_social image style — shipped as optional config, added to existing sites
  * by neo_update_11002() — which fits the image within 1200×630 in its source
- * format. The derivative is written when the token is resolved, so the width
- * and height tokens can read it.
+ * format. The token only names the derivative: it is built when something
+ * first fetches it, as any image style's is, and the width and height tokens
+ * are worked out from the source. Building it while the page rendered took the
+ * page down whenever the source was too large to convert in one request (a
+ * 24.8MB photo on Pantheon answered 502).
  *
  * neo_image is not installed here: with the style present its branch is never
  * reached for a parameterless token, and without the style the fallback is
@@ -92,10 +95,26 @@ final class SocialShareImageTest extends KernelTestBase {
     $this->assertStringContainsString('itok=', $url);
     $this->assertStringNotContainsString('.avif', $url);
 
-    // Fitted within 1200×630, and written so the dimension tokens can read it.
+    // Fitted within 1200×630, worked out without building the derivative.
     $this->assertSame('1200', $this->invoke('image', [['width'], NULL]));
     $this->assertSame('500', $this->invoke('image', [['height'], NULL]));
-    $this->assertFileExists(ImageStyle::load('neo_social')->buildUri(self::SOURCE));
+    $this->assertFileDoesNotExist(ImageStyle::load('neo_social')->buildUri(self::SOURCE));
+  }
+
+  /**
+   * A source smaller than the box keeps its size: the style does not upscale.
+   */
+  public function testSmallSourceKeepsItsDimensions(): void {
+    $image = imagecreatetruecolor(800, 600);
+    ob_start();
+    imagepng($image);
+    file_put_contents('public://neo-share-small.png', (string) ob_get_clean());
+    imagedestroy($image);
+    \Drupal::state()->set('neo_test.token_image_alter', 'public://neo-share-small.png');
+
+    $this->assertSame('800', $this->invoke('image', [['width'], NULL]));
+    $this->assertSame('600', $this->invoke('image', [['height'], NULL]));
+    $this->assertFileDoesNotExist(ImageStyle::load('neo_social')->buildUri('public://neo-share-small.png'));
   }
 
   /**

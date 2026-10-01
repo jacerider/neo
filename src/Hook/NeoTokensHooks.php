@@ -381,7 +381,7 @@ class NeoTokensHooks {
 
     if ($data = $this->imageFetch($params, 'neo_token_logo', $entity, FALSE)) {
       return match ($op) {
-        'width', 'height' => $this->imageDimension($data['uri'], $op),
+        'width', 'height' => $data[$op] ?? $this->imageDimension($data['uri'], $op),
         default => $data['url'],
       };
     }
@@ -416,7 +416,7 @@ class NeoTokensHooks {
 
     if ($data = $this->imageFetch($params, 'neo_token_image', $entity, TRUE)) {
       return match ($op) {
-        'width', 'height' => $this->imageDimension($data['uri'], $op),
+        'width', 'height' => $data[$op] ?? $this->imageDimension($data['uri'], $op),
         default => $data['url'],
       };
     }
@@ -509,22 +509,33 @@ class NeoTokensHooks {
    *   an undocumented parameter is a phpcs error on a file under `src/`.
    *
    * @return array
-   *   An array containing the uri and url.
+   *   An array containing the uri and url, and for the share image its width
+   *   and height (NULL when they cannot be worked out).
    */
   private function imageData(string $uri, array $params = []): array {
     // Without parameters the token is the page's share image: fitted within
     // 1200×630 by the neo_social style, in the source file's own format.
     // neo_image's styles all convert to AVIF, which the social networks do not
-    // show in link previews. The derivative is made now so the width and
-    // height tokens can read it.
+    // show in link previews. The derivative is only named here: it is built
+    // when something first fetches it, like any image style's. Building it
+    // while the page renders took the page down whenever the source was too
+    // large to convert in one request. The width and height tokens are worked
+    // out from the source instead.
     if (!$params && file_exists($uri) && ($style = $this->socialImageStyle()) && $style->supportsUri($uri)) {
-      $derivative = $style->buildUri($uri);
-      if (file_exists($derivative) || $style->createDerivative($uri, $derivative)) {
-        return [
-          'uri' => $derivative,
-          'url' => $style->buildUrl($uri),
-        ];
+      $dimensions = [
+        'width' => $this->imageDimension($uri, 'width'),
+        'height' => $this->imageDimension($uri, 'height'),
+      ];
+      if ($dimensions['width'] !== NULL && $dimensions['height'] !== NULL) {
+        $dimensions = array_map('intval', $dimensions);
+        $style->transformDimensions($dimensions, $uri);
       }
+      return [
+        'uri' => $style->buildUri($uri),
+        'url' => $style->buildUrl($uri),
+        'width' => isset($dimensions['width']) ? (string) $dimensions['width'] : NULL,
+        'height' => isset($dimensions['height']) ? (string) $dimensions['height'] : NULL,
+      ];
     }
     if ($this->moduleHandler->moduleExists('neo_image')) {
       // Provide default parameters if none are given. These defaults are ideal

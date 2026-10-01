@@ -1,5 +1,16 @@
 # Changelog
 
+## A large share image no longer takes its page down
+
+**`[neo:image]` and `[neo:logo]` name the page's share image without building
+it.** The neo_social derivative used to be built while the page rendered its
+head, so the width and height tokens could read it. A source too large to
+convert in one request (a 24.8MB photo on Pantheon) made the whole page answer
+502. The derivative is now built when something first fetches it, as any image
+style's is, and the width and height tokens are worked out from the source with
+the style's own dimension transform. The head is the same: the same URL and the
+same dimensions.
+
 ## Inline entity forms open in side panels
 
 **The new `neo_inline_entity_form` submodule adds a "Neo | Inline entity form -
