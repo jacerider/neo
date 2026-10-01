@@ -2,7 +2,7 @@ name: 'Neo | Taxonomy'
 type: module
 description: 'Provides taxonomy UI improvements.'
 package: Neo
-version: 1.0.148
+version: 1.0.149
 core_version_requirement: ^11.3
 dependencies:
   - neo:neo
