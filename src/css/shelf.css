@@ -88,7 +88,7 @@ html.neo-shelf-open {
   flex-direction: column;
 
   html.js & {
-    @apply border-l border-base-300 shadow-xl;
+    @apply shadow-xl;
     position: absolute;
     top: 0;
     right: 0;
