@@ -72,6 +72,14 @@ final class MetatagShelfWidgetTest extends KernelTestBase {
   }
 
   /**
+   * New metatag fields get the side panel widget.
+   */
+  public function testIsTheDefaultWidget(): void {
+    $definition = $this->container->get('plugin.manager.field.field_type')->getDefinition('metatag');
+    $this->assertSame('neo_metatag_shelf', $definition['default_widget']);
+  }
+
+  /**
    * A save without the form built leaves the overrides as they were.
    */
   public function testUnbuiltFormKeepsOverrides(): void {

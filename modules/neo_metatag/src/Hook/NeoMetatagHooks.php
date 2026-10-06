@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\neo_metatag\Hook;
 
 use Drupal\Core\Hook\Attribute\Hook;
+use Drupal\neo_metatag\WidgetConverter;
 
 /**
  * Hook implementations for Neo | Metatag.
@@ -25,6 +26,19 @@ class NeoMetatagHooks {
       if (($value[1] ?? NULL) === 'system_meta_generator') {
         unset($attachments['#attached']['html_head'][$key]);
       }
+    }
+  }
+
+  /**
+   * Implements hook_field_info_alter().
+   *
+   * New metatag fields get the side panel widget. Existing form displays are
+   * left alone; `drush neo:metatag:widgets` converts those.
+   */
+  #[Hook('field_info_alter')]
+  public function fieldInfoAlter(array &$info): void {
+    if (isset($info['metatag'])) {
+      $info['metatag']['default_widget'] = WidgetConverter::WIDGET;
     }
   }
 
