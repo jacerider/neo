@@ -3,7 +3,7 @@ type: module
 description: 'Removes the Generator META tag, provides metatag defaults, and edits meta tags in a side panel.'
 package: Neo
 neo: true
-version: 1.0.149
+version: 1.0.150
 core_version_requirement: ^11.3
 dependencies:
   - neo:neo
