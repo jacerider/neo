@@ -72,7 +72,7 @@ class NeoInlineEntityFormHooks {
       }
       elseif (in_array('ief-row-form', $classes, TRUE)
         && $current !== NULL
-        && !empty($form[$current]['form']['#neo_ief_shelf'])) {
+        && !empty($form[$current]['form']['#neo_shelf'])) {
         $row['#attributes']['class'][] = 'neo-ief-row-form--shelf';
       }
     }

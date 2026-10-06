@@ -1,22 +1,26 @@
 /**
- * Neo Inline Entity Form shelves.
+ * Neo shelves.
  *
- * The widget renders each open inline entity form as a shelf: a container,
- * left where IEF put it inside the form, that CSS fixes over the page as a
- * side panel. This behavior makes the shelf behave like a dialog. It adds the
- * dialog semantics, the trail of shelves it sits in, focus handling, Esc and
- * Enter, and the question before unsaved changes are thrown away.
+ * A shelf is a container, left where its builder put it, that CSS fixes over
+ * the page as a side panel (see \Drupal\neo\Shelf). This behavior makes the
+ * shelf behave like a dialog. It adds the dialog semantics, the trail of
+ * shelves it sits in, focus handling, Esc and Enter, and the question before
+ * unsaved changes are thrown away.
  *
- * Every IEF button is an AJAX button that replaces the whole widget, so a
- * shelf is rebuilt from scratch on each round trip. The state here is kept
- * per shelf key (widget id, operation and row), which survives that, and
- * everything is resolved again in sync() after each attach and detach.
+ * A shelf is open while it is shown. It closes either by going away, when an
+ * AJAX response replaces it, or by being hidden with Drupal.neoShelf.close().
+ * The state here is kept per shelf key, which survives a shelf being rebuilt
+ * over AJAX, and everything is resolved again in sync() after each attach and
+ * detach.
+ *
+ * Code that builds on shelves uses Drupal.neoShelf: it can open and close a
+ * shelf it renders closed, add its own reasons a shelf is dirty, handle Esc
+ * first, and name AJAX wrappers inside a shelf whose updates are not changes.
+ * Each shelf also fires `neo-shelf:open` and `neo-shelf:close`, which bubble.
  */
 (function ($, Drupal, once): void {
 
-  const SHELF = '.neo-ief-shelf';
-  const CONFIRM = '[data-neo-ief-confirm]';
-  const WRAPPER = '[id^="inline-entity-form-"]';
+  const SHELF = '.neo-shelf';
 
   // Popups that other code appends to the body, and the displaced regions
   // (the toolbar) that the shelf leaves uncovered. Focus may go to them while
@@ -56,17 +60,19 @@
     'date', 'datetime-local', 'month', 'time', 'week',
   ];
 
-  // Surfaces (shelves and remove confirmations) known to be open, by key.
+  // Shelves known to be open, by key.
   const openKeys = new Set<string>();
-  // Button names to focus once a surface closes, in order of preference.
+  // Button names to focus once a shelf closes, in order of preference.
   const returnTargets = new Map<string, string[]>();
+  // The element to find a button in when none of those is left.
+  const owners = new Map<string, string>();
   // Shelves whose fields changed since they opened.
   const dirtyKeys = new Set<string>();
   // When each shelf opened, to ignore the change events editors fire while
   // they start up.
   const openedAt = new Map<string, number>();
-  // Surface elements already handled. A re-rendered surface is a new element
-  // with a known key.
+  // Shelf elements already taken in. A re-rendered shelf is a new element
+  // with a known key; a reopened one is forgotten when it closes.
   const seen = new WeakSet<HTMLElement>();
 
   let syncFrame = 0;
@@ -79,17 +85,18 @@
     ? new IntersectionObserver(() => scheduleSync())
     : null;
 
-  function keyOf(surface: HTMLElement): string {
-    if (surface.matches(SHELF)) {
-      return surface.dataset.neoIefShelf || '';
-    }
-    return 'confirm|' + (surface.dataset.neoIefConfirm || '');
+  function keyOf(shelf: HTMLElement): string {
+    return shelf.dataset.neoShelf || '';
   }
 
   function isVisible(el: HTMLElement): boolean {
     return typeof el.checkVisibility === 'function'
       ? el.checkVisibility()
       : el.getClientRects().length > 0;
+  }
+
+  function isClosed(shelf: HTMLElement): boolean {
+    return shelf.classList.contains('is-closed');
   }
 
   function nearestShelf(node: EventTarget | Node | null): HTMLElement | null {
@@ -115,12 +122,12 @@
 
   function part(shelf: HTMLElement, name: string): HTMLElement | null {
     return shelf.querySelector<HTMLElement>(
-      ':scope > .neo-ief-shelf__panel > .neo-ief-shelf__' + name,
+      ':scope > .neo-shelf__panel > .neo-shelf__' + name,
     );
   }
 
   function panelOf(shelf: HTMLElement): HTMLElement | null {
-    return shelf.querySelector<HTMLElement>(':scope > .neo-ief-shelf__panel');
+    return shelf.querySelector<HTMLElement>(':scope > .neo-shelf__panel');
   }
 
   function footerButton(shelf: HTMLElement, attribute: string): HTMLElement | null {
@@ -139,14 +146,28 @@
     return el && isVisible(el) ? el : null;
   }
 
+  function emit(shelf: HTMLElement | null, type: 'open' | 'close', key: string): void {
+    const target: EventTarget = shelf?.isConnected ? shelf : document;
+    target.dispatchEvent(new CustomEvent('neo-shelf:' + type, {
+      bubbles: true,
+      detail: { key, shelf },
+    }));
+  }
+
   /**
-   * Presses an IEF button.
+   * Presses a footer button.
    *
    * Drupal binds AJAX buttons to mousedown and cancels their click, so a
-   * click() would do nothing. A button Drupal disabled is mid-request.
+   * click() would do nothing. A button Drupal disabled is mid-request. A
+   * plain `type="button"` belongs to script on the page, which listens for
+   * its click.
    */
   function press(button: HTMLElement): void {
     if ((button as HTMLButtonElement).disabled) {
+      return;
+    }
+    if ((button as HTMLButtonElement).type === 'button') {
+      button.click();
       return;
     }
     $(button).trigger('mousedown');
@@ -168,45 +189,28 @@
     if (Array.from(body.querySelectorAll('.tabledrag-changed')).some(own)) {
       return true;
     }
-    // Entries added inside a new entity are dropped with it. In an edit
-    // form they are kept, as IEF keeps them, so there is nothing to lose.
-    const op = shelf.dataset.neoIefOp;
-    if (op === 'add' || op === 'duplicate') {
-      return Array.from(body.querySelectorAll('[data-neo-ief-pending="true"]'))
-        .some(own);
-    }
-    return false;
+    return api.dirtyChecks.some((check) => check(shelf));
   }
 
   /**
    * Closes a shelf through its Cancel button, asking first if needed.
    */
   function requestClose(shelf: HTMLElement): void {
-    const cancel = footerButton(shelf, 'data-neo-ief-cancel');
+    const cancel = footerButton(shelf, 'data-neo-shelf-cancel');
     if (!cancel) {
       return;
     }
-    if (isDirty(shelf) && !window.confirm(Drupal.t('Discard your changes to this @noun?', {
-      '@noun': shelf.dataset.neoIefNoun || Drupal.t('item'),
-    }))) {
+    if (isDirty(shelf) && !window.confirm(
+      shelf.dataset.neoShelfConfirm || Drupal.t('Discard your changes?'),
+    )) {
       return;
     }
     press(cancel);
   }
 
-  /**
-   * The open remove confirmation that belongs to a shelf, or to the page.
-   */
-  function openConfirm(shelf: HTMLElement | null): HTMLElement | null {
-    const scope: ParentNode = shelf ? part(shelf, 'body') || shelf : document;
-    const confirms = Array.from(scope.querySelectorAll<HTMLElement>(CONFIRM))
-      .filter((el) => nearestShelf(el) === shelf && isVisible(el));
-    return confirms.length ? confirms[confirms.length - 1] : null;
-  }
-
   function buildTrail(shelf: HTMLElement): void {
     const trail = part(shelf, 'header')
-      ?.querySelector<HTMLElement>('.neo-ief-shelf__trail');
+      ?.querySelector<HTMLElement>('.neo-shelf__trail');
     if (!trail) {
       return;
     }
@@ -216,10 +220,10 @@
     }
     const parts: string[] = [];
     chain.forEach((ancestor) => {
-      parts.push(ancestor.dataset.neoIefCollection || '');
-      parts.push(ancestor.dataset.neoIefLabel || '');
+      parts.push(ancestor.dataset.neoShelfSection || '');
+      parts.push(ancestor.dataset.neoShelfLabel || '');
     });
-    parts.push(shelf.dataset.neoIefCollection || '');
+    parts.push(shelf.dataset.neoShelfSection || '');
     trail.textContent = parts.filter(Boolean).join(' › ');
   }
 
@@ -228,12 +232,12 @@
     if (!panel) {
       return;
     }
-    // Set here rather than in PHP: without JS the form renders inline, and a
-    // modal role there would hide the rest of the page from screen readers.
+    // Set here rather than in PHP: without JS the shelf renders in place, and
+    // a modal role there would hide the rest of the page from screen readers.
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-modal', 'true');
-    if (shelf.dataset.neoIefTitle) {
-      panel.setAttribute('aria-labelledby', shelf.dataset.neoIefTitle);
+    if (shelf.dataset.neoShelfTitle) {
+      panel.setAttribute('aria-labelledby', shelf.dataset.neoShelfTitle);
     }
     panel.tabIndex = -1;
     buildTrail(shelf);
@@ -263,7 +267,7 @@
   }
 
   /**
-   * Focuses a field of a shelf's own form, not of a shelf nested in it.
+   * Focuses a field of a shelf's own content, not of a shelf nested in it.
    */
   function focusInto(shelf: HTMLElement, preferInvalid: boolean): void {
     const body = part(shelf, 'body');
@@ -281,29 +285,7 @@
   }
 
   /**
-   * Moves AJAX messages in front of the form they are about.
-   *
-   * Core prepends them to the widget wrapper, which is behind the shelf.
-   */
-  function moveMessages(): void {
-    document.querySelectorAll<HTMLElement>(`${WRAPPER} > [data-drupal-messages]`)
-      .forEach((messages) => {
-        const wrapper = messages.parentElement;
-        if (!wrapper) {
-          return;
-        }
-        const shelves = Array.from(wrapper.querySelectorAll<HTMLElement>(SHELF))
-          .filter(isVisible);
-        const shelf = shelves[shelves.length - 1];
-        const body = shelf ? part(shelf, 'body') : null;
-        if (body) {
-          body.prepend(messages);
-        }
-      });
-  }
-
-  /**
-   * The button to focus once a surface closed.
+   * The button to focus once a shelf closed.
    */
   function findReturnTarget(key: string): HTMLElement | null {
     for (const name of returnTargets.get(key) || []) {
@@ -312,15 +294,15 @@
         return el;
       }
     }
-    // Nothing named survived, so the first button left in the widget.
-    const iefId = key.startsWith('confirm|') ? key.split('|')[1] : key.split('|')[0];
-    const wrapper = document.getElementById('inline-entity-form-' + iefId);
-    if (!wrapper) {
+    // Nothing named survived, so the first button left in the owner.
+    const ownerId = owners.get(key);
+    const owner = ownerId ? document.getElementById(ownerId) : null;
+    if (!owner) {
       return null;
     }
-    return Array.from(wrapper.querySelectorAll<HTMLElement>(
+    return Array.from(owner.querySelectorAll<HTMLElement>(
       'button:not([disabled]), input[type="submit"]:not([disabled])',
-    )).find(isVisible) || null;
+    )).find((el) => isVisible(el) && !nearestShelf(el)) || null;
   }
 
   function scheduleSync(): void {
@@ -334,52 +316,58 @@
   }
 
   function sync(): void {
-    moveMessages();
+    const shelves = Array.from(document.querySelectorAll<HTMLElement>(SHELF));
+    const byKey = new Map<string, HTMLElement>();
+    shelves.forEach((shelf) => byKey.set(keyOf(shelf), shelf));
 
-    const surfaces = Array.from(
-      document.querySelectorAll<HTMLElement>(`${SHELF}, ${CONFIRM}`),
-    );
-    const present = new Set(surfaces.map(keyOf));
-
-    // Forget what closed, remembering where focus should go back to.
+    // Forget what closed, remembering where focus should go back to. A shelf
+    // hidden by a tab that is not shown has not closed.
     let returnTo: HTMLElement | null = null;
     openKeys.forEach((key) => {
-      if (present.has(key)) {
+      const shelf = byKey.get(key);
+      if (shelf && !isClosed(shelf)) {
         return;
       }
       returnTo = returnTo || findReturnTarget(key);
       openKeys.delete(key);
       returnTargets.delete(key);
+      owners.delete(key);
       dirtyKeys.delete(key);
       openedAt.delete(key);
+      if (shelf) {
+        seen.delete(shelf);
+      }
+      emit(shelf || null, 'close', key);
     });
 
     // Take in what is new: newly opened, or re-rendered after an error.
     const opened: HTMLElement[] = [];
     const rerendered: HTMLElement[] = [];
-    surfaces.filter(isVisible).forEach((surface) => {
-      if (seen.has(surface)) {
+    shelves.filter(isVisible).forEach((shelf) => {
+      if (seen.has(shelf)) {
         return;
       }
-      seen.add(surface);
-      const key = keyOf(surface);
-      if (surface.matches(SHELF)) {
-        prepare(surface);
-      }
+      seen.add(shelf);
+      const key = keyOf(shelf);
+      prepare(shelf);
       if (openKeys.has(key)) {
-        rerendered.push(surface);
+        rerendered.push(shelf);
         return;
       }
       openKeys.add(key);
       openedAt.set(key, Date.now());
-      returnTargets.set(key, (surface.dataset.neoIefReturn || '')
+      returnTargets.set(key, (shelf.dataset.neoShelfReturn || '')
         .split(' ')
         .filter(Boolean));
-      opened.push(surface);
+      if (shelf.dataset.neoShelfOwner) {
+        owners.set(key, shelf.dataset.neoShelfOwner);
+      }
+      opened.push(shelf);
     });
+    opened.forEach((shelf) => emit(shelf, 'open', keyOf(shelf)));
 
     const top = topShelf();
-    document.documentElement.classList.toggle('neo-ief-shelf-open', !!top);
+    document.documentElement.classList.toggle('neo-shelf-open', !!top);
 
     if (top && opened.includes(top)) {
       animateIn(top);
@@ -388,11 +376,6 @@
     }
     if (top && rerendered.includes(top)) {
       focusInto(top, true);
-      return;
-    }
-    const confirm = openConfirm(top);
-    if (confirm && opened.includes(confirm)) {
-      confirm.querySelector<HTMLElement>('[data-neo-ief-cancel]')?.focus();
       return;
     }
     const target = returnTo as HTMLElement | null;
@@ -417,13 +400,7 @@
       return;
     }
     const top = topShelf();
-    const confirm = openConfirm(top);
-    if (confirm && (top || confirm.contains(target))) {
-      const cancel = confirm.querySelector<HTMLElement>('[data-neo-ief-cancel]');
-      if (cancel) {
-        event.preventDefault();
-        press(cancel);
-      }
+    if (api.escapeHandlers.some((handler) => handler(event, top))) {
       return;
     }
     if (top) {
@@ -450,14 +427,14 @@
         return;
       }
       event.preventDefault();
-      const primary = footerButton(shelf, 'data-neo-ief-primary');
+      const primary = footerButton(shelf, 'data-neo-shelf-primary');
       if (primary) {
         press(primary);
       }
     }
     else if (target.type === 'checkbox' || target.type === 'radio') {
-      // The browser would submit the form with its first button, which is an
-      // IEF button somewhere under the backdrop.
+      // The browser would submit the form with its first button, which is
+      // somewhere under the backdrop.
       event.preventDefault();
     }
   }
@@ -523,14 +500,14 @@
 
   document.addEventListener('click', (event) => {
     const dismiss = event.target instanceof Element
-      ? event.target.closest<HTMLElement>('[data-neo-ief-shelf-dismiss]')
+      ? event.target.closest<HTMLElement>('[data-neo-shelf-dismiss]')
       : null;
     if (!dismiss) {
       return;
     }
     // A drag that started inside the panel and ended on the backdrop, like a
     // text selection, is not a click on the backdrop.
-    if (dismiss.dataset.neoIefShelfDismiss === 'backdrop' && pointerDownTarget !== dismiss) {
+    if (dismiss.dataset.neoShelfDismiss === 'backdrop' && pointerDownTarget !== dismiss) {
       return;
     }
     const shelf = nearestShelf(dismiss);
@@ -553,7 +530,7 @@
   document.addEventListener('change', markDirty, true);
 
   // Editors report their changes this way only.
-  $(document).on('formUpdated.neoIefShelf', (event) => {
+  $(document).on('formUpdated.neoShelf', (event) => {
     const shelf = nearestShelf(event.target as Node);
     if (!shelf) {
       return;
@@ -564,26 +541,61 @@
     }
   });
 
-  Drupal.behaviors.neoInlineEntityFormShelf = {
+  const api = {
+    /**
+     * Reasons beyond changed fields that closing a shelf loses work.
+     */
+    dirtyChecks: [] as Array<(shelf: HTMLElement) => boolean>,
+    /**
+     * Esc handlers that run before the top shelf is asked to close. One that
+     * handles the key returns true, and prevents its default itself.
+     */
+    escapeHandlers: [] as Array<(event: KeyboardEvent, top: HTMLElement | null) => boolean>,
+    /**
+     * Selectors of AJAX wrappers inside a shelf whose updates are not changes
+     * to it, such as a nested widget that applies its own work.
+     */
+    quietAjax: [] as string[],
+    open(shelf: HTMLElement): void {
+      shelf.classList.remove('is-closed');
+      scheduleSync();
+    },
+    close(shelf: HTMLElement): void {
+      shelf.classList.add('is-closed');
+      scheduleSync();
+    },
+    requestClose,
+    isDirty,
+    markDirty(shelf: HTMLElement): void {
+      dirtyKeys.add(keyOf(shelf));
+    },
+    nearest: nearestShelf,
+    top: topShelf,
+    part,
+    press,
+    isVisible,
+    sync: scheduleSync,
+  };
+  (Drupal as unknown as { neoShelf: typeof api }).neoShelf = api;
+
+  Drupal.behaviors.neoShelf = {
     attach(context?: HTMLElement): void {
       // Something inside an open shelf was replaced over AJAX, such as a media
-      // field after choosing an image. A nested IEF widget is left out: what
-      // it applies survives this shelf's Cancel.
-      if (context instanceof HTMLElement
-        && !context.matches(WRAPPER)
-        && !context.matches(SHELF)) {
+      // field after choosing an image.
+      if (context instanceof HTMLElement && !context.matches(SHELF)
+        && !api.quietAjax.some((selector) => context.matches(selector))) {
         const shelf = nearestShelf(context);
         if (shelf && seen.has(shelf)) {
           dirtyKeys.add(keyOf(shelf));
         }
       }
-      once('neo-ief-surface', `${SHELF}, ${CONFIRM}`, context)
+      once('neo-shelf', SHELF, context)
         .forEach((el) => observer?.observe(el));
       scheduleSync();
     },
     detach(context?: HTMLElement): void {
       if (context && observer) {
-        context.querySelectorAll?.(`${SHELF}, ${CONFIRM}`)
+        context.querySelectorAll?.(SHELF)
           .forEach((el) => observer.unobserve(el));
       }
       scheduleSync();

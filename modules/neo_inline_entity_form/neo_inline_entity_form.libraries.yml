@@ -3,10 +3,9 @@ widget:
   neo: true
   css:
     component:
-      src/css/shelf.css: {}
+      src/css/widget.css: {}
   js:
-    src/js/shelf.ts: {}
+    src/js/widget.ts: {}
   dependencies:
-    - core/jquery
     - core/drupal
-    - core/once
+    - neo/shelf

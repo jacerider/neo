@@ -72,6 +72,34 @@ the two surfaces still owns its own copy of the rule as an overridable method an
 (nothing validates the setting at save time — the rule is only consulted at parse time), "the length
 check".
 
+## Shelves (`neo`)
+
+**Shelf** — a `container` carrying `#neo_shelf`, laid out at render time by `Drupal\neo\Shelf` as
+a side panel fixed over a dimmed page, and made to behave as a dialog by the `neo/shelf` library. It
+is presentation only: the container stays where its builder put it, so a part of a form stays in its
+`<form>` and submits with it. Without JS it renders in place. _Avoid:_ "modal", "drawer",
+"off-canvas" — a `neo_modal` shelf is a different thing, a dialog appended outside the page's form.
+
+**Shelf key** — the `key` in `#neo_shelf`: the string a **shelf** is known by across AJAX
+rebuilds, which carry a new element each time. Focus return, dirty state and the open/close events
+all hang off it. _Avoid:_ "shelf id" — it is not an HTML id.
+
+**Shelf footer buttons** — the buttons a **shelf** moves from the first `actions` path it finds
+into its footer. The one marked `data-neo-shelf-primary` is pressed by Enter in a text field, the
+one marked `data-neo-shelf-cancel` by Esc, the close button and the backdrop, after the
+`confirm` question when the shelf is dirty. An AJAX button is pressed by mousedown, a plain
+`type="button"` by click. _Avoid:_ "dialog buttons".
+
+**Closed shelf** — a **shelf** rendered with `open: FALSE`, which the page opens and closes itself
+through `Drupal.neoShelf.open()` / `close()` instead of an AJAX round trip removing it. It renders
+open anyway when a field inside has an error. `neo_metatag`'s widget is the one that uses it.
+_Avoid:_ "hidden shelf".
+
+**Shelf extension points** — `Drupal.neoShelf.dirtyChecks`, `escapeHandlers` and `quietAjax`:
+the three places a **shelf** caller adds its own rules (more reasons closing loses work, Esc
+handled first, AJAX wrappers whose updates are not changes). `neo_inline_entity_form` uses all
+three for its remove confirmations and nested widgets. _Avoid:_ "hooks", "plugins".
+
 ## Slide menus, visibility and tokens (`neo`)
 
 **Slide menu** — `neo`'s hierarchical drill-down menu: a `SlideMenu` value object that turns

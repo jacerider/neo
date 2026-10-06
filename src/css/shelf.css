@@ -1,10 +1,10 @@
-/* Neo Inline Entity Form shelves.
+/* Neo shelves.
 
-   A shelf is the container IEF wraps an open form in, left where IEF put it
-   inside the form (a form can't be moved out of its <form>). With JS on, it
-   becomes a layer fixed over the page: a backdrop, and a panel on the right
-   edge. A nested shelf sits inside its parent's panel and stacks on top,
-   narrower, so the parent's edge shows beneath it.
+   A shelf is a container left where its builder put it, often inside a form
+   (a part of a form can't be moved out of its <form>). With JS on, it becomes
+   a layer fixed over the page: a backdrop, and a panel on the right edge. A
+   nested shelf sits inside its parent's panel and stacks on top, narrower, so
+   the parent's edge shows beneath it.
 
    Nothing on a shelf's ancestors, and nothing on an open panel, may set
    transform, translate, filter, contain or will-change. Any of them turns
@@ -15,32 +15,32 @@
    The look follows neo_modal's shelf and reads its custom properties, so a
    theme that restyles modals restyles shelves too. The layer sits one below
    neo_modal's, so a modal opened from a shelf (the media library) is on top.
-   Without JS, all of this is off and the form renders inline as IEF's. */
+   Without JS, all of this is off and the container renders in place. */
 
-.neo-ief-shelf {
-  --neo-ief-shelf-z: calc(var(--modal-z-index, 40) - 1);
-  --neo-ief-shelf-width: 42rem;
-  --neo-ief-shelf-step: 2.5rem;
-  --neo-ief-shelf-duration: 240ms;
-  --neo-ief-depth: 0;
+.neo-shelf {
+  --neo-shelf-z: calc(var(--modal-z-index, 40) - 1);
+  --neo-shelf-width: 42rem;
+  --neo-shelf-step: 2.5rem;
+  --neo-shelf-duration: 240ms;
+  --neo-shelf-depth: 0;
 }
 
-.neo-ief-shelf .neo-ief-shelf {
-  --neo-ief-depth: 1;
+.neo-shelf .neo-shelf {
+  --neo-shelf-depth: 1;
 }
 
-.neo-ief-shelf .neo-ief-shelf .neo-ief-shelf {
-  --neo-ief-depth: 2;
+.neo-shelf .neo-shelf .neo-shelf {
+  --neo-shelf-depth: 2;
 }
 
-.neo-ief-shelf .neo-ief-shelf .neo-ief-shelf .neo-ief-shelf {
-  --neo-ief-depth: 3;
+.neo-shelf .neo-shelf .neo-shelf .neo-shelf {
+  --neo-shelf-depth: 3;
 }
 
 html.js {
-  .neo-ief-shelf {
+  .neo-shelf {
     position: fixed;
-    z-index: var(--neo-ief-shelf-z);
+    z-index: var(--neo-shelf-z);
     top: var(--drupal-displace-offset-top, 0px);
     right: var(--drupal-displace-offset-right, 0px);
     bottom: var(--drupal-displace-offset-bottom, 0px);
@@ -50,33 +50,31 @@ html.js {
     border: 0;
 
     /* Local to the parent's stacking context: above its header and footer. */
-    .neo-ief-shelf {
+    .neo-shelf {
       z-index: 2;
     }
-  }
 
-  /* The row IEF opened the form in is left empty; the form is fixed. */
-  .ief-row-form.neo-ief-row-form--shelf,
-  .ief-row-form.neo-ief-row-form--shelf > * {
-    padding: 0;
-    border-width: 0;
+    /* A shelf the page opens and closes itself. */
+    &.is-closed {
+      display: none;
+    }
   }
 }
 
 /* Stops the page scrolling under an open shelf. The gutter keeps the page
    from shifting sideways when its scrollbar goes. */
-html.neo-ief-shelf-open {
+html.neo-shelf-open {
   overflow: hidden;
   scrollbar-gutter: stable;
 }
 
-.neo-ief-shelf__backdrop {
+.neo-shelf__backdrop {
   position: absolute;
   inset: 0;
   background: var(--modal-backdrop-bg, rgb(var(--color-base-950) / 0.55));
 
   /* Over a parent panel, dim it without hiding it. */
-  .neo-ief-shelf .neo-ief-shelf > & {
+  .neo-shelf .neo-shelf > & {
     background: rgb(var(--color-base-950) / 0.3);
   }
 
@@ -85,7 +83,7 @@ html.neo-ief-shelf-open {
   }
 }
 
-.neo-ief-shelf__panel {
+.neo-shelf__panel {
   display: flex;
   flex-direction: column;
 
@@ -97,18 +95,18 @@ html.neo-ief-shelf-open {
     bottom: 0;
     width: min(
       calc(100% - 3rem),
-      calc(var(--neo-ief-shelf-width) - var(--neo-ief-depth) * var(--neo-ief-shelf-step))
+      calc(var(--neo-shelf-width) - var(--neo-shelf-depth) * var(--neo-shelf-step))
     );
     background: var(--modal-content-bg, rgb(var(--color-base-0)));
     outline: none;
 
     @media (max-width: 640px) {
-      width: calc(100% - var(--neo-ief-depth) * 1rem);
+      width: calc(100% - var(--neo-shelf-depth) * 1rem);
     }
   }
 }
 
-.neo-ief-shelf__header {
+.neo-shelf__header {
   @apply flex items-start gap-4;
 
   html.js & {
@@ -121,11 +119,11 @@ html.neo-ief-shelf-open {
   }
 }
 
-.neo-ief-shelf__heading {
+.neo-shelf__heading {
   @apply min-w-0 flex-1;
 }
 
-.neo-ief-shelf__trail {
+.neo-shelf__trail {
   @apply m-0 truncate text-xs opacity-70;
 
   &:empty {
@@ -133,13 +131,13 @@ html.neo-ief-shelf-open {
   }
 }
 
-.neo-ief-shelf__title {
+.neo-shelf__title {
   @apply m-0 text-lg font-semibold leading-snug;
   color: inherit;
 }
 
 /* Built from a <button>, which Neo's base styles as a form button. */
-.neo-ief-shelf__close {
+.neo-shelf__close {
   @apply -mr-2 flex h-8 w-8 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border-0 bg-transparent p-0 leading-none opacity-80 transition;
   min-height: 0;
   color: inherit;
@@ -160,13 +158,13 @@ html.neo-ief-shelf-open {
   }
 }
 
-.neo-ief-shelf__close-icon {
+.neo-shelf__close-icon {
   &:before {
     @apply icon-times text-lg;
   }
 }
 
-.neo-ief-shelf__body {
+.neo-shelf__body {
   html.js & {
     flex: 1 1 auto;
     min-height: 0;
@@ -179,7 +177,7 @@ html.neo-ief-shelf-open {
   }
 }
 
-.neo-ief-shelf__footer {
+.neo-shelf__footer {
   @apply flex flex-wrap items-center gap-4;
 
   html.js & {
@@ -192,11 +190,15 @@ html.neo-ief-shelf-open {
   }
 }
 
-.neo-ief-shelf__hint {
+.neo-shelf__hint {
   @apply m-0 min-w-0 flex-1 text-sm opacity-70;
+
+  &:empty {
+    display: none;
+  }
 }
 
-.neo-ief-shelf__actions {
+.neo-shelf__actions {
   @apply ml-auto flex flex-wrap items-center gap-2;
   /* It is a `form--item` too, and that margin above it would sit on top of the
      footer's own padding and push the row off centre. */
@@ -207,51 +209,30 @@ html.neo-ief-shelf-open {
   }
 }
 
-.neo-ief-shelf.is-entering {
-  > .neo-ief-shelf__panel {
-    animation: neo-ief-shelf-in var(--neo-ief-shelf-duration) cubic-bezier(0.2, 0.8, 0.2, 1);
+.neo-shelf.is-entering {
+  > .neo-shelf__panel {
+    animation: neo-shelf-in var(--neo-shelf-duration) cubic-bezier(0.2, 0.8, 0.2, 1);
   }
 
-  > .neo-ief-shelf__backdrop {
-    animation: neo-ief-shelf-fade var(--neo-ief-shelf-duration) ease-out;
+  > .neo-shelf__backdrop {
+    animation: neo-shelf-fade var(--neo-shelf-duration) ease-out;
   }
 }
 
-@keyframes neo-ief-shelf-in {
+@keyframes neo-shelf-in {
   from {
     translate: 100% 0;
   }
 }
 
-@keyframes neo-ief-shelf-fade {
+@keyframes neo-shelf-fade {
   from {
     opacity: 0;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .neo-ief-shelf.is-entering > * {
+  .neo-shelf.is-entering > * {
     animation: none;
   }
-}
-
-/* Unsaved rows. */
-.neo-ief-row--unsaved > :first-child {
-  box-shadow: inset 3px 0 0 rgb(var(--color-warning-500));
-}
-
-.neo-ief-badge {
-  @apply ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-xs font-medium leading-tight;
-}
-
-.neo-ief-badge--unsaved {
-  @apply bg-warning-100 text-warning-900;
-}
-
-.neo-ief-note {
-  @apply my-2 rounded bg-warning-50 px-3 py-2 text-sm text-warning-900;
-}
-
-.neo-ief-confirm__note {
-  @apply m-0 text-sm opacity-80;
 }

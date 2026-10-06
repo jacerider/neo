@@ -10,11 +10,8 @@ use Drupal\Core\Field\Attribute\FieldWidget;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
-use Drupal\Core\Render\ElementInfoManagerInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\inline_entity_form\Plugin\Field\FieldWidget\InlineEntityFormComplex;
-use Drupal\neo_inline_entity_form\ShelfPreRender;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * The complex inline entity form, with its forms opened in side panels.
@@ -29,9 +26,13 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * cannot leave it, so nothing here moves a form element at build time:
  * ElementSubmit::trigger() finds the entity form from its button's
  * #array_parents, and a moved button would close the row without applying
- * it. The markup is split into heading, body and footer at render time by
- * \Drupal\neo_inline_entity_form\ShelfPreRender, and the panel stays where IEF
- * rendered it, inside the form. The behavior in src/js/shelf.ts does the rest.
+ * it. The container IEF wraps the form in gets neo's `#neo_shelf`, which
+ * splits it into heading, body and footer at render time and leaves the panel
+ * where IEF rendered it, inside the form. The `neo/shelf` behavior makes it a
+ * dialog; src/js/widget.ts adds what only IEF has: remove confirmations, and
+ * nested widgets whose work an add form would lose.
+ *
+ * @see \Drupal\neo\Shelf
  *
  * Also marks rows that are changed but not yet saved, says that changes are
  * saved with the parent form, and can give each addable type its own button.
@@ -48,13 +49,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class NeoInlineEntityFormComplex extends InlineEntityFormComplex {
 
   /**
-   * The element info manager.
-   *
-   * @var \Drupal\Core\Render\ElementInfoManagerInterface
-   */
-  protected ElementInfoManagerInterface $elementInfo;
-
-  /**
    * The label of the entity the whole form saves, set per formElement() call.
    *
    * Used in "saved with the restaurant" wording. NULL when the form is not an
@@ -63,15 +57,6 @@ class NeoInlineEntityFormComplex extends InlineEntityFormComplex {
    * @var string|null
    */
   protected ?string $rootLabel = NULL;
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition) {
-    $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
-    $instance->elementInfo = $container->get('element_info');
-    return $instance;
-  }
 
   /**
    * {@inheritdoc}
@@ -274,12 +259,12 @@ class NeoInlineEntityFormComplex extends InlineEntityFormComplex {
    * @param array $button
    *   The submit button.
    * @param string $role
-   *   Either 'primary' or 'cancel': the data attribute the behavior finds
-   *   the button by.
+   *   Either 'primary' or 'cancel': the data attribute neo's shelf behavior
+   *   finds the button by.
    */
   protected static function markShelfButton(array &$button, string $role): void {
     $button['#attributes']['class'][] = 'btn-md';
-    $button['#attributes']['data-neo-ief-' . $role] = 'true';
+    $button['#attributes']['data-neo-shelf-' . $role] = 'true';
     $button['#ajax']['disable-refocus'] = TRUE;
     if ($role === 'primary') {
       $button['#button_type'] = 'primary';
@@ -416,26 +401,23 @@ class NeoInlineEntityFormComplex extends InlineEntityFormComplex {
     // The add forms are fieldsets, which neo_back flattens into the widget.
     $container['#type'] = 'container';
     unset($container['#title']);
-    $container['#attributes']['class'][] = 'neo-ief-shelf';
-    $container['#attributes'] += [
-      'data-neo-ief-shelf' => $this->getIefId() . '|' . $op . '|' . $delta,
-      'data-neo-ief-op' => $op,
-      'data-neo-ief-collection' => ucfirst((string) $labels['plural']),
-      'data-neo-ief-label' => $label !== '' ? $label : (string) $this->t('New @noun', ['@noun' => $noun]),
-      'data-neo-ief-noun' => $noun,
-      'data-neo-ief-return' => implode(' ', array_unique($return)),
-    ];
-    $container['#neo_ief_shelf'] = [
+    // Read by src/js/widget.ts: what an add form loses differs from an edit's.
+    $container['#attributes']['data-neo-ief-op'] = $op;
+    $container['#neo_shelf'] = [
+      'key' => 'ief|' . $this->getIefId() . '|' . $op . '|' . $delta,
       'title' => $title,
       'hint' => $this->rootLabel
         ? $this->t('Changes are saved with the @label.', ['@label' => $this->rootLabel])
         : $this->t('Changes are saved with this form.'),
+      'section' => ucfirst((string) $labels['plural']),
+      'label' => $label !== '' ? $label : $this->t('New @noun', ['@noun' => $noun]),
+      'confirm' => $this->t('Discard your changes to this @noun?', ['@noun' => $noun]),
+      'return' => $return,
+      'owner' => 'inline-entity-form-' . $this->getIefId(),
+      // An entity form carries its buttons; the reference form holds them
+      // directly.
+      'actions' => [['inline_entity_form', 'actions'], ['actions']],
     ];
-    // Setting #pre_render replaces the element type's, so keep those.
-    $container['#pre_render'] = array_merge(
-      $this->elementInfo->getInfoProperty('container', '#pre_render', []),
-      [[ShelfPreRender::class, 'preRender']],
-    );
 
     if (isset($container['inline_entity_form'])) {
       // Read by buildEntityFormActions(), which builds the buttons later.
