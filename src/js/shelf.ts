@@ -9,6 +9,9 @@
  *
  * A shelf is open while it is shown. It closes either by going away, when an
  * AJAX response replaces it, or by being hidden with Drupal.neoShelf.close().
+ * Either way it slides out: a hidden shelf plays the animation before it is
+ * hidden, and a shelf an AJAX response removes is copied as it goes, into an
+ * inert ghost that plays it in its place.
  * The state here is kept per shelf key, which survives a shelf being rebuilt
  * over AJAX, and everything is resolved again in sync() after each attach and
  * detach.
@@ -20,7 +23,8 @@
  */
 (function ($, Drupal, once): void {
 
-  const SHELF = '.neo-shelf';
+  // Ghosts carry the class for its styles, and are not shelves.
+  const SHELF = '.neo-shelf:not(.is-ghost)';
 
   // Popups that other code appends to the body, and the displaced regions
   // (the toolbar) that the shelf leaves uncovered. Focus may go to them while
@@ -74,6 +78,11 @@
   // Shelf elements already taken in. A re-rendered shelf is a new element
   // with a known key; a reopened one is forgotten when it closes.
   const seen = new WeakSet<HTMLElement>();
+  // Copies of shelves an AJAX response is removing, by key, until sync()
+  // knows whether each came back.
+  const ghosts = new Map<string, HTMLElement>();
+  // Cancels the slide-out of a shelf still playing it.
+  const leaving = new WeakMap<HTMLElement, () => void>();
 
   let syncFrame = 0;
   let escOwnedElsewhere = false;
@@ -96,7 +105,18 @@
   }
 
   function isClosed(shelf: HTMLElement): boolean {
-    return shelf.classList.contains('is-closed');
+    return shelf.classList.contains('is-closed') || shelf.classList.contains('is-leaving');
+  }
+
+  /**
+   * Whether a shelf is open on the page: shown, and not sliding out.
+   */
+  function isShown(shelf: HTMLElement): boolean {
+    return isVisible(shelf) && !shelf.classList.contains('is-leaving');
+  }
+
+  function reducedMotion(): boolean {
+    return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
   function nearestShelf(node: EventTarget | Node | null): HTMLElement | null {
@@ -112,7 +132,7 @@
 
   function activeShelves(): HTMLElement[] {
     return Array.from(document.querySelectorAll<HTMLElement>(SHELF))
-      .filter(isVisible);
+      .filter(isShown);
   }
 
   function topShelf(): HTMLElement | null {
@@ -244,7 +264,7 @@
   }
 
   function animateIn(shelf: HTMLElement): void {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    if (reducedMotion()) {
       return;
     }
     const panel = panelOf(shelf);
@@ -264,6 +284,86 @@
     };
     panel.addEventListener('animationend', onEnd);
     window.setTimeout(done, 1000);
+  }
+
+  /**
+   * Slides a shelf or a ghost out, then calls done.
+   *
+   * The slide is shorter than the slide in: the editor is finished with it.
+   */
+  function animateOut(shelf: HTMLElement, done: () => void): void {
+    const panel = panelOf(shelf);
+    let finished = false;
+    const finish = (): void => {
+      if (finished) {
+        return;
+      }
+      finished = true;
+      panel?.removeEventListener('animationend', onEnd);
+      window.clearTimeout(timer);
+      leaving.delete(shelf);
+      shelf.classList.remove('is-leaving');
+      done();
+    };
+    const onEnd = (event: AnimationEvent): void => {
+      if (event.target === panel) {
+        finish();
+      }
+    };
+    const timer = window.setTimeout(finish, 600);
+    panel?.addEventListener('animationend', onEnd);
+    shelf.classList.remove('is-entering');
+    shelf.classList.add('is-leaving');
+    leaving.set(shelf, () => {
+      finished = true;
+      panel?.removeEventListener('animationend', onEnd);
+      window.clearTimeout(timer);
+      leaving.delete(shelf);
+      shelf.classList.remove('is-leaving');
+    });
+  }
+
+  /**
+   * Copies an open shelf that an AJAX response is about to remove.
+   *
+   * The copy is appended to the body, where the selectors that size and dim a
+   * nested shelf no longer reach it, so it takes its depth and backdrop from
+   * the original. It holds no ids or names, so nothing finds a field or a
+   * button in it, and it is inert.
+   */
+  function makeGhost(shelf: HTMLElement): void {
+    const key = keyOf(shelf);
+    if (ghosts.has(key) || reducedMotion()) {
+      return;
+    }
+    const ghost = shelf.cloneNode(true) as HTMLElement;
+    ghost.classList.add('is-ghost');
+    ghost.classList.remove('is-entering');
+    ghost.querySelectorAll<HTMLElement>('.neo-shelf').forEach((nested) => {
+      nested.classList.add('is-ghost');
+    });
+    ghost.querySelectorAll('[id], [name]').forEach((el) => {
+      el.removeAttribute('id');
+      el.removeAttribute('name');
+    });
+    ghost.setAttribute('inert', '');
+    ghost.setAttribute('aria-hidden', 'true');
+    ghost.style.setProperty(
+      '--neo-shelf-depth',
+      getComputedStyle(shelf).getPropertyValue('--neo-shelf-depth'),
+    );
+    const backdrop = shelf.querySelector<HTMLElement>(':scope > .neo-shelf__backdrop');
+    const ghostBackdrop = ghost.querySelector<HTMLElement>(':scope > .neo-shelf__backdrop');
+    if (backdrop && ghostBackdrop) {
+      ghostBackdrop.style.background = getComputedStyle(backdrop).background;
+    }
+    document.body.append(ghost);
+    const body = part(shelf, 'body');
+    const ghostBody = part(ghost, 'body');
+    if (body && ghostBody) {
+      ghostBody.scrollTop = body.scrollTop;
+    }
+    ghosts.set(key, ghost);
   }
 
   /**
@@ -343,7 +443,7 @@
     // Take in what is new: newly opened, or re-rendered after an error.
     const opened: HTMLElement[] = [];
     const rerendered: HTMLElement[] = [];
-    shelves.filter(isVisible).forEach((shelf) => {
+    shelves.filter(isShown).forEach((shelf) => {
       if (seen.has(shelf)) {
         return;
       }
@@ -365,6 +465,19 @@
       opened.push(shelf);
     });
     opened.forEach((shelf) => emit(shelf, 'open', keyOf(shelf)));
+
+    // A ghost whose shelf came back, as one does after a failed Done, goes
+    // at once. The rest slide out.
+    ghosts.forEach((ghost, key) => {
+      ghosts.delete(key);
+      const shelf = byKey.get(key);
+      if (shelf && isShown(shelf)) {
+        ghost.remove();
+      }
+      else {
+        animateOut(ghost, () => ghost.remove());
+      }
+    });
 
     const top = topShelf();
     document.documentElement.classList.toggle('neo-shelf-open', !!top);
@@ -557,11 +670,21 @@
      */
     quietAjax: [] as string[],
     open(shelf: HTMLElement): void {
+      leaving.get(shelf)?.();
       shelf.classList.remove('is-closed');
       scheduleSync();
     },
     close(shelf: HTMLElement): void {
-      shelf.classList.add('is-closed');
+      if (isClosed(shelf)) {
+        return;
+      }
+      if (reducedMotion() || !isVisible(shelf)) {
+        shelf.classList.add('is-closed');
+      }
+      else {
+        // Closed for the page at once, so focus goes back while it slides.
+        animateOut(shelf, () => shelf.classList.add('is-closed'));
+      }
       scheduleSync();
     },
     requestClose,
@@ -593,7 +716,17 @@
         .forEach((el) => observer?.observe(el));
       scheduleSync();
     },
-    detach(context?: HTMLElement): void {
+    detach(context?: HTMLElement, _settings?: unknown, trigger?: string): void {
+      // An AJAX response is about to replace this: copy the open shelves it
+      // holds, outermost only, since a copy carries what is nested in it.
+      if (trigger === 'unload' && context instanceof HTMLElement) {
+        const open = [
+          ...(context.matches(SHELF) ? [context] : []),
+          ...Array.from(context.querySelectorAll<HTMLElement>(SHELF)),
+        ].filter((shelf) => openKeys.has(keyOf(shelf)) && isShown(shelf));
+        open.filter((shelf) => !open.some((other) => other !== shelf && other.contains(shelf)))
+          .forEach(makeGhost);
+      }
       if (context && observer) {
         context.querySelectorAll?.(SHELF)
           .forEach((el) => observer.unobserve(el));

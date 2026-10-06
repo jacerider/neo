@@ -22,6 +22,7 @@
   --neo-shelf-width: 42rem;
   --neo-shelf-step: 2.5rem;
   --neo-shelf-duration: 240ms;
+  --neo-shelf-leave-duration: 160ms;
   --neo-shelf-depth: 0;
 }
 
@@ -219,6 +220,18 @@ html.neo-shelf-open {
   }
 }
 
+.neo-shelf.is-leaving {
+  pointer-events: none;
+
+  > .neo-shelf__panel {
+    animation: neo-shelf-out var(--neo-shelf-leave-duration) cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  > .neo-shelf__backdrop {
+    animation: neo-shelf-unfade var(--neo-shelf-leave-duration) ease-in forwards;
+  }
+}
+
 @keyframes neo-shelf-in {
   from {
     translate: 100% 0;
@@ -231,8 +244,21 @@ html.neo-shelf-open {
   }
 }
 
+@keyframes neo-shelf-out {
+  to {
+    translate: 100% 0;
+  }
+}
+
+@keyframes neo-shelf-unfade {
+  to {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .neo-shelf.is-entering > * {
+  .neo-shelf.is-entering > *,
+  .neo-shelf.is-leaving > * {
     animation: none;
   }
 }
