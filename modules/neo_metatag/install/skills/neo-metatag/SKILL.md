@@ -58,19 +58,27 @@ Each resolves through a chain with an alter hook in the middle:
 | Token | Chain |
 |---|---|
 | `[neo:title]` | `hook_neo_token_title_alter()` → route title → entity label |
-| `[neo:description]` | **front page → site slogan, returns early** → `hook_neo_token_description_alter()` → term description → site slogan |
+| `[neo:description]` | **front page + non-empty slogan → that slogan, returns early** → `hook_neo_token_description_alter()` → a term's **core `description` base field** → site slogan |
 | `[neo:image]` | front page → logo → `hook_neo_token_image_alter()` → entity image |
 | `[neo:logo]` | `hook_neo_token_logo_alter()` → site logo |
 
 Two consequences worth internalising:
 
-1. **The description alter can never fix the front page** — `description()` returns the
-   slogan before the alter runs. Front-page description belongs in the `front` default
-   or in the slogan itself.
+1. **The description alter cannot fix the front page once a slogan is set** —
+   `description()` returns the slogan before the alter runs. (With an *empty* slogan the
+   guard fails and the alter does get a turn, but relying on that is backwards.)
+   Front-page description belongs in the `front` default or in the slogan itself.
 2. **An empty site slogan means no meta description anywhere on the site**, because the
    slogan is the last link in the chain and the global default points `description`,
    `og_description`, `twitter_cards_description`, `schema_web_page_description` and
    `schema_article_description` all at this one token.
+3. **For a taxonomy term the chain reads the core `description` base field — nothing
+   else.** A vocabulary whose real copy lives in a `field_description_long` or similar
+   gets the site slogan on every term page, however full that field is. Terms also get
+   **no truncation** on that path, unlike whatever your alter hook does for nodes. Both
+   are fixed by giving the alter a `taxonomy_term` branch — but note a guard written as
+   `!$entity instanceof NodeInterface` silently declines terms, which is the usual reason
+   a site's per-bundle descriptions stop at the node boundary.
 
 Results are cached at `CACHE_PERMANENT` in `cache.default` keyed per entity. Deploying
 an alter hook does **not** invalidate them — `drush cr` is mandatory. After that, entity
@@ -119,6 +127,9 @@ ls config/metatag.metatag_defaults.node__*.yml 2>/dev/null || echo 'NONE'
 comm -23 <(ls config/node.type.*.yml | sed 's/.*node\.type\.//;s/\.yml//' | sort) \
          <(ls config/simple_sitemap.bundle_settings.default.node.*.yml 2>/dev/null \
             | sed 's/.*node\.//;s/\.yml//' | sort)
+# ...and the same for vocabularies that have a pathauto pattern (i.e. real pages):
+ls config/pathauto.pattern.*.yml | xargs grep -l 'taxonomy_term' 2>/dev/null
+ls config/simple_sitemap.bundle_settings.default.taxonomy_term.*.yml 2>/dev/null || echo 'NO TERM COVERAGE'
 
 # 5. Which bundles let editors see every metatag group? (Step 5)
 grep -A40 '^entity_type_groups:' config/metatag.settings.yml
@@ -239,8 +250,10 @@ $metatag_defaults->set('tags', $tag_values);
 
 **So if a bundle is pinned to `basic` and anyone opens and saves its defaults form,
 every schema and Open Graph tag on it is silently deleted.** Set the final group list
-first. A bundle absent from `entity_type_groups` entirely shows *all* groups — which is
-why an audit often finds one bundle inconsistent with the rest.
+first. A bundle — **or a whole entity type** — absent from `entity_type_groups` shows
+*all* groups, which is why an audit often finds one bundle inconsistent with the rest.
+Adding `field_metatags` to a vocabulary without adding a `taxonomy_term:` section is the
+common version of this: the term form then offers every schema group on the site.
 
 Never narrow it back afterwards. If per-node schema editing is unwanted, restrict the
 `field_metatags` widget by role in a `hook_form_alter()` instead.
@@ -349,7 +362,10 @@ curl -sk "https://<site>/<path>" \
 
 Markup on a page nobody crawls is wasted, and these defects hide well.
 
-- **Every bundle you marked up must be in `simple_sitemap.bundle_settings.default.node.*`.**
+- **Every bundle you marked up must be in `simple_sitemap.bundle_settings.default.<entity type>.*`.**
+  Check taxonomy as well as nodes: `taxonomy_term` is often already in
+  `simple_sitemap.settings.yml: enabled_entity_types` with no bundle indexed behind it, so
+  designed vocabulary landing pages sit outside the sitemap entirely.
   A bundle with no settings file is simply absent; on a job board that can be the
   overwhelming majority of the site's URLs.
 - **Error pages that are ordinary nodes need `robots: noindex` on the node**, via
@@ -375,7 +391,8 @@ Anything in this step lives in the database, not in exported config, so **put it
   `if/else`. Front-page overrides go in `metatag.metatag_defaults.front.yml`.
 - **The `404` default fires on the `system.404` route only.** A site serving an aliased
   node as its 404 page gets nothing from it.
-- **`[neo:description]` returns the slogan on the front page before the alter runs.**
+- **`[neo:description]` returns the slogan on the front page before the alter runs**, and
+  for a taxonomy term reads only the core `description` base field, untruncated.
 - **`[neo:*]` values are cached permanently** in `cache.default`. `drush cr` after
   implementing any `hook_neo_token_*_alter()`.
 - **A group whose only key is `@type` is dropped** by `parseJsonld()`.
