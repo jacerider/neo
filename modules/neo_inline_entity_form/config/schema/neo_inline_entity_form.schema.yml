@@ -1,0 +1,10 @@
+field.widget.settings.neo_inline_entity_form_complex:
+  type: field.widget.settings.inline_entity_form_complex
+  label: 'Neo inline entity form (complex) widget settings'
+  mapping:
+    presentation:
+      type: string
+      label: 'Presentation'
+    bundle_buttons:
+      type: boolean
+      label: 'One add button per type'

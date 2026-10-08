@@ -127,7 +127,11 @@ class NeoThemeHooks {
    */
   #[Hook('preprocess_select')]
   public function preprocessSelect(array &$variables): void {
-    if (!isset($variables['element']['#options'])) {
+    // An empty select is left native. TomSelect prepends an empty option to a
+    // single select that has nothing selected, and the "" it then submits
+    // fails Form API's allowed-values check. Field UI renders one for every
+    // field type without a widget, such as Commerce's Remote ID.
+    if (empty($variables['element']['#options'])) {
       return;
     }
     if (!empty($variables['element']['#is_weight'])) {

@@ -1,5 +1,60 @@
 # Changelog
 
+## Meta tags are built when asked for, and edited in a side panel
+
+**`neo_metatag` adds a "Neo | Meta tags - Side panel" widget.** Metatag's own
+widget builds every tag of every group on every entity form, hundreds of
+elements with schema_metatag. The new widget shows how many tags the entity
+overrides and an "Edit meta tags" button, which builds the form over AJAX
+into a side panel over the page. Done keeps the edits, which are saved with
+the entity; Cancel, Esc and the backdrop put back what the fields held. An
+entity saved without the panel ever opening keeps its overrides as they were.
+
+New metatag fields get the widget. Existing form displays are converted with
+`drush neo:metatag:widgets`, in every form mode, keeping each field's weight,
+region and sidebar settings; `--dry-run` shows what would change,
+`--entity-type` and `--bundle` narrow it, and `--revert` goes back to
+metatag's widget. Export the form displays afterwards.
+
+`neo_metatag` now depends on `neo` and builds assets, so run the asset build
+after updating, and it requires Drupal 11.3, as `neo` already does.
+
+**The side panel is now `neo`'s, for any container.** A `container` carrying
+`#neo_shelf` is laid out as a side panel; see "Shelves" in `CONTEXT.md`. The
+inline entity form widget's panels are built on it, with their classes renamed
+from `neo-ief-shelf*` to `neo-shelf*`; a theme that styled the old classes
+needs the new names.
+
+## A large share image no longer takes its page down
+
+**`[neo:image]` and `[neo:logo]` name the page's share image without building
+it.** The neo_social derivative used to be built while the page rendered its
+head, so the width and height tokens could read it. A source too large to
+convert in one request (a 24.8MB photo on Pantheon) made the whole page answer
+502. The derivative is now built when something first fetches it, as any image
+style's is, and the width and height tokens are worked out from the source with
+the style's own dimension transform. The head is the same: the same URL and the
+same dimensions.
+
+## Inline entity forms open in side panels
+
+**The new `neo_inline_entity_form` submodule adds a "Neo | Inline entity form -
+Complex" widget that opens each edit and add form in a side panel.** Inline
+Entity Form opens a form in a table row under its entity and lets any number be
+open at once, at every level, so nested forms became hard to follow. The panel
+sits over a dimmed page with a trail of where it belongs ("Menu sections ›
+Antipasti › Menu entries"), and a nested form stacks a narrower panel on top.
+Done and Cancel stay in the panel's footer. Esc, the close button or a click on
+the backdrop cancels, and asks first when something changed. Enter in a text
+field presses Done. The panel is presentation only: the form stays where IEF
+builds it, inside the parent form, so saving works exactly as before.
+
+The widget also marks rows that are changed but not yet saved, notes that
+changes are saved with the parent form, and can give each addable type its own
+add button in place of the type select list. Cancelling a new entity now
+forgets the entries added inside it; IEF showed them again in the next add form
+and saved them. Enable the submodule and switch a field's form widget to use it.
+
 ## Share images keep their format
 
 **`[neo:image]` and `[neo:logo]` are now built with the `neo_social` image

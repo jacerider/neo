@@ -1,0 +1,4 @@
+parameters:
+  # Every hook this module implements is a method on a class under `src/Hook`,
+  # so there is nothing procedural for core's hook collector to find.
+  neo_inline_entity_form.skip_procedural_hook_scan: true

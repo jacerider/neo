@@ -1,0 +1,32 @@
+/* Neo Inline Entity Form.
+
+   The shelves themselves are neo's (neo/shelf). What is left here is IEF's:
+   the empty row a shelf leaves behind, unsaved rows, and the notes. */
+
+/* The row IEF opened the form in is left empty; the form is fixed. */
+html.js .ief-row-form.neo-ief-row-form--shelf,
+html.js .ief-row-form.neo-ief-row-form--shelf > * {
+  padding: 0;
+  border-width: 0;
+}
+
+/* Unsaved rows. */
+.neo-ief-row--unsaved > :first-child {
+  box-shadow: inset 3px 0 0 rgb(var(--color-warning-500));
+}
+
+.neo-ief-badge {
+  @apply ml-2 inline-block rounded-full px-2 py-0.5 align-middle text-xs font-medium leading-tight;
+}
+
+.neo-ief-badge--unsaved {
+  @apply bg-warning-100 text-warning-900;
+}
+
+.neo-ief-note {
+  @apply my-2 rounded bg-warning-50 px-3 py-2 text-sm text-warning-900;
+}
+
+.neo-ief-confirm__note {
+  @apply m-0 text-sm opacity-80;
+}

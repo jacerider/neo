@@ -1,0 +1,11 @@
+widget:
+  version: VERSION
+  neo: true
+  css:
+    component:
+      src/css/widget.css: {}
+  js:
+    src/js/widget.ts: {}
+  dependencies:
+    - core/drupal
+    - neo/shelf

@@ -1,0 +1,11 @@
+parameters:
+  # Every hook this module implements is a method on a class under `src/Hook`,
+  # so there is nothing procedural for core's hook collector to find.
+  neo_metatag.skip_procedural_hook_scan: true
+
+services:
+  neo_metatag.widget_converter:
+    class: Drupal\neo_metatag\WidgetConverter
+    arguments:
+      - '@entity_field.manager'
+      - '@entity_type.manager'

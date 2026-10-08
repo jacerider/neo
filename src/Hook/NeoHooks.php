@@ -12,6 +12,7 @@ use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\neo\Helpers\TableProps;
 use Drupal\neo\NeoPreRender;
 use Drupal\neo\NeoProcess;
+use Drupal\neo\Shelf;
 
 /**
  * The module's behavioural hook implementations.
@@ -98,6 +99,10 @@ class NeoHooks {
     }
     if (isset($info['view'])) {
       $info['view']['#pre_render'][] = [NeoPreRender::class, 'view'];
+    }
+    // Any container carrying #neo_shelf is laid out as a shelf.
+    if (isset($info['container'])) {
+      $info['container']['#pre_render'][] = [Shelf::class, 'preRender'];
     }
     $info['entity_autocomplete']['#process'] = array_merge([[NeoProcess::class, 'entityAutocomplete']], $info['entity_autocomplete']['#process']);
     foreach ([

@@ -1,0 +1,264 @@
+/* Neo shelves.
+
+   A shelf is a container left where its builder put it, often inside a form
+   (a part of a form can't be moved out of its <form>). With JS on, it becomes
+   a layer fixed over the page: a backdrop, and a panel on the right edge. A
+   nested shelf sits inside its parent's panel and stacks on top, narrower, so
+   the parent's edge shows beneath it.
+
+   Nothing on a shelf's ancestors, and nothing on an open panel, may set
+   transform, translate, filter, contain or will-change. Any of them turns
+   that element into the box a nested fixed shelf is placed in. The enter
+   animation's translate is gone once it ends, and only the top shelf plays
+   it.
+
+   The look follows neo_modal's shelf and reads its custom properties, so a
+   theme that restyles modals restyles shelves too. The layer sits one below
+   neo_modal's, so a modal opened from a shelf (the media library) is on top.
+   Without JS, all of this is off and the container renders in place. */
+
+.neo-shelf {
+  --neo-shelf-z: calc(var(--modal-z-index, 40) - 1);
+  --neo-shelf-width: 42rem;
+  --neo-shelf-step: 2.5rem;
+  --neo-shelf-duration: 240ms;
+  --neo-shelf-leave-duration: 160ms;
+  --neo-shelf-depth: 0;
+}
+
+.neo-shelf .neo-shelf {
+  --neo-shelf-depth: 1;
+}
+
+.neo-shelf .neo-shelf .neo-shelf {
+  --neo-shelf-depth: 2;
+}
+
+.neo-shelf .neo-shelf .neo-shelf .neo-shelf {
+  --neo-shelf-depth: 3;
+}
+
+html.js {
+  .neo-shelf {
+    position: fixed;
+    z-index: var(--neo-shelf-z);
+    top: var(--drupal-displace-offset-top, 0px);
+    right: var(--drupal-displace-offset-right, 0px);
+    bottom: var(--drupal-displace-offset-bottom, 0px);
+    left: var(--drupal-displace-offset-left, 0px);
+    margin: 0;
+    padding: 0;
+    border: 0;
+
+    /* Local to the parent's stacking context: above its header and footer. */
+    .neo-shelf {
+      z-index: 2;
+    }
+
+    /* A shelf the page opens and closes itself. */
+    &.is-closed {
+      display: none;
+    }
+  }
+}
+
+/* Stops the page scrolling under an open shelf. The gutter keeps the page
+   from shifting sideways when its scrollbar goes. */
+html.neo-shelf-open {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+
+.neo-shelf__backdrop {
+  position: absolute;
+  inset: 0;
+  background: var(--modal-backdrop-bg, rgb(var(--color-base-950) / 0.55));
+
+  /* Over a parent panel, dim it without hiding it. */
+  .neo-shelf .neo-shelf > & {
+    background: rgb(var(--color-base-950) / 0.3);
+  }
+
+  html:not(.js) & {
+    display: none;
+  }
+}
+
+.neo-shelf__panel {
+  display: flex;
+  flex-direction: column;
+
+  html.js & {
+    @apply shadow-xl;
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(
+      calc(100% - 3rem),
+      calc(var(--neo-shelf-width) - var(--neo-shelf-depth) * var(--neo-shelf-step))
+    );
+    background: var(--modal-content-bg, rgb(var(--color-base-0)));
+    outline: none;
+
+    @media (max-width: 640px) {
+      width: calc(100% - var(--neo-shelf-depth) * 1rem);
+    }
+  }
+}
+
+.neo-shelf__header {
+  @apply flex items-start gap-4;
+
+  html.js & {
+    position: relative;
+    z-index: 1;
+    flex: none;
+    padding: var(--modal-content-header-padding, 1rem 1.5rem);
+    background: var(--modal-header-bg, rgb(var(--color-base-950)));
+    color: var(--modal-header-color, rgb(var(--color-base-950-content)));
+  }
+}
+
+.neo-shelf__heading {
+  @apply min-w-0 flex-1;
+}
+
+.neo-shelf__trail {
+  @apply m-0 truncate text-xs opacity-70;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.neo-shelf__title {
+  @apply m-0 text-lg font-semibold leading-snug;
+  color: inherit;
+}
+
+/* Built from a <button>, which Neo's base styles as a form button. */
+.neo-shelf__close {
+  @apply -mr-2 flex h-8 w-8 shrink-0 cursor-pointer appearance-none items-center justify-center rounded-full border-0 bg-transparent p-0 leading-none opacity-80 transition;
+  min-height: 0;
+  color: inherit;
+  font: inherit;
+  box-shadow: none;
+
+  &:hover {
+    @apply opacity-100;
+    background: rgb(var(--color-base-0) / 0.1);
+  }
+
+  &:focus-visible {
+    @apply opacity-100 ring ring-primary;
+  }
+
+  html:not(.js) & {
+    display: none;
+  }
+}
+
+.neo-shelf__close-icon {
+  &:before {
+    @apply icon-times text-lg;
+  }
+}
+
+.neo-shelf__body {
+  html.js & {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: var(--modal-content-padding, 1.5rem);
+    /* Sticky table headers and scrollbars pin to the panel, not the page. */
+    --spacing-neo-t: 0px;
+    --spacing-neo-b: 0px;
+  }
+}
+
+.neo-shelf__footer {
+  @apply flex flex-wrap items-center gap-4;
+
+  html.js & {
+    @apply border-t border-base-300;
+    position: relative;
+    z-index: 1;
+    flex: none;
+    padding: 1rem 1.5rem;
+    background: var(--modal-content-footer-bg, rgb(var(--color-base-200)));
+  }
+}
+
+.neo-shelf__hint {
+  @apply m-0 min-w-0 flex-1 text-sm opacity-70;
+
+  &:empty {
+    display: none;
+  }
+}
+
+.neo-shelf__actions {
+  @apply ml-auto flex flex-wrap items-center gap-2;
+  /* It is a `form--item` too, and that margin above it would sit on top of the
+     footer's own padding and push the row off centre. */
+  margin-block: 0;
+
+  > * {
+    margin: 0;
+  }
+}
+
+.neo-shelf.is-entering {
+  > .neo-shelf__panel {
+    animation: neo-shelf-in var(--neo-shelf-duration) cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  > .neo-shelf__backdrop {
+    animation: neo-shelf-fade var(--neo-shelf-duration) ease-out;
+  }
+}
+
+.neo-shelf.is-leaving {
+  pointer-events: none;
+
+  > .neo-shelf__panel {
+    animation: neo-shelf-out var(--neo-shelf-leave-duration) cubic-bezier(0.4, 0, 1, 1) forwards;
+  }
+
+  > .neo-shelf__backdrop {
+    animation: neo-shelf-unfade var(--neo-shelf-leave-duration) ease-in forwards;
+  }
+}
+
+@keyframes neo-shelf-in {
+  from {
+    translate: 100% 0;
+  }
+}
+
+@keyframes neo-shelf-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes neo-shelf-out {
+  to {
+    translate: 100% 0;
+  }
+}
+
+@keyframes neo-shelf-unfade {
+  to {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .neo-shelf.is-entering > *,
+  .neo-shelf.is-leaving > * {
+    animation: none;
+  }
+}
