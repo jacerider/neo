@@ -555,6 +555,31 @@ final class SmartTokenDispatcherTest extends KernelTestBase {
   }
 
   /**
+   * Neither cache answers for, or remembers, a previewed or unsaved entity.
+   *
+   * A preview carries values its saved self does not, and a new entity has no
+   * id, so caching either would serve one page's draft to another.
+   */
+  public function testPreviewAndNewEntitiesBypassBothCaches(): void {
+    \Drupal::state()->set('neo_test.token_title_alter', 'Saved');
+    $this->dispatch(['title' => '[neo:title]'], ['node' => $this->node]);
+    $key = 'neo_tokens:node:' . $this->node->id() . ':title';
+    $this->assertNotFalse(\Drupal::cache()->get($key));
+
+    \Drupal::state()->set('neo_test.token_title_alter', 'Draft');
+    $preview = clone $this->node;
+    $preview->in_preview = TRUE;
+    $this->assertSame(['[neo:title]' => 'Draft'], $this->dispatch(['title' => '[neo:title]'], ['node' => $preview]));
+    $this->assertSame('Saved', \Drupal::cache()->get($key)->data, 'The preview did not overwrite the saved entry.');
+
+    $this->resetCaches();
+    $new = $this->node->createDuplicate();
+    $this->assertSame(['[neo:title]' => 'Draft'], $this->dispatch(['title' => '[neo:title]'], ['node' => $new]));
+    $this->assertFalse(\Drupal::cache()->get('neo_tokens:node::title'), 'A new entity is never written.');
+    $this->assertArrayNotHasKey('neo_tokens:node::title', $this->dispatchCache());
+  }
+
+  /**
    * Recomputes a NULL, except when the database cache answers first.
    *
    * Covers: "it recomputes a null result rather than serving it from either

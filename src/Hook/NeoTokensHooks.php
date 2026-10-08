@@ -170,6 +170,10 @@ class NeoTokensHooks {
         continue;
       }
       foreach ($entities as $entity) {
+        // An unsaved entity, or one being previewed, holds values its id does
+        // not: neither cache may answer for it or remember it. A new entity
+        // has no id at all, so every new entity would share one entry.
+        $cacheable = !$entity || (!$entity->isNew() && empty($entity->in_preview));
         $key = implode(':', array_merge($entity ? [
           'neo_tokens',
           $entity->getEntityTypeId(),
@@ -182,13 +186,13 @@ class NeoTokensHooks {
         ], $params));
 
         // Check the per-request cache.
-        if (isset($this->dispatchCache[$key])) {
+        if ($cacheable && isset($this->dispatchCache[$key])) {
           $replacements[$original] = $this->dispatchCache[$key];
           continue 2;
         }
 
         // Check database cache.
-        if ($entity) {
+        if ($entity && $cacheable) {
           if ($cacheData = $this->cache->get($key)) {
             $replacements[$original] = $cacheData->data;
             continue 2;
@@ -205,8 +209,10 @@ class NeoTokensHooks {
         };
 
         // Store in cache.
-        $this->dispatchCache[$key] = $value;
-        if ($entity) {
+        if ($cacheable) {
+          $this->dispatchCache[$key] = $value;
+        }
+        if ($entity && $cacheable) {
           $this->cache->set($key, $value, CacheBackendInterface::CACHE_PERMANENT, $entity->getCacheTagsToInvalidate());
         }
 
