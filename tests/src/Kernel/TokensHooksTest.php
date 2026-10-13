@@ -310,8 +310,9 @@ final class TokensHooksTest extends KernelTestBase {
     );
 
     // The front page: the site name and the slogan, ahead of an alter hook that
-    // is armed and never consulted, and the image token handing its parameters
-    // to the logo — so the file the image answers with is the logo's.
+    // is armed and never consulted. The image token still answers with the
+    // page's own image; only when there is none does it hand its parameters to
+    // the logo.
     $this->config('system.site')->set('page.front', '/neo-test/open')->save();
     $this->resetCaches();
     $this->enterRequest('neo_test.open');
@@ -327,6 +328,18 @@ final class TokensHooksTest extends KernelTestBase {
       ['[neo:description]' => 'Fixture site slogan'],
       $this->dispatch(['description' => '[neo:description]'], ['node' => $this->node])
     );
+    $this->assertSame(
+      ['[neo:image]' => $this->absoluteUrl($this->imageUri)],
+      $this->dispatch(['image' => '[neo:image]'], ['node' => $this->node])
+    );
+    $this->assertSame(
+      ['[neo:image:height]' => '30'],
+      $this->dispatch(['image:height' => '[neo:image:height]'], ['node' => $this->node])
+    );
+
+    // No image of its own: the front page's image is the logo's file.
+    $this->resetCaches();
+    \Drupal::state()->delete('neo_test.token_image_alter');
     $this->assertSame(
       ['[neo:image]' => $this->absoluteUrl($this->logoUri)],
       $this->dispatch(['image' => '[neo:image]'], ['node' => $this->node])

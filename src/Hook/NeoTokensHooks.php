@@ -111,6 +111,8 @@ class NeoTokensHooks {
    *   The title resolver, which answers the current route's page title.
    * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
    *   The file url generator, which builds the absolute url a meta tag needs.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager, which loads the media an image field points at.
    */
   public function __construct(
     #[Autowire(service: 'cache.default')]
@@ -409,22 +411,20 @@ class NeoTokensHooks {
    *   A formatted image URL or 'image' if no suitable image is found.
    */
   private function image(array $params = [], ?ContentEntityInterface $entity = NULL) {
-    if ($this->pathMatcher->isFrontPage()) {
-      // We are on the front page, so we want to use the logo.
-      return $this->logo($params, $entity);
-    }
     $op = $params[0] ?? NULL;
-    if (in_array($op, ['width', 'height'], TRUE)) {
-      // If the first parameter is 'width' or 'height', we will return the
-      // respective dimension of the image.
-      $params = array_slice($params, 1);
-    }
-
-    if ($data = $this->imageFetch($params, 'neo_token_image', $entity, TRUE)) {
+    $fetchParams = in_array($op, ['width', 'height'], TRUE) ? array_slice($params, 1) : $params;
+    $data = $this->imageFetch($fetchParams, 'neo_token_image', $entity, TRUE);
+    if (!empty($data['uri'])) {
       return match ($op) {
         'width', 'height' => $data[$op] ?? $this->imageDimension($data['uri'], $op),
         default => $data['url'],
       };
+    }
+    // A front page with no image of its own is represented by the site's
+    // logo. Asked after the page, not instead of it: a front page whose
+    // content shows an image shares that, as any other page does.
+    if ($this->pathMatcher->isFrontPage()) {
+      return $this->logo($params, $entity);
     }
     return NULL;
   }

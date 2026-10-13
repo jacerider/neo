@@ -1,5 +1,15 @@
 # Changelog
 
+## A front page shares its own image, and the logo only when it has none
+
+**`[neo:image]` no longer returns the logo on every front page.** The front
+page is now asked for its image like any other page: an image field on its
+entity, or what an image alter hook supplies (the first image of an Alchemist
+layout, for one). Only when nothing is found does it fall back to the logo, as
+it always did. A site whose front page shows a hero image shares that image,
+instead of a logo cropped to a share card's shape; a site whose front page has
+no image shares its logo as before. No config change.
+
 ## Meta tags are built when asked for, and edited in a side panel
 
 **`neo_metatag` adds a "Neo | Meta tags - Side panel" widget.** Metatag's own

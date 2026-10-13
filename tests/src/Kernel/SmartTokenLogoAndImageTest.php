@@ -38,9 +38,9 @@ use Symfony\Component\HttpFoundation\Request;
  * **The two entry points.** The logo resolver never crawls the entity: it
  * asks the image fetch with `$crawlEntity = FALSE`, so on a site
  * where nothing implements `hook_neo_token_logo_alter()` the logo token is
- * `NULL` on every page. The image resolver short-circuits on the front
- * page by handing its parameters straight to the logo, and everywhere else
- * asks the same fetcher with crawling on and the `neo_token_image` hook. Both
+ * `NULL` on every page. The image resolver asks the same fetcher with
+ * crawling on and the `neo_token_image` hook, on every page; on the front page
+ * alone, when that finds nothing, it hands its parameters to the logo. Both
  * accept a leading `width` or `height` parameter, strip it from the list
  * before passing the rest along, and use it to choose between the resolved url
  * and a dimension read off the file.
@@ -77,11 +77,12 @@ use Symfony\Component\HttpFoundation\Request;
  *    which neither has ever returned. This is already candidate 9 in
  *    `docs/improvements/neo.md`; the test pins the `NULL`. Pinned in
  *    testReturnsNullFromBothEntryPointsWhenNothingResolves.
- * 2. **The guard both entry points use is inert, and the `return NULL;`
- *    behind it is dead code.** `if ($data = $this->imageFetch(...))` tests
- *    an array that always carries two keys, so it is true even when nothing
- *    resolved: the `NULL` every caller sees is `$data['url']`, and the
- *    function's own final `return NULL;` has never executed. Pinned in
+ * 2. **The logo's guard is inert, and the `return NULL;` behind it is dead
+ *    code.** `if ($data = $this->imageFetch(...))` tests an array that
+ *    always carries two keys, so it is true even when nothing resolved: the
+ *    `NULL` the logo's callers see is `$data['url']`, and its own final
+ *    `return NULL;` has never executed. (The image token tests the resolved
+ *    uri instead, since it falls back to the logo on the front page.) Pinned in
  *    testReturnsNullFromBothEntryPointsWhenNothingResolves and in
  *    testMemoisesTheFetchPerEntityAndPerHookAndReturnsAnEmptyPair.
  * 3. **The alter hook runs once per entity and hook for the whole request.** A
@@ -413,10 +414,10 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
   }
 
   /**
-   * Resolves the logo from the hook alone, and delegates on the front page.
+   * Resolves the logo from the hook alone; the front page falls back to it.
    *
    * Covers: "it resolves the logo from the alter hook without crawling the
-   * entity, and delegates the image token to the logo on the front page".
+   * entity, and the image token falls back to the logo on the front page".
    *
    * The entity in scope carries a media image the crawl finds on demand, which
    * is what makes the logo's `NULL` a statement about crawling rather than
@@ -424,11 +425,11 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
    * switched on, so the `NULL` it was handed is direct evidence that nothing
    * crawled before it ran.
    *
-   * The front-page half arms the image hook with a third uri that would win
-   * everywhere else; the logo's uri coming back, and the image hook's record
-   * staying untouched, is the delegation.
+   * The front-page half shows the page's own image still wins there — the
+   * crawl's, and the image hook's — and the logo answers only when neither
+   * finds one.
    */
-  public function testResolvesTheLogoFromTheAlterHookWithoutCrawlingAndDelegatesTheImageTokenOnTheFrontPage(): void {
+  public function testResolvesTheLogoFromTheAlterHookWithoutCrawlingAndFallsBackToItOnTheFrontPage(): void {
     $this->enterRequest('neo_test.open');
     $this->assertFalse(\Drupal::service('path.matcher')->isFrontPage());
 
@@ -454,30 +455,35 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     \Drupal::state()->delete('neo_test.token_image_alter');
     $this->assertSame($this->absoluteUrl($this->uriA), $this->image([], $this->node));
 
-    // On the front page the image token is the logo. The image hook is armed
-    // with a uri that would beat the crawl, and is never invoked.
+    // On the front page the page's own image still wins: the crawl's ...
     $this->resetTokenStatics();
-    \Drupal::state()->set('neo_test.token_image_alter', $this->uriC);
     $this->config('system.site')->set('page.front', '/neo-test/open')->save();
     $this->enterRequest('neo_test.open');
     $this->assertTrue(\Drupal::service('path.matcher')->isFrontPage());
+    $this->assertSame($this->absoluteUrl($this->uriA), $this->image([], $this->node));
 
-    $this->assertSame($this->absoluteUrl($this->uriB), $this->image([], $this->node));
-    $this->assertNull(\Drupal::state()->get('neo_test.token_image_alter_seen'));
-    $this->assertSame(
-      'node:' . $this->node->id(),
-      \Drupal::state()->get('neo_test.token_logo_alter_seen')['entity']
-    );
-
-    // The parameters travel into the delegate intact, so a dimension asked of
-    // the image token on the front page is a dimension of the logo's file.
+    // ... and the image hook's, which beats the crawl as it does anywhere.
     $this->resetTokenStatics();
-    $this->assertSame('30', $this->image(['height'], $this->node));
+    \Drupal::state()->set('neo_test.token_image_alter', $this->uriC);
+    $this->assertSame($this->absoluteUrl($this->uriC), $this->image([], $this->node));
 
-    // And with no entity at all the front page still answers, because the logo
-    // never needed one.
+    // With no image found — no entity to crawl, nothing from the hook — the
+    // front page falls back to the logo.
     $this->resetTokenStatics();
+    \Drupal::state()->delete('neo_test.token_image_alter');
     $this->assertSame($this->absoluteUrl($this->uriB), $this->image([], NULL));
+
+    // The parameters travel into the fallback intact, so a dimension asked of
+    // the image token is a dimension of the logo's file.
+    $this->resetTokenStatics();
+    $this->assertSame('30', $this->image(['height'], NULL));
+
+    // Off the front page there is no fallback: no image is no image.
+    $this->resetTokenStatics();
+    $this->config('system.site')->set('page.front', '/user/login')->save();
+    $this->enterRequest('neo_test.open');
+    $this->assertFalse(\Drupal::service('path.matcher')->isFrontPage());
+    $this->assertNull($this->image([], NULL));
   }
 
   /**
@@ -568,11 +574,11 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
    * later.
    *
    * Every shape of "nothing" is exercised — no hook and no crawl, no entity at
-   * all, and a dimension asked of a file that was never resolved. All of them
-   * leave through the *same* `return`, which is quirk 2's second half: the
+   * all, and a dimension asked of a file that was never resolved. The logo's
+   * all leave through the *same* `return`, which is quirk 2's second half: the
    * fetcher hands back a two-key array of `NULL`s, the guard in front of it is
-   * therefore always true, and `$data['url']` is the `NULL`. Each function's
-   * own closing `return NULL;` is unreachable and has never run.
+   * therefore always true, and `$data['url']` is the `NULL`. The image token's
+   * leave through its closing `return NULL;`, after the front-page fallback.
    */
   public function testReturnsNullFromBothEntryPointsWhenNothingResolves(): void {
     $this->enterRequest('neo_test.open');
@@ -597,16 +603,19 @@ final class SmartTokenLogoAndImageTest extends KernelTestBase {
     $this->resetTokenStatics();
     $this->assertNull($this->image([], NULL));
 
-    // And on the front page, where the image token's NULL is the logo's.
+    // And on the front page, where an image token that finds nothing falls
+    // back to the logo, and the logo finds nothing either.
     $this->resetTokenStatics();
     $this->config('system.site')->set('page.front', '/neo-test/open')->save();
     $this->enterRequest('neo_test.open');
     $this->assertTrue(\Drupal::service('path.matcher')->isFrontPage());
-    $this->assertNull($this->image([], $this->node));
+    $this->assertNull($this->image([], $this->plainNode));
 
-    // Quirk 2, second half: every NULL above came through `$data['url']`,
+    // Quirk 2, second half: every logo NULL above came through `$data['url']`,
     // because the guard in front of it is an array that is never empty. The
-    // `return NULL;` closing each function is dead code.
+    // `return NULL;` closing the logo function is dead code. (The image
+    // function tests the resolved uri instead, so it can fall back to the logo
+    // on the front page, and its own closing NULL is what it returns.)
     $this->resetTokenStatics();
     $this->assertNotEmpty(
       $this->imageFetch([], 'neo_token_logo', $this->node, FALSE)
