@@ -1,5 +1,18 @@
 # Changelog
 
+## Share images are cropped to 1200×630, and never enlarged
+
+**A tall photo was shared as a narrow image.** The `neo_social` style fitted a
+share image within 1200×630, so a portrait headshot came out 680×600 or so,
+which the social networks then cropped or showed small. It now crops to
+1200×630, around each image's focal point where focal_point is enabled. Run
+`drush updatedb`: `neo_update_11003` converts a `neo_social` style still as neo
+shipped it, and leaves one a site has edited alone. An image smaller than the
+card — a 512px logo, or the favicon a page without an image falls back to — is
+no longer pushed through the style: `[neo:image]` shares it as it is, rather
+than enlarged into the card, blurred and cut. Export the site's configuration
+afterwards: the style is config.
+
 ## A front page shares its own image, and the logo only when it has none
 
 **`[neo:image]` no longer returns the logo on every front page.** The front

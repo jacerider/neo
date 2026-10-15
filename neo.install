@@ -159,3 +159,42 @@ function neo_update_11002(): string {
   $storage->createFromStorageRecord($config->read('image.style.neo_social'))->save();
   return (string) t('Added the neo_social image style: share images are now fitted within 1200×630 in their own format instead of AVIF.');
 }
+
+/**
+ * Crops the share image to 1200×630 instead of fitting it within.
+ *
+ * Fitted, a tall photo shared as a narrow image (680×600 from a portrait
+ * headshot), which the social networks then cropped or showed small. Cropped,
+ * every share card is 1200×630; where focal_point is enabled the crop keeps
+ * each image's focal point, so a face is not cut in half. Only a style still
+ * as neo shipped it changes: one a site has edited keeps its effects. An image
+ * smaller than the card is not enlarged into it; the token shares it as it is.
+ */
+function neo_update_11003(): string {
+  if (!\Drupal::moduleHandler()->moduleExists('image')) {
+    return (string) t('The image module is not installed: no share image style to change.');
+  }
+  $style = \Drupal::entityTypeManager()->getStorage('image_style')->load('neo_social');
+  if (!$style) {
+    return (string) t('There is no neo_social image style.');
+  }
+  $effects = $style->getEffects()->getConfiguration();
+  $effect = reset($effects);
+  $shipped = count($effects) === 1
+    && ($effect['id'] ?? NULL) === 'image_scale'
+    && ($effect['data'] ?? NULL) == ['width' => 1200, 'height' => 630, 'upscale' => FALSE];
+  if (!$shipped) {
+    return (string) t('The neo_social image style has been changed on this site: left as it is.');
+  }
+  $style->deleteImageEffect($style->getEffect($effect['uuid']));
+  $focal = \Drupal::moduleHandler()->moduleExists('focal_point');
+  $style->addImageEffect([
+    'id' => $focal ? 'focal_point_scale_and_crop' : 'image_scale_and_crop',
+    'weight' => 1,
+    'data' => ['width' => 1200, 'height' => 630] + ($focal ? ['crop_type' => 'focal_point'] : ['anchor' => 'center-center']),
+  ]);
+  $style->save();
+  return (string) ($focal
+    ? t('The neo_social image style now crops share images to 1200×630 around their focal point.')
+    : t('The neo_social image style now crops share images to 1200×630.'));
+}

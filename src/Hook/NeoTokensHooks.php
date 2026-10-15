@@ -519,22 +519,35 @@ class NeoTokensHooks {
    *   and height (NULL when they cannot be worked out).
    */
   private function imageData(string $uri, array $params = []): array {
-    // Without parameters the token is the page's share image: fitted within
-    // 1200×630 by the neo_social style, in the source file's own format.
-    // neo_image's styles all convert to AVIF, which the social networks do not
-    // show in link previews. The derivative is only named here: it is built
-    // when something first fetches it, like any image style's. Building it
-    // while the page renders took the page down whenever the source was too
-    // large to convert in one request. The width and height tokens are worked
-    // out from the source instead.
+    // Without parameters the token is the page's share image: cropped to
+    // 1200×630 by the neo_social style (or whatever the site made of it), in
+    // the source file's own format. neo_image's styles all convert to AVIF,
+    // which the social networks do not show in link previews. The derivative
+    // is only named here: it is built when something first fetches it, like
+    // any image style's. Building it while the page renders took the page
+    // down whenever the source was too large to convert in one request. The
+    // width and height tokens are worked out from the source instead.
     if (!$params && file_exists($uri) && ($style = $this->socialImageStyle()) && $style->supportsUri($uri)) {
-      $dimensions = [
+      $source = [
         'width' => $this->imageDimension($uri, 'width'),
         'height' => $this->imageDimension($uri, 'height'),
       ];
-      if ($dimensions['width'] !== NULL && $dimensions['height'] !== NULL) {
-        $dimensions = array_map('intval', $dimensions);
+      $dimensions = $source;
+      if ($source['width'] !== NULL && $source['height'] !== NULL) {
+        $source = array_map('intval', $source);
+        $dimensions = $source;
         $style->transformDimensions($dimensions, $uri);
+        // Never enlarged: an image smaller than the card (a 512px logo, the
+        // favicon a page without an image falls back to) would come out
+        // blurred and, cropped, cut. It is shared as it is.
+        if ((int) $dimensions['width'] > $source['width'] || (int) $dimensions['height'] > $source['height']) {
+          return [
+            'uri' => $uri,
+            'url' => $this->fileUrlGenerator->generateAbsoluteString($uri),
+            'width' => (string) $source['width'],
+            'height' => (string) $source['height'],
+          ];
+        }
       }
       return [
         'uri' => $style->buildUri($uri),
