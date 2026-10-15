@@ -127,11 +127,13 @@ class NeoThemeHooks {
    */
   #[Hook('preprocess_select')]
   public function preprocessSelect(array &$variables): void {
-    // An empty select is left native. TomSelect prepends an empty option to a
-    // single select that has nothing selected, and the "" it then submits
-    // fails Form API's allowed-values check. Field UI renders one for every
-    // field type without a widget, such as Commerce's Remote ID.
-    if (empty($variables['element']['#options'])) {
+    // An empty single select is left native. TomSelect prepends an empty
+    // option to a single select that has nothing selected, and the "" it then
+    // submits fails Form API's allowed-values check. Field UI renders one for
+    // every field type without a widget, such as Commerce's Remote ID. A
+    // multiple select submits nothing instead, so it is still enhanced:
+    // natively it would render as a tall empty box.
+    if (empty($variables['element']['#options']) && empty($variables['element']['#multiple'])) {
       return;
     }
     if (!empty($variables['element']['#is_weight'])) {
