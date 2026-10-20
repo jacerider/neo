@@ -17,8 +17,10 @@ use Drupal\Core\EventSubscriber\MainContentViewSubscriber;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Hook\Attribute\Hook;
 use Drupal\Core\Hook\Order\Order;
+use Drupal\Core\Extension\Requirement\RequirementSeverity;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\State\StateInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\media\MediaInterface;
 use Drupal\media_library\MediaLibraryState;
@@ -47,6 +49,11 @@ use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
  * - Core's `MediaLibraryWidgetEditItem` behavior, dead code inherited from the
  *   media_library_edit contrib module, is not copied.
  *
+ * Should core ship the button while this module is still installed, the module
+ * steps aside: an item that already has an `edit_button` gets nothing more,
+ * a media form whose Save core has already wired is left to core, and the
+ * status report says this module can be uninstalled.
+ *
  * @see https://www.drupal.org/project/drupal/issues/2985168
  */
 class MediaLibraryEditHooks {
@@ -59,10 +66,19 @@ class MediaLibraryEditHooks {
    */
   public const MARKER = 'data-neo-media-library-edit';
 
+  /**
+   * The state key recording that core's own edit button has been seen.
+   *
+   * Set from the widget alter, the one place core's button can be observed,
+   * so the status report can say so without building a widget itself.
+   */
+  public const CORE_DETECTED = 'neo_media_library_edit.core_detected';
+
   public function __construct(
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     protected readonly MessengerInterface $messenger,
     protected readonly RequestStack $requestStack,
+    protected readonly StateInterface $state,
   ) {}
 
   /**
@@ -81,7 +97,11 @@ class MediaLibraryEditHooks {
     $ids = [];
     foreach (Element::children($element['selection']) as $delta) {
       $item = $element['selection'][$delta];
-      if (isset($item['target_id']['#value']) && !isset($item['edit_button'])) {
+      if (isset($item['edit_button'])) {
+        // Core, or something else, already put a button here.
+        $this->recordCoreDetected();
+      }
+      elseif (isset($item['target_id']['#value'])) {
         $ids[$delta] = $item['target_id']['#value'];
       }
     }
@@ -119,9 +139,10 @@ class MediaLibraryEditHooks {
    * Implements hook_form_FORM_ID_alter() for media_form.
    *
    * Makes the media edit form work inside the modal the edit button opens:
-   * Save submits over AJAX, and every other action is hidden.
+   * Save submits over AJAX, and every other action is hidden. Runs last, so a
+   * Save that core's own alter has already wired is recognised and left alone.
    */
-  #[Hook('form_media_form_alter')]
+  #[Hook('form_media_form_alter', order: Order::Last)]
   public function formMediaFormAlter(array &$form, FormStateInterface $form_state, string $form_id): void {
     $form_object = $form_state->getFormObject();
     if (!$form_object instanceof EntityFormInterface || $form_object->getOperation() !== 'edit') {
@@ -130,6 +151,12 @@ class MediaLibraryEditHooks {
 
     $state = $this->stateFromRequest();
     if (!$state || $state->getOpenerId() !== 'media_library.opener.field_widget') {
+      return;
+    }
+
+    $callback = $form['actions']['submit']['#ajax']['callback'] ?? NULL;
+    if ($callback && !(is_array($callback) && ($callback[0] ?? NULL) instanceof self)) {
+      $this->recordCoreDetected();
       return;
     }
 
@@ -198,6 +225,33 @@ class MediaLibraryEditHooks {
     $this->messenger->deleteByType(MessengerInterface::TYPE_STATUS);
 
     return $response;
+  }
+
+  /**
+   * Implements hook_runtime_requirements().
+   */
+  #[Hook('runtime_requirements')]
+  public function runtimeRequirements(): array {
+    if (!$this->state->get(static::CORE_DETECTED)) {
+      return [];
+    }
+    return [
+      'neo_media_library_edit' => [
+        'title' => $this->t('Neo | Media Library Edit'),
+        'value' => $this->t('No longer needed'),
+        'description' => $this->t('Drupal core now provides an Edit button for media selected in the media library widget, so this module adds nothing. Uninstall <em>Neo | Media Library Edit</em>.'),
+        'severity' => RequirementSeverity::Warning,
+      ],
+    ];
+  }
+
+  /**
+   * Records that core's own edit button has been seen.
+   */
+  protected function recordCoreDetected(): void {
+    if (!$this->state->get(static::CORE_DETECTED)) {
+      $this->state->set(static::CORE_DETECTED, TRUE);
+    }
   }
 
   /**

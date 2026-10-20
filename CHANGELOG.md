@@ -16,6 +16,10 @@ without posting the host form, and without JavaScript it goes to the media
 edit page. Enable it with `drush en neo_media_library_edit`, then export the
 site's configuration.
 
+If core ships its own button while the submodule is still installed, the
+submodule steps aside: it adds no second button, leaves the media form to core,
+and says on the status report that it can be uninstalled.
+
 ## Share images are cropped to 1200×630, and never enlarged
 
 **A tall photo was shared as a narrow image.** The `neo_social` style fitted a
