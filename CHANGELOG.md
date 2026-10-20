@@ -1,5 +1,21 @@
 # Changelog
 
+## Selected media can be edited from the media library widget
+
+**New submodule `neo_media_library_edit`.** Each item selected in a media
+library field widget gets an Edit button. It opens the media item's edit form
+in a modal. Saving closes the modal and refreshes the widget's preview, and
+anything already typed into the host form stays. The modal hides Delete and
+warns that the change applies everywhere the media item is used. The button
+shows only to users who may update the media item.
+
+It mirrors core issue #2985168 (merge request !4517), so once core ships the
+button, uninstall the submodule and nothing else changes. One departure: the
+button is a link rather than core's submit button, so it opens the modal
+without posting the host form, and without JavaScript it goes to the media
+edit page. Enable it with `drush en neo_media_library_edit`, then export the
+site's configuration.
+
 ## Share images are cropped to 1200×630, and never enlarged
 
 **A tall photo was shared as a narrow image.** The `neo_social` style fitted a
