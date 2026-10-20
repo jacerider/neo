@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\neo_media_library_edit\FunctionalJavascript;
 
+use Behat\Mink\Element\NodeElement;
 use Drupal\FunctionalJavascriptTests\WebDriverTestBase;
 use Drupal\media\Entity\Media;
 use Drupal\media\MediaInterface;
@@ -23,7 +24,11 @@ class MediaLibraryEditTest extends WebDriverTestBase {
   /**
    * {@inheritdoc}
    */
-  protected static $modules = ['media_library_test', 'neo_media_library_edit'];
+  protected static $modules = [
+    'media_library_test',
+    'neo_media_library_edit',
+    'neo_media_library_edit_host_test',
+  ];
 
   /**
    * {@inheritdoc}
@@ -116,9 +121,54 @@ class MediaLibraryEditTest extends WebDriverTestBase {
     // The host form still saves, with both items and the unsaved title.
     $assert->assertWaitOnAjaxRequest();
     $page->pressButton('Save');
-    $assert->pageTextContains('Host, unsaved has been updated.');
+    // A JavaScript session does not wait for the submit's page load.
+    $this->assertTrue($assert->waitForText('Host, unsaved has been updated.'));
     $node = $this->container->get('entity_type.manager')->getStorage('node')->loadUnchanged($this->node->id());
     $this->assertCount(2, $node->get('field_unlimited_media'));
+  }
+
+  /**
+   * Tests editing from a widget whose form is itself in a modal.
+   *
+   * The Alchemist editor opens its component forms this way. The edit modal
+   * must stack on the form's modal rather than replace it, and saving must
+   * close only the edit modal.
+   */
+  public function testEditFromInsideModal(): void {
+    $this->drupalLogin($this->drupalCreateUser([
+      'access content',
+      'edit any basic_page content',
+      'view media',
+      'update any media',
+    ]));
+    $this->drupalGet('neo-media-library-edit-test/host/' . $this->node->id());
+    $this->shimNeoAnimations();
+    $assert = $this->assertSession();
+    $page = $this->getSession()->getPage();
+
+    $page->clickLink('Open host form');
+    $host = $assert->waitForElementVisible('css', '.neo-modal [data-media-library-item-delta="0"] .edit-media');
+    $this->assertNotNull($host);
+    $page->fillField('title[0][value]', 'Host, unsaved');
+
+    $host->click();
+    $this->assertTrue($page->waitFor(10, fn () => count($page->findAll('css', '.neo-modal')) === 2), 'The edit modal stacks on the host modal.');
+    $this->assertNotNull($assert->waitForField('name[0][value]'));
+
+    $edit = $this->topModal();
+    $edit->fillField('name[0][value]', 'Kitten');
+    $this->pressModalSave($edit);
+    $this->assertTrue($page->waitFor(10, fn () => count($page->findAll('css', '.neo-modal')) === 1), 'Saving closes only the edit modal.');
+    $this->assertNotNull($assert->waitForElement('css', '.neo-modal .edit-media[aria-label="Edit Kitten"]'), 'The host modal shows the refreshed preview.');
+    $assert->fieldValueEquals('title[0][value]', 'Host, unsaved');
+
+    // Closing the edit modal another way also leaves the host open.
+    $assert->assertWaitOnAjaxRequest();
+    $page->find('css', '.neo-modal [data-media-library-item-delta="1"] .edit-media')->click();
+    $this->assertTrue($page->waitFor(10, fn () => count($page->findAll('css', '.neo-modal')) === 2));
+    $this->topModal()->find('css', '.neo-modal--close')->click();
+    $this->assertTrue($page->waitFor(10, fn () => count($page->findAll('css', '.neo-modal')) === 1));
+    $assert->fieldValueEquals('title[0][value]', 'Host, unsaved');
   }
 
   /**
@@ -155,10 +205,19 @@ class MediaLibraryEditTest extends WebDriverTestBase {
    * NeoModal hides the form's own actions and shows a proxy button for each
    * in its footer, so the visible Save is the proxy.
    */
-  protected function pressModalSave(): void {
-    $button = $this->assertSession()->waitForElementVisible('xpath', '//div[contains(@class, "neo-modal--actions")]//button[normalize-space()="Save"]');
-    $this->assertNotNull($button);
-    $button->click();
+  protected function pressModalSave(?NodeElement $modal = NULL): void {
+    $modal ??= $this->topModal();
+    $this->assertTrue($modal->waitFor(10, fn () => $modal->find('xpath', '//div[contains(@class, "neo-modal--actions")]//button[normalize-space()="Save"]')?->isVisible()));
+    $modal->find('xpath', '//div[contains(@class, "neo-modal--actions")]//button[normalize-space()="Save"]')->click();
+  }
+
+  /**
+   * The modal on top of the stack.
+   */
+  protected function topModal(): NodeElement {
+    $modals = $this->getSession()->getPage()->findAll('css', '.neo-modal');
+    $this->assertNotEmpty($modals);
+    return end($modals);
   }
 
   /**

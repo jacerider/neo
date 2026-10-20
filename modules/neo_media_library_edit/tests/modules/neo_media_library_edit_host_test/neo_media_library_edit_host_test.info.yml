@@ -1,0 +1,8 @@
+name: 'Neo | Media Library Edit modal host'
+type: module
+description: 'Fixture module: a page whose link opens a node edit form in a modal, as the Alchemist editor opens its component forms.'
+package: Testing
+hidden: true
+core_version_requirement: ^11.3
+dependencies:
+  - drupal:node
