@@ -515,8 +515,9 @@ class NeoTokensHooks {
    *   an undocumented parameter is a phpcs error on a file under `src/`.
    *
    * @return array
-   *   An array containing the uri and url, and for the share image its width
-   *   and height (NULL when they cannot be worked out).
+   *   An array containing the uri and url, and for the share image and a
+   *   neo_image style its width and height (NULL when they cannot be worked
+   *   out). Both NULL for a parameter neo_image does not know.
    */
   private function imageData(string $uri, array $params = []): array {
     // Without parameters the token is the page's share image: cropped to
@@ -570,9 +571,34 @@ class NeoTokensHooks {
         $optionType => $params,
       ];
       $neoImageStyle = new NeoImageStyle($options);
+      // A parameter NeoImageStyle does not know (`[neo:image:alt]`) gives a
+      // style with no effects but its format conversion: the whole original,
+      // re-encoded. It is no image the token was asked for, so there is none.
+      if (!$neoImageStyle->getImageStyleEffects()) {
+        return [
+          'uri' => NULL,
+          'url' => NULL,
+        ];
+      }
+      // The derivative is only named, as the share image's is: neo_image
+      // builds it when something first fetches it. Building it here, during
+      // the render, converted every page's image to AVIF inside the page
+      // request, which took pages down when the source was large. The width
+      // and height tokens are worked out from the source for the same reason.
+      $style = $neoImageStyle->getImageStyle();
+      $dimensions = [
+        'width' => $this->imageDimension($uri, 'width'),
+        'height' => $this->imageDimension($uri, 'height'),
+      ];
+      if ($dimensions['width'] !== NULL && $dimensions['height'] !== NULL) {
+        $dimensions = array_map('intval', $dimensions);
+        $style->transformDimensions($dimensions, $uri);
+      }
       return [
-        'uri' => $neoImageStyle->getImageStyle()->buildUri($uri),
-        'url' => $neoImageStyle->toUrlFromUri($uri, TRUE),
+        'uri' => $style->buildUri($uri),
+        'url' => $neoImageStyle->toUrlFromUri($uri),
+        'width' => isset($dimensions['width']) ? (string) $dimensions['width'] : NULL,
+        'height' => isset($dimensions['height']) ? (string) $dimensions['height'] : NULL,
       ];
     }
     return [

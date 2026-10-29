@@ -1,5 +1,23 @@
 # Changelog
 
+## Image tokens no longer convert images while the page renders
+
+**Pages could fail with a 502 the first time they were viewed.** With
+neo_image installed, `[neo:image:<type>:<args>]` built its neo_image derivative
+during the render, and every neo_image style converts to AVIF: a full
+re-encode of the source inside the page request. A large source took tens of
+seconds and over 100MB, and a few such pages at once had the host kill PHP
+workers. Worst was a parameter neo_image does not know: neo_seo asks for
+`[neo:image:alt]` beside every share image, and `alt` became a style with no
+effect but the conversion, so every page converted its whole original to AVIF.
+
+- A parameter neo_image does not know (`[neo:image:alt]`, `[neo:logo:alt]`) now
+  has no value, instead of a URL to an unresized AVIF copy.
+- A neo_image style is only named, as the share image already was: neo_image
+  builds the derivative when it is first fetched.
+- `[neo:image:width:<type>:<args>]` and `:height` are worked out from the
+  source through the style, instead of read from the derivative.
+
 ## Selected media can be edited from the media library widget
 
 **New submodule `neo_media_library_edit`.** Each item selected in a media
