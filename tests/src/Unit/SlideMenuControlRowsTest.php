@@ -630,9 +630,14 @@ final class SlideMenuControlRowsTest extends UnitTestCase {
     $build = $menu->toRenderable();
 
     $this->assertSame(
-      ['#type', '#tag', '#attributes', '#attached', 'menu'],
+      ['#type', '#tag', '#attributes', '#attached', 'menu', 'title_back_icon'],
       array_keys($build)
     );
+    // The modal title's back icon is rendered here, not written in script,
+    // and handed over in a template the script clones.
+    $this->assertSame('template', $build['title_back_icon']['#tag']);
+    $this->assertSame(['neo-slide-menu--title-back-icon'], $build['title_back_icon']['#attributes']['class']);
+    $this->assertInstanceOf(IconElement::class, $build['title_back_icon']['icon']['#markup']);
     $this->assertSame('html_tag', $build['#type']);
     $this->assertSame('nav', $build['#tag']);
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## A slide menu's modal title renders its back icon on the server
+
+**The back arrow a slide menu shows in its modal title is now rendered by the
+icon renderer, not written as markup in script.** The script used to build an
+`<i class="… icon-regular-chevron-left">` itself, which only drew while the
+regular icon library rendered as a font and its stylesheet was on the page. The
+slide menu now renders its back icon (the menu's own `#back_icon`) into a
+`<template class="neo-slide-menu--title-back-icon">` inside the `<nav>`, and the
+title clones it, so the arrow is whatever the icon library renders, inline SVG
+included. A menu rendered without the template, such as one still in a page
+cache, falls back to the old markup.
+
 ## Image tokens no longer convert images while the page renders
 
 **Pages could fail with a 502 the first time they were viewed.** With

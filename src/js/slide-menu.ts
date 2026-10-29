@@ -547,9 +547,19 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
             instance.back();
           });
 
-          // Add the back link icon
+          // Add the back link icon. It is rendered on the server, where it
+          // goes through the icon renderer like any other icon, and handed
+          // over in a template. The literal markup is only a fallback for a
+          // menu rendered before the template existed: it shows only while
+          // the regular library renders as a font.
           const backElm = document.createElement('div');
-          backElm.innerHTML = '<i class="text-base-700 text-sm neo-icon neo-icon-font icon-regular-chevron-left" title="Back" aria-hidden="true"></i>';
+          const backIcon = menu.querySelector<HTMLTemplateElement>(':scope > template.neo-slide-menu--title-back-icon');
+          if (backIcon) {
+            backElm.appendChild(backIcon.content.cloneNode(true));
+          }
+          else {
+            backElm.innerHTML = '<i class="text-base-700 text-sm neo-icon neo-icon-font icon-regular-chevron-left" title="Back" aria-hidden="true"></i>';
+          }
           elm.appendChild(backElm);
 
           // Add the title
