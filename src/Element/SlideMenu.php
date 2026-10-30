@@ -40,6 +40,10 @@ class SlideMenu extends RenderElementBase {
       // (as group headings with inline lists) instead of opening another
       // slide level. 0 always slides; 2 = a mobile mega menu.
       '#expand_depth' => 0,
+      // How many levels from #expand_depth render inline; 0 = every level
+      // below it. 1 with a depth of 2 groups the second level and slides the
+      // third again.
+      '#expand_levels' => 0,
       '#process' => [
         [$class, 'processGroup'],
       ],
@@ -104,6 +108,7 @@ class SlideMenu extends RenderElementBase {
       'all_prefix' => $element['#all_prefix'],
       'all_suffix' => $element['#all_suffix'],
       'expand_depth' => $element['#expand_depth'],
+      'expand_levels' => $element['#expand_levels'],
     ]);
     $element['slide'] = $slideMenu->toRenderable();
     return $element;

@@ -10,7 +10,7 @@ use Drupal\Core\Template\Attribute;
  * The options a slide menu takes, and the definition of the set.
  *
  * A slide menu is configured by an option array — the second argument to
- * SlideMenu::__construct(), and the twelve keys Element\SlideMenu forwards from
+ * SlideMenu::__construct(), and the thirteen keys Element\SlideMenu forwards from
  * its own '#' properties. The set is closed: a menu has these options and no
  * others.
  *
@@ -60,6 +60,7 @@ enum SlideMenuOption: string {
   case AllPrefix = 'all_prefix';
   case AllSuffix = 'all_suffix';
   case ExpandDepth = 'expand_depth';
+  case ExpandLevels = 'expand_levels';
 
   /**
    * The value this option starts at on a menu nothing has configured.
@@ -99,7 +100,7 @@ enum SlideMenuOption: string {
       self::AllPrefix => 'View all',
       self::AllSuffix => 'Right now',
       self::BackStatus, self::AllStatus => TRUE,
-      self::ExpandDepth => 0,
+      self::ExpandDepth, self::ExpandLevels => 0,
     };
   }
 
@@ -116,7 +117,7 @@ enum SlideMenuOption: string {
   public function castType(): ?string {
     return match ($this) {
       self::ChildIcon, self::BackIcon, self::BackLabel, self::AllPrefix, self::AllSuffix => 'string',
-      self::ExpandDepth => 'int',
+      self::ExpandDepth, self::ExpandLevels => 'int',
       self::BackStatus, self::AllStatus => 'bool',
       self::Items, self::ItemAttributes, self::LinkAttributes, self::ChildIconAttributes, self::BackAttributes, self::BackIconAttributes => NULL,
     };

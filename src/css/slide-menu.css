@@ -56,6 +56,18 @@
     opacity: 0;
   }
 
+  /* A slide level below an inline group (expand_levels) sits inside the
+     group's row wrapper, since the inline list stays in the wrapper. Once the
+     level opens, its parent panel loses focus and the wrapper would fall back
+     to opacity 0, taking the open level with it; its slide-in transform would
+     also make it the level's containing block. Keep the wrapper shown and
+     untransformed while it holds the open level. */
+  .neo-slide-menu--item:has(ul.neo-slide-menu--active) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+
   .neo-slide-menu--focus {
 
     > li > .neo-slide-menu--item {

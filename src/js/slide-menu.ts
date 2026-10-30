@@ -314,8 +314,10 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
         }
 
         // Inline (expanded) lists are part of the current panel, not a
-        // slide level to navigate into.
-        const ul = parent.querySelector<HTMLElement>('ul:not(.neo-slide-menu--inline)');
+        // slide level to navigate into. Only the item's own list counts: a
+        // group heading's inline list can hold items with slide levels of
+        // their own, and those are not the heading's to open.
+        const ul = parent.querySelector<HTMLElement>(':scope > ul:not(.neo-slide-menu--inline)');
 
         if (!ul) {
           return;
@@ -396,6 +398,15 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
       // Wrap the contents of each li element
       wrapLiContents(this.menuElem, CLASS_NAMES.wrapperLi, CLASS_NAMES.level);
 
+      // An inline list is copied into its row's wrapper, so a slide level
+      // inside it (expand_levels) arrives with its items unwrapped. Wrap them
+      // now, or they miss the row styling and the slide-in that a focused
+      // level gives its items. No level class: those count from the menu
+      // root, and this pass starts from the nested list.
+      this.menuElem.querySelectorAll(`ul.${CLASS_NAMES.inline} ul:not(.${CLASS_NAMES.inline})`).forEach((ul) => {
+        wrapLiContents(ul as HTMLElement, CLASS_NAMES.wrapperLi);
+      });
+
       this.menuElem.querySelectorAll('ul').forEach((ul: HTMLUListElement) => {
         const children: NodeListOf<HTMLLIElement> = ul.querySelectorAll(`:scope > li > .${CLASS_NAMES.wrapperLi}`);
         children.forEach((li: HTMLLIElement, index) => {
@@ -423,8 +434,9 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
         }
 
         // Inline (expanded) lists are part of the current panel; their
-        // parent stays an ordinary link.
-        const submenu = parent.querySelector('ul:not(.neo-slide-menu--inline)');
+        // parent stays an ordinary link. Only the item's own list counts —
+        // see navigate().
+        const submenu = parent.querySelector(':scope > ul:not(.neo-slide-menu--inline)');
         if (!submenu) {
           return;
         }

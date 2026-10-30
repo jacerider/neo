@@ -56,16 +56,16 @@ class SlideMenu implements RenderableInterface {
   /**
    * The value every option holds, keyed by the option's own key.
    *
-   * One store rather than fourteen properties, and the only storage this class
+   * One store rather than fifteen properties, and the only storage this class
    * has. ::option() and ::setOption() are the only code that reaches it — the
    * constructor and ::applyOptions() included, nothing else in the class knows
-   * an option is stored here at all — which is what makes a fifteenth option a
+   * an option is stored here at all — which is what makes a sixteenth option a
    * SlideMenuOption case and two forwarders and no edit here.
    *
    * A key is a case's backing value, so the keys are the option keys and are
    * stated on the enum rather than written out again. Every case is seeded
    * from its own default before ::applyOptions() runs, so the store holds all
-   * fourteen from the moment a menu exists and an option is never absent.
+   * fifteen from the moment a menu exists and an option is never absent.
    *
    * @var array<string, mixed>
    */
@@ -81,7 +81,7 @@ class SlideMenu implements RenderableInterface {
    *   \Drupal\neo\SlideMenuOption case is valued with.
    */
   public function __construct(array $items, array $options = []) {
-    // Seed every option from its case's default, which is where the fourteen
+    // Seed every option from its case's default, which is where the fifteen
     // defaults are stated. Seeding happens before the options are applied
     // because an attribute option merges into what it finds: a caller passing
     // a class to the link bag adds one to the three the default carries
@@ -141,6 +141,7 @@ class SlideMenu implements RenderableInterface {
         SlideMenuOption::AllPrefix => $this->setAllPrefix($value),
         SlideMenuOption::AllSuffix => $this->setAllSuffix($value),
         SlideMenuOption::ExpandDepth => $this->setExpandDepth($value),
+        SlideMenuOption::ExpandLevels => $this->setExpandLevels($value),
       };
     }
   }
@@ -150,7 +151,7 @@ class SlideMenu implements RenderableInterface {
    *
    * The only code in this class that knows where an option is stored — it and
    * ::setOption() are one line each over ::$options, and every other method
-   * goes through them. That is what makes a fifteenth option one
+   * goes through them. That is what makes a sixteenth option one
    * SlideMenuOption case and two forwarders, with nothing to add here, to the
    * store, to the constructor or to ::applyOptions().
    *
@@ -161,8 +162,8 @@ class SlideMenu implements RenderableInterface {
    * would make every one of those writes vanish.
    *
    * Protected, deliberately: every option is already reachable from a
-   * fixture-free unit test through the twenty-eight methods that have always
-   * been public, so publishing this would add a permanent promise to an API
+   * fixture-free unit test through the class's public setters and getters,
+   * so publishing this would add a permanent promise to an API
    * another package calls and change nothing about what a test has to build.
    *
    * @param \Drupal\neo\SlideMenuOption $option
@@ -515,7 +516,7 @@ class SlideMenu implements RenderableInterface {
     // Handle items with children.
     $expanded = FALSE;
     if (!empty($item['children'])) {
-      $expanded = $this->getExpandDepth() > 0 && $depth >= $this->getExpandDepth();
+      $expanded = $this->isExpandedDepth($depth);
       $build['children'] = $this->buildItems($item['children'], $depth + 1);
 
       if (empty($build['children']['#items'])) {
@@ -730,6 +731,52 @@ class SlideMenu implements RenderableInterface {
    */
   public function getExpandDepth(): int {
     return $this->option(SlideMenuOption::ExpandDepth);
+  }
+
+  /**
+   * Sets how many levels, from the expand depth, render inline.
+   *
+   * 0 (the default) expands every level from the expand depth down. With a
+   * value of N, only N levels expand and the level below them slides again —
+   * e.g. an expand depth of 2 with 1 level makes second-level items group
+   * headings whose children are listed beneath them, while a child that has
+   * children of its own still opens a third slide level. Has no effect while
+   * the expand depth is 0.
+   *
+   * @param int $levels
+   *   The number of levels that render inline; 0 for no limit.
+   */
+  public function setExpandLevels(int $levels): void {
+    $this->setOption(SlideMenuOption::ExpandLevels, max(0, $levels));
+  }
+
+  /**
+   * Gets how many levels, from the expand depth, render inline.
+   *
+   * @return int
+   *   The number of levels; 0 when every level from the expand depth expands.
+   */
+  public function getExpandLevels(): int {
+    return $this->option(SlideMenuOption::ExpandLevels);
+  }
+
+  /**
+   * Checks whether items at a depth render their children inline.
+   *
+   * @param int $depth
+   *   The item's depth, starting at 1 for the top level.
+   *
+   * @return bool
+   *   TRUE when the depth falls in the expanded band the expand depth and
+   *   expand levels describe.
+   */
+  protected function isExpandedDepth(int $depth): bool {
+    $start = $this->getExpandDepth();
+    if ($start === 0 || $depth < $start) {
+      return FALSE;
+    }
+    $levels = $this->getExpandLevels();
+    return $levels === 0 || $depth < $start + $levels;
   }
 
   /**

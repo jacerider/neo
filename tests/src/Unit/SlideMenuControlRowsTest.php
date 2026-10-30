@@ -56,7 +56,7 @@ use PHPUnit\Framework\Attributes\Group;
  * 4. **An unknown option key is silently ignored.** `applyOptions()` resolves
  *    a key with `SlideMenuOption::tryFrom()` and moves on when the enum does
  *    not name it, so a typo in an option array raises nothing and changes
- *    nothing. There is a valid key set now — the enum's fourteen cases — but
+ *    nothing. There is a valid key set now — the enum's fifteen cases — but
  *    nothing checks a key against it on the caller's behalf.
  * 5. **A `0` option reaching a string setter becomes the string `'0'`, which
  *    is falsy.** `child_icon => 0` is stored as `'0'` and then never builds an
@@ -512,6 +512,50 @@ final class SlideMenuControlRowsTest extends UnitTestCase {
   }
 
   /**
+   * Expands only the configured number of levels from the expand depth.
+   *
+   * Covers: "it expands only `expand_levels` levels from the expand depth and
+   * slides the level below that band again".
+   *
+   * The band is what lets a mobile mega menu group its second level while a
+   * third-level item with children of its own still opens a slide panel. Zero
+   * is the default and leaves every level from the expand depth expanded, so
+   * the option changes nothing until it is set.
+   */
+  public function testExpandsOnlyTheConfiguredNumberOfLevels(): void {
+    $item = [
+      'title' => 'Products',
+      'url' => Url::fromRoute('entity.node.canonical', ['node' => 12]),
+      'children' => [['title' => 'Widgets', 'url' => Url::fromRoute('widgets')]],
+    ];
+    $isGroup = fn (array $build): bool => in_array('neo-slide-menu--group', $build['#wrapper_attributes']['class'] ?? [], TRUE);
+
+    // One level from depth 2: the second level groups, the third slides.
+    $banded = $this->menu(['expand_depth' => 2, 'expand_levels' => 1]);
+    $this->assertSame(1, $banded->getExpandLevels());
+    $this->assertFalse($isGroup($this->buildItem($banded, $item, 1)));
+    $this->assertTrue($isGroup($this->buildItem($banded, $item, 2)));
+    $sliding = $this->buildItem($banded, $item, 3);
+    $this->assertFalse($isGroup($sliding));
+    $this->assertSame('true', $sliding['link']['#attributes']['aria-haspopup']);
+
+    // Two levels from depth 2 reach the third and stop at the fourth.
+    $wider = $this->menu(['expand_depth' => 2, 'expand_levels' => 2]);
+    $this->assertTrue($isGroup($this->buildItem($wider, $item, 3)));
+    $this->assertFalse($isGroup($this->buildItem($wider, $item, 4)));
+
+    // The default expands every level from the depth down.
+    $unbounded = $this->menu(['expand_depth' => 2]);
+    $this->assertSame(0, $unbounded->getExpandLevels());
+    $this->assertTrue($isGroup($this->buildItem($unbounded, $item, 5)));
+
+    // Levels alone expand nothing while the depth is 0, and a negative count
+    // is clamped to the default.
+    $this->assertFalse($isGroup($this->buildItem($this->menu(['expand_levels' => 1]), $item, 1)));
+    $this->assertSame(0, $this->menu(['expand_levels' => -3])->getExpandLevels());
+  }
+
+  /**
    * Casts an option to the setter's type and ignores an unknown key.
    *
    * Covers: "it casts an option to the setter's declared parameter type and
@@ -601,6 +645,7 @@ final class SlideMenuControlRowsTest extends UnitTestCase {
       'all_suffix',
       'child_icon',
       'child_icon_attributes',
+      'expand_levels',
     ] as $key) {
       $this->assertStringNotContainsString("'" . $key . "'", $source, $key);
     }
