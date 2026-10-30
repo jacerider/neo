@@ -40,10 +40,12 @@ final class NeoLinkitResolver {
    *
    * Every dependency arrives through this constructor; nothing here reaches
    * the container. The `neo.linkit_resolver` service passes all nine. They are
-   * nullable, and only nullable, because ::fromContainer() has to be able to
-   * assemble the seam out of a container that holds a subset of them — the
-   * same containers in which the trait bodies these came from would have
-   * thrown a service-not-found had the missing one ever been reached.
+   * nullable because ::fromContainer() has to be able to assemble the seam out
+   * of a container that holds a subset of them — the same containers in which
+   * the trait bodies these came from would have thrown a service-not-found had
+   * the missing one ever been reached. The service itself references the path
+   * alias manager and the Linkit substitution manager optionally for the same
+   * reason, so a container without `path_alias` or `linkit` still compiles.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface|null $entityTypeManager
    *   The entity type manager.

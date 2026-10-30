@@ -1,5 +1,97 @@
 # Changelog
 
+## Installing `neo` no longer fails when Linkit is not installed yet
+
+**A container without Linkit or Path alias now still compiles.**
+`neo.linkit_resolver` took `path_alias.manager` and
+`plugin.manager.linkit.substitution` as hard references, so any container that
+held `neo` without both modules refused to build, and with it everything on the
+site. That happened more often than the declared `linkit` dependency suggests:
+`neo` and the modules it depends on depend on each other (`neo` needs
+`neo_icon`, which needs `neo_modal` and `neo_config_file`, which need `neo`),
+and core works out a dependency list incompletely around such a loop. A fresh
+`drush en neo_modal` (or any other module in the loop) installed `neo` without
+Linkit or Path alias, and failed. Kernel tests, which install only the modules
+they list, failed the same way unless they named both.
+
+- Both references are now optional. Without them, only resolving a path alias
+  or a Linkit substitution needs the missing module.
+- `neo` now declares its dependency on core's `path_alias`, which the resolver
+  has always needed.
+
+## A slide menu's modal title renders its back icon on the server
+
+**The back arrow a slide menu shows in its modal title is now rendered by the
+icon renderer, not written as markup in script.** The script used to build an
+`<i class="… icon-regular-chevron-left">` itself, which only drew while the
+regular icon library rendered as a font and its stylesheet was on the page. The
+slide menu now renders its back icon (the menu's own `#back_icon`) into a
+`<template class="neo-slide-menu--title-back-icon">` inside the `<nav>`, and the
+title clones it, so the arrow is whatever the icon library renders, inline SVG
+included. A menu rendered without the template, such as one still in a page
+cache, falls back to the old markup.
+
+## Image tokens no longer convert images while the page renders
+
+**Pages could fail with a 502 the first time they were viewed.** With
+neo_image installed, `[neo:image:<type>:<args>]` built its neo_image derivative
+during the render, and every neo_image style converts to AVIF: a full
+re-encode of the source inside the page request. A large source took tens of
+seconds and over 100MB, and a few such pages at once had the host kill PHP
+workers. Worst was a parameter neo_image does not know: neo_seo asks for
+`[neo:image:alt]` beside every share image, and `alt` became a style with no
+effect but the conversion, so every page converted its whole original to AVIF.
+
+- A parameter neo_image does not know (`[neo:image:alt]`, `[neo:logo:alt]`) now
+  has no value, instead of a URL to an unresized AVIF copy.
+- A neo_image style is only named, as the share image already was: neo_image
+  builds the derivative when it is first fetched.
+- `[neo:image:width:<type>:<args>]` and `:height` are worked out from the
+  source through the style, instead of read from the derivative.
+
+## Selected media can be edited from the media library widget
+
+**New submodule `neo_media_library_edit`.** Each item selected in a media
+library field widget gets an Edit button. It opens the media item's edit form
+in a modal. Saving closes the modal and refreshes the widget's preview, and
+anything already typed into the host form stays. The modal hides Delete and
+warns that the change applies everywhere the media item is used. The button
+shows only to users who may update the media item.
+
+It mirrors core issue #2985168 (merge request !4517), so once core ships the
+button, uninstall the submodule and nothing else changes. One departure: the
+button is a link rather than core's submit button, so it opens the modal
+without posting the host form, and without JavaScript it goes to the media
+edit page. Enable it with `drush en neo_media_library_edit`, then export the
+site's configuration.
+
+If core ships its own button while the submodule is still installed, the
+submodule steps aside: it adds no second button, leaves the media form to core,
+and says on the status report that it can be uninstalled.
+
+## Share images are cropped to 1200×630, and never enlarged
+
+**A tall photo was shared as a narrow image.** The `neo_social` style fitted a
+share image within 1200×630, so a portrait headshot came out 680×600 or so,
+which the social networks then cropped or showed small. It now crops to
+1200×630, around each image's focal point where focal_point is enabled. Run
+`drush updatedb`: `neo_update_11003` converts a `neo_social` style still as neo
+shipped it, and leaves one a site has edited alone. An image smaller than the
+card — a 512px logo, or the favicon a page without an image falls back to — is
+no longer pushed through the style: `[neo:image]` shares it as it is, rather
+than enlarged into the card, blurred and cut. Export the site's configuration
+afterwards: the style is config.
+
+## A front page shares its own image, and the logo only when it has none
+
+**`[neo:image]` no longer returns the logo on every front page.** The front
+page is now asked for its image like any other page: an image field on its
+entity, or what an image alter hook supplies (the first image of an Alchemist
+layout, for one). Only when nothing is found does it fall back to the logo, as
+it always did. A site whose front page shows a hero image shares that image,
+instead of a logo cropped to a share card's shape; a site whose front page has
+no image shares its logo as before. No config change.
+
 ## Meta tags are built when asked for, and edited in a side panel
 
 **`neo_metatag` adds a "Neo | Meta tags - Side panel" widget.** Metatag's own

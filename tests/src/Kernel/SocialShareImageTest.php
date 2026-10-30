@@ -19,12 +19,14 @@ use Symfony\Component\HttpFoundation\Request;
  * neo_image's styles they came out as AVIF, which the social networks do not
  * show in link previews. Without parameters they are now built with the
  * neo_social image style — shipped as optional config, added to existing sites
- * by neo_update_11002() — which fits the image within 1200×630 in its source
- * format. The token only names the derivative: it is built when something
- * first fetches it, as any image style's is, and the width and height tokens
- * are worked out from the source. Building it while the page rendered took the
- * page down whenever the source was too large to convert in one request (a
- * 24.8MB photo on Pantheon answered 502).
+ * by neo_update_11002() and turned from fitting to cropping by
+ * neo_update_11003() — which crops the image to 1200×630 in its source format,
+ * and never enlarges one smaller than that. The token only names the
+ * derivative: it is built when something first fetches it, as any image
+ * style's is, and the width and height tokens are worked out from the source.
+ * Building it while the page rendered took the page down whenever the source
+ * was too large to convert in one request (a 24.8MB photo on Pantheon answered
+ * 502).
  *
  * neo_image is not installed here: with the style present its branch is never
  * reached for a parameterless token, and without the style the fallback is
@@ -95,14 +97,17 @@ final class SocialShareImageTest extends KernelTestBase {
     $this->assertStringContainsString('itok=', $url);
     $this->assertStringNotContainsString('.avif', $url);
 
-    // Fitted within 1200×630, worked out without building the derivative.
+    // Cropped to 1200×630, worked out without building the derivative.
     $this->assertSame('1200', $this->invoke('image', [['width'], NULL]));
-    $this->assertSame('500', $this->invoke('image', [['height'], NULL]));
+    $this->assertSame('630', $this->invoke('image', [['height'], NULL]));
     $this->assertFileDoesNotExist(ImageStyle::load('neo_social')->buildUri(self::SOURCE));
   }
 
   /**
-   * A source smaller than the box keeps its size: the style does not upscale.
+   * A source smaller than the card is shared as it is, never enlarged.
+   *
+   * The favicon a page without an image falls back to is one: enlarged into
+   * the card it would come out blurred and cut.
    */
   public function testSmallSourceKeepsItsDimensions(): void {
     $image = imagecreatetruecolor(800, 600);
@@ -114,6 +119,8 @@ final class SocialShareImageTest extends KernelTestBase {
 
     $this->assertSame('800', $this->invoke('image', [['width'], NULL]));
     $this->assertSame('600', $this->invoke('image', [['height'], NULL]));
+    $original = \Drupal::service('file_url_generator')->generateAbsoluteString('public://neo-share-small.png');
+    $this->assertSame($original, $this->invoke('image', [[], NULL]), 'The original, not the style.');
     $this->assertFileDoesNotExist(ImageStyle::load('neo_social')->buildUri('public://neo-share-small.png'));
   }
 
@@ -137,10 +144,40 @@ final class SocialShareImageTest extends KernelTestBase {
     $style = ImageStyle::load('neo_social');
     $this->assertInstanceOf(ImageStyle::class, $style);
     $effect = $style->getEffects()->getIterator()->current();
-    $this->assertSame('image_scale', $effect->getPluginId());
-    $this->assertSame(['width' => 1200, 'height' => 630, 'upscale' => FALSE], $effect->getConfiguration()['data']);
+    $this->assertSame('image_scale_and_crop', $effect->getPluginId());
+    $this->assertSame(['width' => 1200, 'height' => 630, 'anchor' => 'center-center'], $effect->getConfiguration()['data']);
 
     $this->assertStringContainsString('already exists', neo_update_11002());
+  }
+
+  /**
+   * The update crops a style still as shipped, and leaves an edited one.
+   */
+  public function testTheUpdateCropsTheShippedStyle(): void {
+    \Drupal::moduleHandler()->loadInclude('neo', 'install');
+    $style = ImageStyle::load('neo_social');
+    foreach ($style->getEffects() as $effect) {
+      $style->deleteImageEffect($effect);
+    }
+    $style->addImageEffect([
+      'id' => 'image_scale',
+      'weight' => 1,
+      'data' => ['width' => 1200, 'height' => 630, 'upscale' => FALSE],
+    ]);
+    $style->save();
+
+    $this->assertStringContainsString('now crops share images to 1200×630', neo_update_11003());
+    $effects = array_values(ImageStyle::load('neo_social')->getEffects()->getConfiguration());
+    $this->assertCount(1, $effects);
+    $this->assertSame('image_scale_and_crop', $effects[0]['id'], 'Without focal_point, a centred crop.');
+    $this->assertSame(['width' => 1200, 'height' => 630, 'anchor' => 'center-center'], $effects[0]['data']);
+
+    // An edited style is the site's.
+    $style = ImageStyle::load('neo_social');
+    $style->addImageEffect(['id' => 'image_desaturate', 'weight' => 2, 'data' => []]);
+    $style->save();
+    $this->assertStringContainsString('left as it is', neo_update_11003());
+    $this->assertCount(2, ImageStyle::load('neo_social')->getEffects());
   }
 
   /**

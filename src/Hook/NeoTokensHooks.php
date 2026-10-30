@@ -111,6 +111,8 @@ class NeoTokensHooks {
    *   The title resolver, which answers the current route's page title.
    * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
    *   The file url generator, which builds the absolute url a meta tag needs.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager, which loads the media an image field points at.
    */
   public function __construct(
     #[Autowire(service: 'cache.default')]
@@ -170,6 +172,10 @@ class NeoTokensHooks {
         continue;
       }
       foreach ($entities as $entity) {
+        // An unsaved entity, or one being previewed, holds values its id does
+        // not: neither cache may answer for it or remember it. A new entity
+        // has no id at all, so every new entity would share one entry.
+        $cacheable = !$entity || (!$entity->isNew() && empty($entity->in_preview));
         $key = implode(':', array_merge($entity ? [
           'neo_tokens',
           $entity->getEntityTypeId(),
@@ -182,13 +188,13 @@ class NeoTokensHooks {
         ], $params));
 
         // Check the per-request cache.
-        if (isset($this->dispatchCache[$key])) {
+        if ($cacheable && isset($this->dispatchCache[$key])) {
           $replacements[$original] = $this->dispatchCache[$key];
           continue 2;
         }
 
         // Check database cache.
-        if ($entity) {
+        if ($entity && $cacheable) {
           if ($cacheData = $this->cache->get($key)) {
             $replacements[$original] = $cacheData->data;
             continue 2;
@@ -205,8 +211,10 @@ class NeoTokensHooks {
         };
 
         // Store in cache.
-        $this->dispatchCache[$key] = $value;
-        if ($entity) {
+        if ($cacheable) {
+          $this->dispatchCache[$key] = $value;
+        }
+        if ($entity && $cacheable) {
           $this->cache->set($key, $value, CacheBackendInterface::CACHE_PERMANENT, $entity->getCacheTagsToInvalidate());
         }
 
@@ -403,22 +411,20 @@ class NeoTokensHooks {
    *   A formatted image URL or 'image' if no suitable image is found.
    */
   private function image(array $params = [], ?ContentEntityInterface $entity = NULL) {
-    if ($this->pathMatcher->isFrontPage()) {
-      // We are on the front page, so we want to use the logo.
-      return $this->logo($params, $entity);
-    }
     $op = $params[0] ?? NULL;
-    if (in_array($op, ['width', 'height'], TRUE)) {
-      // If the first parameter is 'width' or 'height', we will return the
-      // respective dimension of the image.
-      $params = array_slice($params, 1);
-    }
-
-    if ($data = $this->imageFetch($params, 'neo_token_image', $entity, TRUE)) {
+    $fetchParams = in_array($op, ['width', 'height'], TRUE) ? array_slice($params, 1) : $params;
+    $data = $this->imageFetch($fetchParams, 'neo_token_image', $entity, TRUE);
+    if (!empty($data['uri'])) {
       return match ($op) {
         'width', 'height' => $data[$op] ?? $this->imageDimension($data['uri'], $op),
         default => $data['url'],
       };
+    }
+    // A front page with no image of its own is represented by the site's
+    // logo. Asked after the page, not instead of it: a front page whose
+    // content shows an image shares that, as any other page does.
+    if ($this->pathMatcher->isFrontPage()) {
+      return $this->logo($params, $entity);
     }
     return NULL;
   }
@@ -509,26 +515,40 @@ class NeoTokensHooks {
    *   an undocumented parameter is a phpcs error on a file under `src/`.
    *
    * @return array
-   *   An array containing the uri and url, and for the share image its width
-   *   and height (NULL when they cannot be worked out).
+   *   An array containing the uri and url, and for the share image and a
+   *   neo_image style its width and height (NULL when they cannot be worked
+   *   out). Both NULL for a parameter neo_image does not know.
    */
   private function imageData(string $uri, array $params = []): array {
-    // Without parameters the token is the page's share image: fitted within
-    // 1200×630 by the neo_social style, in the source file's own format.
-    // neo_image's styles all convert to AVIF, which the social networks do not
-    // show in link previews. The derivative is only named here: it is built
-    // when something first fetches it, like any image style's. Building it
-    // while the page renders took the page down whenever the source was too
-    // large to convert in one request. The width and height tokens are worked
-    // out from the source instead.
+    // Without parameters the token is the page's share image: cropped to
+    // 1200×630 by the neo_social style (or whatever the site made of it), in
+    // the source file's own format. neo_image's styles all convert to AVIF,
+    // which the social networks do not show in link previews. The derivative
+    // is only named here: it is built when something first fetches it, like
+    // any image style's. Building it while the page renders took the page
+    // down whenever the source was too large to convert in one request. The
+    // width and height tokens are worked out from the source instead.
     if (!$params && file_exists($uri) && ($style = $this->socialImageStyle()) && $style->supportsUri($uri)) {
-      $dimensions = [
+      $source = [
         'width' => $this->imageDimension($uri, 'width'),
         'height' => $this->imageDimension($uri, 'height'),
       ];
-      if ($dimensions['width'] !== NULL && $dimensions['height'] !== NULL) {
-        $dimensions = array_map('intval', $dimensions);
+      $dimensions = $source;
+      if ($source['width'] !== NULL && $source['height'] !== NULL) {
+        $source = array_map('intval', $source);
+        $dimensions = $source;
         $style->transformDimensions($dimensions, $uri);
+        // Never enlarged: an image smaller than the card (a 512px logo, the
+        // favicon a page without an image falls back to) would come out
+        // blurred and, cropped, cut. It is shared as it is.
+        if ((int) $dimensions['width'] > $source['width'] || (int) $dimensions['height'] > $source['height']) {
+          return [
+            'uri' => $uri,
+            'url' => $this->fileUrlGenerator->generateAbsoluteString($uri),
+            'width' => (string) $source['width'],
+            'height' => (string) $source['height'],
+          ];
+        }
       }
       return [
         'uri' => $style->buildUri($uri),
@@ -551,9 +571,34 @@ class NeoTokensHooks {
         $optionType => $params,
       ];
       $neoImageStyle = new NeoImageStyle($options);
+      // A parameter NeoImageStyle does not know (`[neo:image:alt]`) gives a
+      // style with no effects but its format conversion: the whole original,
+      // re-encoded. It is no image the token was asked for, so there is none.
+      if (!$neoImageStyle->getImageStyleEffects()) {
+        return [
+          'uri' => NULL,
+          'url' => NULL,
+        ];
+      }
+      // The derivative is only named, as the share image's is: neo_image
+      // builds it when something first fetches it. Building it here, during
+      // the render, converted every page's image to AVIF inside the page
+      // request, which took pages down when the source was large. The width
+      // and height tokens are worked out from the source for the same reason.
+      $style = $neoImageStyle->getImageStyle();
+      $dimensions = [
+        'width' => $this->imageDimension($uri, 'width'),
+        'height' => $this->imageDimension($uri, 'height'),
+      ];
+      if ($dimensions['width'] !== NULL && $dimensions['height'] !== NULL) {
+        $dimensions = array_map('intval', $dimensions);
+        $style->transformDimensions($dimensions, $uri);
+      }
       return [
-        'uri' => $neoImageStyle->getImageStyle()->buildUri($uri),
-        'url' => $neoImageStyle->toUrlFromUri($uri, TRUE),
+        'uri' => $style->buildUri($uri),
+        'url' => $neoImageStyle->toUrlFromUri($uri),
+        'width' => isset($dimensions['width']) ? (string) $dimensions['width'] : NULL,
+        'height' => isset($dimensions['height']) ? (string) $dimensions['height'] : NULL,
       ];
     }
     return [

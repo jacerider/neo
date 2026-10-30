@@ -364,6 +364,17 @@ final class ThemeHooksTest extends KernelTestBase {
     $this->invokePreprocess('select', $variables);
     $this->assertSame($empty, $variables, 'An empty select is untouched.');
 
+    // An empty multiple select is still enhanced: TomSelect only injects the
+    // empty option in single mode.
+    $variables = [
+      'element' => ['#options' => [], '#multiple' => TRUE, '#title' => 'Tags'],
+      'attributes' => ['class' => ['form-select']],
+    ];
+    $this->invokePreprocess('select', $variables);
+    $this->assertContains('neo-select', $variables['attributes']['class']);
+    $this->assertContains('neo-select-multi', $variables['attributes']['class']);
+    $this->assertSame(1, $variables['attributes']['size']);
+
     $this->assertContains(
       'neo: ' . NeoThemeHooks::class . '::preprocessSelect',
       $this->hookImplementations('preprocess_select')

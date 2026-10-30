@@ -1,0 +1,8 @@
+name: 'Neo | Media Library Edit core stand-in'
+type: module
+description: 'Fixture module that does what core #2985168 will do: adds a core-shaped edit_button to the media library widget and wires the media form Save over AJAX.'
+package: Testing
+hidden: true
+core_version_requirement: ^11.3
+dependencies:
+  - drupal:media_library

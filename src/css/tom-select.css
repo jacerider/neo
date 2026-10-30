@@ -241,3 +241,26 @@
     flex-wrap: wrap;
   }
 }
+
+/* A disabled select is inert, and should look it.
+
+   Drupal marks the form item `form-disabled`, which fades the whole field
+   once, as it does every other disabled field. The vendor sheet fades the
+   control a second time, which left the text and caret at a quarter strength
+   inside a frame at half, so the empty box was the most visible thing there.
+
+   The caret's hover colour above and the "Search..." prompt both invite a
+   click or a keystroke the field will not take. */
+.ts-wrapper.disabled {
+  .ts-control {
+    opacity: 1;
+
+    &:hover:after {
+      color: var(--form-item-label);
+    }
+
+    input::placeholder {
+      color: transparent;
+    }
+  }
+}

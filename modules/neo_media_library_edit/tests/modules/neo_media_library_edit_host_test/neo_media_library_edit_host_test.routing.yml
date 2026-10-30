@@ -1,0 +1,7 @@
+neo_media_library_edit_host_test.host:
+  path: '/neo-media-library-edit-test/host/{node}'
+  defaults:
+    _controller: '\Drupal\neo_media_library_edit_host_test\Controller\HostController::page'
+    _title: 'Modal host'
+  requirements:
+    _entity_access: 'node.update'

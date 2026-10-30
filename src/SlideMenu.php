@@ -776,6 +776,46 @@ class SlideMenu implements RenderableInterface {
         ],
       ],
       'menu' => $this->buildItems($this->getItems()),
+      'title_back_icon' => $this->buildTitleBackIcon(),
+    ];
+  }
+
+  /**
+   * Builds the back icon a modal title shows while the menu is in a submenu.
+   *
+   * The title is built in the browser (`Drupal.behaviors.neoSlideMenu`'s
+   * `modalTitle`), but the icon is rendered here and handed over in a
+   * `<template>` for the script to clone. An icon written as markup in script
+   * never passes through the icon renderer, so it only shows while its library
+   * renders as a font and its stylesheet happens to be on the page; rendered
+   * here it is whatever the library renders, inline SVG included, and brings
+   * its own attachments and cacheability.
+   *
+   * @return array<string, mixed>
+   *   A render array for the template, or an empty array when the menu has no
+   *   back icon.
+   */
+  protected function buildTitleBackIcon(): array {
+    $icon = $this->getBackIcon();
+    if (!$icon) {
+      return [];
+    }
+    return [
+      '#type' => 'html_tag',
+      '#tag' => 'template',
+      '#attributes' => [
+        'class' => ['neo-slide-menu--title-back-icon'],
+      ],
+      // The icon element is markup in its own right and renders itself, into
+      // the render context of whatever renders the menu, when it is printed.
+      // Resolving it here instead would look the icon up while the menu is
+      // still being built.
+      'icon' => [
+        '#markup' => $this->icon(NULL, $icon)->setIconAttributes([
+          'class' => ['text-base-700', 'text-sm'],
+          'title' => $this->t('Back'),
+        ]),
+      ],
     ];
   }
 
