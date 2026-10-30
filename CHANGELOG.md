@@ -1,5 +1,27 @@
 # Changelog
 
+## A slide menu can limit how many levels expand inline
+
+**A new `expand_levels` option stops inline expansion after a set number of
+levels, so a deeper level slides again.** `expand_depth` expanded every level
+from its depth down, so a mobile mega menu that grouped its second level could
+not let a third-level item with children of its own open a slide panel; its
+grandchildren were listed inline too. `#expand_levels` on the `slide_menu`
+element (and `expand_levels` in the options array) caps the band:
+
+- `0`, the default, keeps today's behaviour, expanding every level from the
+  expand depth down.
+- `1` with an expand depth of `2` groups the second level and slides the third
+  again, with its back and view-all rows.
+
+Two fixes in the slide menu script make that third level work:
+
+- A row now opens only its own submenu. It used to look for a submenu anywhere
+  beneath it, so a group heading could open its first grandchild's level.
+- A level below an inline group no longer opens blank. Its items are now
+  wrapped like any other level's, and the group's row stays visible while the
+  level is open.
+
 ## Installing `neo` no longer fails when Linkit is not installed yet
 
 **A container without Linkit or Path alias now still compiles.**

@@ -115,6 +115,10 @@ in place of a link. _Avoid:_ "menu link" — a row is derived from one but is no
 and render inline beneath their parent as a group heading; `0` always slides. _Avoid:_ "mega menu
 mode", "inline depth".
 
+**Expand levels** — how many levels, starting at the **expand depth**, render inline; the level
+below that band slides again. `0` expands every level from the **expand depth** down. _Avoid:_
+"expand limit", "max depth".
+
 **Back row** — the control row a **slide menu** prepends to every submenu whose parent has
 children: it carries the back icon and a label naming the parent, and returns the reader to the
 level above. Disabling it hides it with a screen-reader class rather than omitting it. _Avoid:_
@@ -125,10 +129,10 @@ parent's own url so a reader can reach the parent page as well as its children. 
 entirely when the parent has no url or its url is a **special route token**. _Avoid:_ "view all
 link", "parent link".
 
-**Slide menu option** — one of the fourteen named keys a **slide menu** accepts in the options array
-its constructor takes: the items, the five attribute bags, and the eight scalars naming the child
+**Slide menu option** — one of the fifteen named keys a **slide menu** accepts in the options array
+its constructor takes: the items, the five attribute bags, and the nine scalars naming the child
 icon, the **back row**'s icon, label and status, the **view-all row**'s status, prefix and suffix,
-and the **expand depth**. The set is closed and stated once, as `SlideMenuOption`'s cases; the
+and the **expand depth** and **expand levels**. The set is closed and stated once, as `SlideMenuOption`'s cases; the
 `slide_menu` element spells the same keys with a leading `#`. _Avoid:_ "setting", "config key",
 "property".
 
