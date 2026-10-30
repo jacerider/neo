@@ -10,6 +10,18 @@ parameters:
   neo.skip_procedural_hook_scan: true
 
 services:
+  # `path_alias.manager` and `plugin.manager.linkit.substitution` are optional
+  # references (`@?`). Both modules are declared dependencies, yet a container
+  # can hold `neo` without them: `neo` sits in a dependency loop (neo ->
+  # neo_icon -> neo_modal / neo_config_file -> neo), around which core computes
+  # an incomplete dependency list, so installing a module in the loop on a
+  # fresh site installs `neo` without them; a kernel test lists its modules by
+  # hand; and a site updating to a release that declares a new dependency runs
+  # without it until someone enables it. A hard reference makes each of those a
+  # container that will not compile, which takes down the whole site, not just
+  # links. Optional, the resolver gets NULL and only a code path that really
+  # needs the missing service fails, the same contract as
+  # NeoLinkitResolver::fromContainer().
   neo.linkit_resolver:
     class: Drupal\neo\Linkit\NeoLinkitResolver
     arguments:
@@ -17,8 +29,8 @@ services:
       - '@entity.repository'
       - '@module_handler'
       - '@stream_wrapper_manager'
-      - '@path_alias.manager'
+      - '@?path_alias.manager'
       - '@language_manager'
       - '@config.factory'
       - '@request_stack'
-      - '@plugin.manager.linkit.substitution'
+      - '@?plugin.manager.linkit.substitution'

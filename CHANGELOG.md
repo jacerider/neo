@@ -1,5 +1,24 @@
 # Changelog
 
+## Installing `neo` no longer fails when Linkit is not installed yet
+
+**A container without Linkit or Path alias now still compiles.**
+`neo.linkit_resolver` took `path_alias.manager` and
+`plugin.manager.linkit.substitution` as hard references, so any container that
+held `neo` without both modules refused to build, and with it everything on the
+site. That happened more often than the declared `linkit` dependency suggests:
+`neo` and the modules it depends on depend on each other (`neo` needs
+`neo_icon`, which needs `neo_modal` and `neo_config_file`, which need `neo`),
+and core works out a dependency list incompletely around such a loop. A fresh
+`drush en neo_modal` (or any other module in the loop) installed `neo` without
+Linkit or Path alias, and failed. Kernel tests, which install only the modules
+they list, failed the same way unless they named both.
+
+- Both references are now optional. Without them, only resolving a path alias
+  or a Linkit substitution needs the missing module.
+- `neo` now declares its dependency on core's `path_alias`, which the resolver
+  has always needed.
+
 ## A slide menu's modal title renders its back icon on the server
 
 **The back arrow a slide menu shows in its modal title is now rendered by the

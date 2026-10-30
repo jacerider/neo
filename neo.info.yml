@@ -10,3 +10,4 @@ dependencies:
   - neo_color:neo_color
   - neo_icon:neo_icon
   - linkit:linkit
+  - drupal:path_alias
