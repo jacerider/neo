@@ -2,7 +2,7 @@ name: 'Neo | Media Library Edit'
 type: module
 description: 'Adds an Edit button to items selected in the media library widget. A stand-in for core issue #2985168; uninstall it once core provides the button.'
 package: Neo
-version: 1.0.156
+version: 1.0.157
 core_version_requirement: ^11.3
 dependencies:
   - neo:neo
