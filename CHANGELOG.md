@@ -19,8 +19,8 @@ Two fixes in the slide menu script make that third level work:
 - A row now opens only its own submenu. It used to look for a submenu anywhere
   beneath it, so a group heading could open its first grandchild's level.
 - A level below an inline group no longer opens blank. Its items are now
-  wrapped like any other level's, and the group's row stays visible while the
-  level is open.
+  wrapped like any other level's, once, however deep the level sits, and the
+  group's row stays visible while the level is open.
 
 ## Installing `neo` no longer fails when Linkit is not installed yet
 

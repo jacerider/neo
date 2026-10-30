@@ -132,9 +132,9 @@ link", "parent link".
 **Slide menu option** — one of the fifteen named keys a **slide menu** accepts in the options array
 its constructor takes: the items, the five attribute bags, and the nine scalars naming the child
 icon, the **back row**'s icon, label and status, the **view-all row**'s status, prefix and suffix,
-and the **expand depth** and **expand levels**. The set is closed and stated once, as `SlideMenuOption`'s cases; the
-`slide_menu` element spells the same keys with a leading `#`. _Avoid:_ "setting", "config key",
-"property".
+and the **expand depth** and **expand levels**. The set is closed and stated once, as
+`SlideMenuOption`'s cases; the `slide_menu` element spells the same keys with a leading `#`.
+_Avoid:_ "setting", "config key", "property".
 
 **Option accessor** — the protected read/write pair on `SlideMenu` that answers a **slide menu
 option**'s value for a case and seeds it from the case's default on first use. It is the only code

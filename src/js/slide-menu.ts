@@ -402,8 +402,11 @@ import { parents, parentsOne, unwrapElement, wrapElement, wrapLiContents } from 
       // inside it (expand_levels) arrives with its items unwrapped. Wrap them
       // now, or they miss the row styling and the slide-in that a focused
       // level gives its items. No level class: those count from the menu
-      // root, and this pass starts from the nested list.
-      this.menuElem.querySelectorAll(`ul.${CLASS_NAMES.inline} ul:not(.${CLASS_NAMES.inline})`).forEach((ul) => {
+      // root, and this pass starts from the nested list. Only the list
+      // directly under an inline row: the pass already wraps every level
+      // inside it, and a second pass over a deeper level would wrap its items
+      // twice, leaving the inner wrapper hidden.
+      this.menuElem.querySelectorAll(`ul.${CLASS_NAMES.inline} > li > ul:not(.${CLASS_NAMES.inline})`).forEach((ul) => {
         wrapLiContents(ul as HTMLElement, CLASS_NAMES.wrapperLi);
       });
 
